@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { Image, Pressable, StyleSheet, View } from 'react-native'
 
 import SSMarkdown from '@/components/SSMarkdown'
@@ -51,6 +52,8 @@ type SSNostrMessageProps = {
   onLongPress?: (msgId: string) => void
   /** Render the text as markdown (DMs); the devices group chat keeps plain text. */
   renderMarkdown?: boolean
+  /** Extra content under the text, e.g. payment cards. */
+  attachments?: ReactNode
 }
 
 type AuthorNameProps = {
@@ -136,7 +139,8 @@ function SSNostrMessage({
   replyPreview,
   onReplyPreviewPress,
   onLongPress,
-  renderMarkdown = false
+  renderMarkdown = false,
+  attachments
 }: SSNostrMessageProps) {
   const {
     authorNpub,
@@ -271,6 +275,7 @@ function SSNostrMessage({
         ) : (
           <MessageText content={messageContent} markdown={renderMarkdown} />
         )}
+        {attachments}
         {isContinuation && (msg.pending || failed) ? (
           <SSHStack gap="xxs">
             {msg.pending ? (

@@ -8,21 +8,31 @@ import { KeyboardAvoidingView } from 'react-native-keyboard-controller'
 import SSChatComposer from '@/components/chat/SSChatComposer'
 import type { SSChatComposerReply } from '@/components/chat/SSChatComposer'
 import SSChatDaySeparator from '@/components/chat/SSChatDaySeparator'
+import SSChatInvoiceCard from '@/components/chat/SSChatInvoiceCard'
 import SSNewMessagesPill from '@/components/chat/SSNewMessagesPill'
 import SSNostrMessage from '@/components/SSNostrMessage'
+import SSPaymentMethodPicker from '@/components/SSPaymentMethodPicker'
 import SSText from '@/components/SSText'
 import {
   NOSTR_DM_MESSAGE_MAX_LENGTH,
   NOSTR_GROUP_CHAT_AUTOSCROLL_THRESHOLD
 } from '@/constants/nostr'
+import { useChatInvoicePay } from '@/hooks/useChatInvoicePay'
 import { useLocalDayStart } from '@/hooks/useLocalDayStart'
 import { useNostrChatScroll } from '@/hooks/useNostrChatScroll'
 import { getAuthorLabel } from '@/hooks/useNostrMessage'
 import type { AuthorDisplayInfo } from '@/hooks/useNostrMessage'
 import { t } from '@/locales'
+import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import type { Account } from '@/types/models/Account'
 import type { NostrChatThreadItem, NostrDM } from '@/types/models/Nostr'
+import type { Network } from '@/types/settings/blockchain'
+import {
+  findChatInvoices,
+  isChatInvoiceExpired
+} from '@/utils/chatPaymentRequests'
+import type { ChatInvoice } from '@/utils/chatPaymentRequests'
 import {
   buildChatRows,
   buildReplyPreview,
@@ -33,7 +43,16 @@ import type { ChatRow } from '@/utils/nostrChatRows'
 
 type VisibleComponents = Map<string, { sankey: boolean; status: boolean }>
 
+type ChatInvoiceActions = {
+  canPay: boolean
+  network: Network
+  privacyMode: boolean
+  onCopy: (invoice: string) => void
+  onPay: (invoice: ChatInvoice) => void
+}
+
 type ChatThreadRowContext = {
+  invoiceActions: ChatInvoiceActions
   formattedNpubs: Map<string, AuthorDisplayInfo>
   messagesById: ReadonlyMap<string, NostrDM>
   todayStart: number
@@ -57,6 +76,35 @@ function ignoreSignFlow() {
 
 function getThreadDm(item: NostrChatThreadItem): NostrDM {
   return item.dm
+}
+
+function getDmText(dm: NostrDM): string {
+  return typeof dm.content === 'string' ? dm.content : ''
+}
+
+function ChatMessageInvoices({
+  actions,
+  text
+}: {
+  actions: ChatInvoiceActions
+  text: string
+}) {
+  const invoices = findChatInvoices(text)
+  if (invoices.length === 0) {
+    return null
+  }
+  return invoices.map((invoice) => (
+    <SSChatInvoiceCard
+      key={invoice.invoice}
+      invoice={invoice}
+      expired={isChatInvoiceExpired(invoice)}
+      wrongNetwork={invoice.network !== actions.network}
+      canPay={actions.canPay}
+      privacyMode={actions.privacyMode}
+      onPay={actions.onPay}
+      onCopy={actions.onCopy}
+    />
+  ))
 }
 
 function ChatThreadRow({ row }: { row: ChatRow<NostrChatThreadItem> }) {
@@ -102,6 +150,12 @@ function ChatThreadRow({ row }: { row: ChatRow<NostrChatThreadItem> }) {
       onReplyPreviewPress={context.onReplyPreviewPress}
       onLongPress={context.onLongPress}
       renderMarkdown
+      attachments={
+        <ChatMessageInvoices
+          actions={context.invoiceActions}
+          text={getDmText(dm)}
+        />
+      }
     />
   )
 }
@@ -178,6 +232,8 @@ export default function SSChatThread({
     showNewMessages
   } = useNostrChatScroll<ChatRow<NostrChatThreadItem>>(items.at(-1)?.dm.id)
   const todayStart = useLocalDayStart()
+  const privacyMode = useSettingsStore((state) => state.privacyMode)
+  const invoicePay = useChatInvoicePay()
 
   function handleSend() {
     const text = inputValue.trim()
@@ -208,8 +264,19 @@ export default function SSChatThread({
     })
   }
 
+  function handleInvoiceCopy(invoice: string) {
+    void invoicePay.copy(invoice)
+  }
+
   const rowContext: ChatThreadRowContext = {
     formattedNpubs,
+    invoiceActions: {
+      canPay: invoicePay.canPay,
+      network: invoicePay.network,
+      onCopy: handleInvoiceCopy,
+      onPay: invoicePay.pay,
+      privacyMode
+    },
     messagesById: new Map(items.map(({ dm }) => [dm.id, dm])),
     onAuthorPress,
     onLongPress: onMessageLongPress,
@@ -278,6 +345,12 @@ export default function SSChatThread({
         loading={sending}
         replyTo={replyTo}
         onCancelReply={onCancelReply}
+      />
+      <SSPaymentMethodPicker
+        ref={invoicePay.paymentSheetRef}
+        onSelect={invoicePay.selectMethod}
+        methods={invoicePay.paymentMethods}
+        amountSats={invoicePay.pendingAmountSats}
       />
     </KeyboardAvoidingView>
   )
