@@ -67,6 +67,7 @@ import { isPayjoinSuccess } from '@/utils/payjoinSessionStatus'
 import { preparePayjoinPsbtForWalletSign } from '@/utils/payjoinSign'
 import { parsePayjoinUri } from '@/utils/payjoinUri'
 import { buildPayjoinWalletCallbacks } from '@/utils/payjoinWallet'
+import { appendLabelNote, buildPriceLabelNote } from '@/utils/receivePriceLabel'
 import {
   buildReceiveQrUri,
   parseReceiveAmountSats,
@@ -589,6 +590,20 @@ export default function Receive() {
     setLocalCustomAmount(sats !== null ? sats.toString() : '')
   }
 
+  function handleAddPriceToLabel() {
+    const fiatAmount =
+      amountMode === 'fiat'
+        ? Number(localFiatAmount)
+        : satsToFiat(Number(localCustomAmount), conversionPrice, fiatEnabled)
+    const note = buildPriceLabelNote({
+      currency: fiatCurrency,
+      date: priceDate ?? new Date(),
+      fiatAmount,
+      price: conversionPrice
+    })
+    handleLabelChange(appendLabelNote(localLabel, note))
+  }
+
   function handleOpenPriceDate() {
     setPendingPriceDate(priceDate ?? new Date())
     priceDateSheetRef.current?.expand()
@@ -1074,11 +1089,22 @@ export default function Receive() {
                     numberOfLines={3}
                     style={styles.labelTextInput}
                   />
-                  <SSButton
-                    label={t('receive.pasteLabel')}
-                    variant="subtle"
-                    onPress={handlePasteLabel}
-                  />
+                  <SSHStack gap="xs">
+                    <SSButton
+                      label={t('receive.pasteLabel')}
+                      variant="subtle"
+                      onPress={handlePasteLabel}
+                      style={styles.amountActionButton}
+                    />
+                    {conversionPrice > 0 ? (
+                      <SSButton
+                        label={t('receive.priceLabel.add')}
+                        variant="subtle"
+                        onPress={handleAddPriceToLabel}
+                        style={styles.amountActionButton}
+                      />
+                    ) : null}
+                  </SSHStack>
                 </SSFormLayout.Item>
               </SSFormLayout>
               <SSVStack widthFull>

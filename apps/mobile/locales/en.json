@@ -3121,7 +3121,10 @@
     "priceDate.setDate": "Set date",
     "priceDate.title": "Price date",
     "priceDate.unavailable": "No price for this date",
-    "priceDate.useCurrent": "Use current price"
+    "priceDate.useCurrent": "Use current price",
+    "priceLabel.add": "Add price",
+    "priceLabel.rate": "%{date} (1 BTC = %{price} %{currency})",
+    "priceLabel.withAmount": "%{amount} %{currency} on %{rate}"
   },
   "script": {
     "diagram.data.emptyElement": "empty",
