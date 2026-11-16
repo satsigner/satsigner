@@ -6,3 +6,4 @@ export const BDK_FEE_BUMP_TARGET_NOT_FOUND_ERROR_MARKER =
   'FeeBumpTargetNotFound'
 export const UNDECODABLE_OUTPUT_ADDRESS_PREFIX = 'Unknown Address'
 export const SELF_SEND_TAG = 'selfsend'
+export const AUTOMATIC_TAGS: readonly string[] = [SELF_SEND_TAG]

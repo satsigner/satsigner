@@ -12,6 +12,7 @@ import {
   WITNESS_SCALE_FACTOR
 } from '@/constants/btc'
 import {
+  AUTOMATIC_TAGS,
   BDK_DUST_ERROR_MARKER,
   BDK_UTXO_NOT_FOUND_ERROR_MARKER,
   MIN_RAW_TRANSACTION_HEX_LENGTH,
@@ -564,4 +565,8 @@ export function isSelfSend(tx: Transaction, ownAddresses: Set<string>) {
     tx.vout.length > 0 &&
     tx.vout.every(({ address }) => ownAddresses.has(address))
   )
+}
+
+export function isAutomaticTag(tag: string) {
+  return AUTOMATIC_TAGS.includes(tag)
 }

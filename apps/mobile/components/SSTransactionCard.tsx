@@ -18,6 +18,7 @@ import {
   formatTxId
 } from '@/utils/format'
 import { parseLabel } from '@/utils/parse'
+import { isAutomaticTag } from '@/utils/transaction'
 import { getWalletTransactionEffect } from '@/utils/walletOwnership'
 
 import { SSIconIncoming, SSIconOutgoing } from './icons'
@@ -392,7 +393,10 @@ function SSTransactionCard({
                   <SSText
                     key={index}
                     size={smallView ? 'xxs' : 'xs'}
-                    style={styles.tag}
+                    style={[
+                      styles.tag,
+                      isAutomaticTag(tag) && styles.tagAutomatic
+                    ]}
                     uppercase
                     numberOfLines={1}
                   >
@@ -434,6 +438,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
     textAlign: 'right'
+  },
+  tagAutomatic: {
+    backgroundColor: Colors.transparent,
+    borderColor: Colors.gray[600],
+    borderWidth: 1,
+    paddingHorizontal: 5,
+    paddingVertical: 1
   },
   tagEmpty: {
     backgroundColor: Colors.gray[950],
