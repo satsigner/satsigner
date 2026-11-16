@@ -90,6 +90,7 @@ function getAutomaticTagsByTxid(account: AutomaticTagSource) {
 export {
   buildAutomaticTagContext,
   getAutomaticTagsByTxid,
-  getAutomaticTransactionTags
+  getAutomaticTransactionTags,
+  isDustReceive
 }
 export type { AutomaticTagContext }

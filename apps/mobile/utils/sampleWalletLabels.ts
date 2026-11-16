@@ -13,6 +13,7 @@ import { type Label } from '@/types/bips/329'
 import { type Account } from '@/types/models/Account'
 import { type Address } from '@/types/models/Address'
 import { type Transaction } from '@/types/models/Transaction'
+import { isDustReceive } from '@/utils/automaticTags'
 import { addLabelTag, parseLabel, parseLabelTags } from '@/utils/parse'
 import { type SampleWallet } from '@/utils/sampleWallet'
 import { isSelfSend } from '@/utils/transaction'
@@ -23,10 +24,6 @@ function compareByChainOrder(a: Transaction, b: Transaction) {
   const heightA = a.blockHeight ?? Number.MAX_SAFE_INTEGER
   const heightB = b.blockHeight ?? Number.MAX_SAFE_INTEGER
   return heightA - heightB || a.id.localeCompare(b.id)
-}
-
-function isDustReceive(tx: Transaction) {
-  return tx.sent === 0 && tx.received <= DUST_ATTACK_MAX_SATS
 }
 
 function createStoryPicker(buckets: typeof SAMPLE_RECEIVE_BUCKETS) {
