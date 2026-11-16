@@ -2479,6 +2479,7 @@
     "chat.noMatchingContacts": "No contacts match your search",
     "chat.noMessages": "No messages yet — say hello",
     "chat.npubPlaceholder": "npub1… or name",
+    "chat.openLinkTitle": "Open this link?",
     "chat.reply.cancel": "Cancel reply",
     "chat.reply.originalUnavailable": "Original message not loaded",
     "chat.reply.replyingTo": "Replying to %{name}",

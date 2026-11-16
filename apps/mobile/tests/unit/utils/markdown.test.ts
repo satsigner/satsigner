@@ -50,7 +50,9 @@ describe('parseMarkdownBlocks', () => {
     const blocks = parseMarkdownBlocks('<img src="https://x" onerror="y">')
     expect(blocks).toStrictEqual([
       {
-        segments: [{ type: 'text', value: '<img src="https://x" onerror="y">' }],
+        segments: [
+          { type: 'text', value: '<img src="https://x" onerror="y">' }
+        ],
         type: 'paragraph'
       }
     ])

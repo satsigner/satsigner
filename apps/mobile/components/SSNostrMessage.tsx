@@ -1,5 +1,6 @@
 import { Image, Pressable, StyleSheet, View } from 'react-native'
 
+import SSMarkdown from '@/components/SSMarkdown'
 import SSText from '@/components/SSText'
 import SSTransactionDetails from '@/components/SSTransactionDetails'
 import { useNostrMessage } from '@/hooks/useNostrMessage'
@@ -48,6 +49,8 @@ type SSNostrMessageProps = {
   replyPreview?: SSNostrMessageReplyPreview
   onReplyPreviewPress?: (parentId: string) => void
   onLongPress?: (msgId: string) => void
+  /** Render the text as markdown (DMs); the devices group chat keeps plain text. */
+  renderMarkdown?: boolean
 }
 
 type AuthorNameProps = {
@@ -102,6 +105,19 @@ function AuthorAvatar({ author }: { author: AuthorDisplayInfo }) {
   return <View style={[styles.avatar, { backgroundColor: author.color }]} />
 }
 
+function MessageText({
+  content,
+  markdown
+}: {
+  content: string
+  markdown: boolean
+}) {
+  if (markdown) {
+    return <SSMarkdown content={content} confirmLinks />
+  }
+  return <SSText size="md">{content}</SSText>
+}
+
 function SSNostrMessage({
   item: msg,
   account,
@@ -119,7 +135,8 @@ function SSNostrMessage({
   isContinuation = false,
   replyPreview,
   onReplyPreviewPress,
-  onLongPress
+  onLongPress,
+  renderMarkdown = false
 }: SSNostrMessageProps) {
   const {
     authorNpub,
@@ -252,7 +269,7 @@ function SSNostrMessage({
             onOpenLinkedTx={onOpenLinkedTx}
           />
         ) : (
-          <SSText size="md">{messageContent}</SSText>
+          <MessageText content={messageContent} markdown={renderMarkdown} />
         )}
         {isContinuation && (msg.pending || failed) ? (
           <SSHStack gap="xxs">

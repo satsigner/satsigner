@@ -11,7 +11,10 @@ import SSChatDaySeparator from '@/components/chat/SSChatDaySeparator'
 import SSNewMessagesPill from '@/components/chat/SSNewMessagesPill'
 import SSNostrMessage from '@/components/SSNostrMessage'
 import SSText from '@/components/SSText'
-import { NOSTR_GROUP_CHAT_AUTOSCROLL_THRESHOLD } from '@/constants/nostr'
+import {
+  NOSTR_DM_MESSAGE_MAX_LENGTH,
+  NOSTR_GROUP_CHAT_AUTOSCROLL_THRESHOLD
+} from '@/constants/nostr'
 import { useLocalDayStart } from '@/hooks/useLocalDayStart'
 import { useNostrChatScroll } from '@/hooks/useNostrChatScroll'
 import { getAuthorLabel } from '@/hooks/useNostrMessage'
@@ -27,8 +30,6 @@ import {
   formatChatDayLabel
 } from '@/utils/nostrChatRows'
 import type { ChatRow } from '@/utils/nostrChatRows'
-
-const MESSAGE_MAX_LENGTH = 500
 
 type VisibleComponents = Map<string, { sankey: boolean; status: boolean }>
 
@@ -100,6 +101,7 @@ function ChatThreadRow({ row }: { row: ChatRow<NostrChatThreadItem> }) {
       }
       onReplyPreviewPress={context.onReplyPreviewPress}
       onLongPress={context.onLongPress}
+      renderMarkdown
     />
   )
 }
@@ -271,7 +273,7 @@ export default function SSChatThread({
         onSend={handleSend}
         placeholder={t('nostrIdentity.chat.messagePlaceholder')}
         sendLabel={t('nostrIdentity.chat.send')}
-        maxLength={MESSAGE_MAX_LENGTH}
+        maxLength={NOSTR_DM_MESSAGE_MAX_LENGTH}
         disabled={sending}
         loading={sending}
         replyTo={replyTo}
