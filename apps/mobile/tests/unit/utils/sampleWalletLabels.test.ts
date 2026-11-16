@@ -1,5 +1,6 @@
 import {
   SAMPLE_DUST_LABELS,
+  SAMPLE_RECEIVE_ADDRESS_NAMES,
   SAMPLE_RECEIVE_BUCKETS,
   SAMPLE_SELF_TRANSFER_LABELS,
   SAMPLE_SEND_BUCKETS
@@ -141,14 +142,24 @@ describe('buildSampleWalletLabels', () => {
     expect(labelFor('dust:0')).toBe(SAMPLE_DUST_LABELS[0])
   })
 
-  it('names addresses by keychain, index and first story', () => {
-    expect(labelFor(OWN_RECEIVE)).toBe(
-      `📥 Invoice address 0 - ${SAMPLE_RECEIVE_BUCKETS[2].stories[0]}`
+  it('names receive addresses by purpose and change by its story', () => {
+    expect(labelFor(OWN_RECEIVE)).toBe(SAMPLE_RECEIVE_ADDRESS_NAMES[0])
+    expect(labelFor('tb1qunused')).toBe(SAMPLE_RECEIVE_ADDRESS_NAMES[7])
+    expect(labelFor(OWN_CHANGE)).toBe('change from dinner split')
+  })
+
+  it('numbers receive names only once the list repeats', () => {
+    const late = makeAddress({
+      address: 'tb1qlate',
+      index: SAMPLE_RECEIVE_ADDRESS_NAMES.length + 1
+    })
+    const labels = buildSampleWalletLabels('segwit', {
+      ...account,
+      addresses: [late]
+    })
+    expect(labels.find(({ ref }) => ref === 'tb1qlate')?.label).toBe(
+      `${SAMPLE_RECEIVE_ADDRESS_NAMES[1]} 2`
     )
-    expect(labelFor(OWN_CHANGE)).toBe(
-      `↩️ Change address 3 - ${SAMPLE_SEND_BUCKETS[2].stories[0]}`
-    )
-    expect(labelFor('tb1qunused')).toBe('📥 Invoice address 7')
   })
 
   it('picks stories that fit the amount', () => {

@@ -103,5 +103,28 @@ export const SAMPLE_DUST_LABELS = [
 ]
 
 export const SAMPLE_CHANGE_LABEL_PREFIX = '↩️ change from'
-export const SAMPLE_RECEIVE_ADDRESS_PREFIX = '📥 Invoice address'
-export const SAMPLE_CHANGE_ADDRESS_PREFIX = '↩️ Change address'
+// What each receive address was handed out for, in derivation order.
+export const SAMPLE_RECEIVE_ADDRESS_NAMES = [
+  'Donations QR',
+  'Nostr profile',
+  'given to Sam',
+  'Exchange withdrawals',
+  'logo client',
+  'meetup tip jar',
+  'Old phone wallet',
+  'blog footer',
+  'P2P trades',
+  'mom',
+  'Consulting invoices',
+  'bike sale',
+  'podcast v4v',
+  'Faucet testing',
+  'roommate',
+  'conference fee',
+  'Monitor sale',
+  'freelance',
+  'game night',
+  'savings top-up'
+]
+export const SAMPLE_CHANGE_ADDRESS_LABEL = 'change'
+export const SAMPLE_UNLABELED_COIN = 'incoming'

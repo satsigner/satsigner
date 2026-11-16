@@ -1,11 +1,12 @@
 import {
-  SAMPLE_CHANGE_ADDRESS_PREFIX,
+  SAMPLE_CHANGE_ADDRESS_LABEL,
   SAMPLE_CHANGE_LABEL_PREFIX,
   SAMPLE_DUST_LABELS,
-  SAMPLE_RECEIVE_ADDRESS_PREFIX,
+  SAMPLE_RECEIVE_ADDRESS_NAMES,
   SAMPLE_RECEIVE_BUCKETS,
   SAMPLE_SELF_TRANSFER_LABELS,
-  SAMPLE_SEND_BUCKETS
+  SAMPLE_SEND_BUCKETS,
+  SAMPLE_UNLABELED_COIN
 } from '@/constants/sampleLabels'
 import { DUST_ATTACK_MAX_SATS, SELF_SEND_TAG } from '@/constants/transaction'
 import { type Label } from '@/types/bips/329'
@@ -96,16 +97,30 @@ function getUtxoLabel(
   if (keychain === 'internal') {
     return `${SAMPLE_CHANGE_LABEL_PREFIX}: ${txLabel ?? ''}`.trim()
   }
-  return txLabel ?? SAMPLE_RECEIVE_ADDRESS_PREFIX
+  return txLabel ?? SAMPLE_UNLABELED_COIN
+}
+
+const EMOJI_PATTERN = /[\p{Extended_Pictographic}\uFE0F]/gu
+
+function getPlainStory(story: string) {
+  return parseLabel(story).label.replaceAll(EMOJI_PATTERN, '').trim()
+}
+
+function getReceiveAddressName(index: number) {
+  const names = SAMPLE_RECEIVE_ADDRESS_NAMES
+  const name = names[index % names.length]
+  const round = Math.floor(index / names.length)
+  return round === 0 ? name : `${name} ${round + 1}`
 }
 
 function getAddressLabel(address: Address, firstTxLabel: string | undefined) {
-  const prefix =
-    address.keychain === 'internal'
-      ? SAMPLE_CHANGE_ADDRESS_PREFIX
-      : SAMPLE_RECEIVE_ADDRESS_PREFIX
-  const name = `${prefix} ${address.index ?? 0}`
-  return firstTxLabel ? `${name} - ${firstTxLabel}` : name
+  if (address.keychain !== 'internal') {
+    return getReceiveAddressName(address.index ?? 0)
+  }
+  const story = firstTxLabel ? getPlainStory(firstTxLabel) : ''
+  return story
+    ? `${SAMPLE_CHANGE_ADDRESS_LABEL} from ${story}`
+    : SAMPLE_CHANGE_ADDRESS_LABEL
 }
 
 function getFirstTxLabel(address: Address, labelsByTxid: Map<string, string>) {
