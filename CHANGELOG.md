@@ -70,6 +70,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   screens; wallets can be reordered.
 - QR scanning on Android without Google ML Kit.
 - Android builds are published on Zapstore.
+- Transaction search: filter by label or txid, sent or received, tags, and a
+  date range on a calendar or a two-thumb slider.
+- The sample segwit wallet labels every transaction, UTXO and address, for
+  demos.
 
 ### Changed
 
@@ -89,6 +93,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Launcher and store icons fill the whole shape instead of a round logo with
   white corners.
 - Dev and branch builds carry a coloured badge on the icon.
+- Self-sends are tagged `#selfsend` on sync.
 
 ### Removed
 
