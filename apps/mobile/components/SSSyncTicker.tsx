@@ -23,16 +23,17 @@ type SSSyncTickerProps = {
 
 function SSSyncTicker({ labels }: SSSyncTickerProps) {
   const leadWidth = useSharedValue(0)
-  const interludeWidth = useSharedValue(0)
+  const loopOffset = useSharedValue(0)
   const progress = useSharedValue(0)
 
   const windowStyle = useAnimatedStyle(() =>
-    leadWidth.value > 0 ? { width: leadWidth.value } : {}
+    // Rounded up: a window a fraction narrower than the text clips its end.
+    leadWidth.value > 0 ? { width: Math.ceil(leadWidth.value) } : {}
   )
   const trackStyle = useAnimatedStyle(() => ({
     transform: [
       {
-        translateX: -progress.value * (leadWidth.value + interludeWidth.value)
+        translateX: -progress.value * loopOffset.value
       }
     ]
   }))
@@ -78,8 +79,9 @@ function SSSyncTicker({ labels }: SSSyncTickerProps) {
     startLoop()
   }
 
-  function handleInterludeLayout(event: LayoutChangeEvent) {
-    interludeWidth.value = event.nativeEvent.layout.width
+  // Where the second copy actually starts, so the scroll lands on it exactly.
+  function handleRepeatLayout(event: LayoutChangeEvent) {
+    loopOffset.value = event.nativeEvent.layout.x
   }
 
   return (
@@ -93,10 +95,15 @@ function SSSyncTicker({ labels }: SSSyncTickerProps) {
         >
           {lead}
         </SSText>
-        <SSText color="muted" size="xs" onLayout={handleInterludeLayout}>
+        <SSText color="muted" size="xs">
           {interlude}
         </SSText>
-        <SSText color="muted" size="xs" style={styles.digits}>
+        <SSText
+          color="muted"
+          size="xs"
+          style={styles.digits}
+          onLayout={handleRepeatLayout}
+        >
           {lead}
         </SSText>
       </Animated.View>
