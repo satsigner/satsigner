@@ -362,7 +362,6 @@
     "sync.details.deepRescan": "Deep rescan",
     "sync.details.deepRescanWarning": "Walks past your last used address to find funds on addresses this wallet has never shown. Slower.",
     "sync.details.explanation": "Your wallet asks the server for the history of each of its addresses to find new and newly confirmed payments. Soon after a sync only recent addresses need checking; after two weeks every address is checked again.",
-    "sync.details.lastSynced": "Last synced",
     "sync.details.quickCheckPending": "Quick checks are not available yet: every sync checks all addresses.",
     "sync.details.title": "Account sync",
     "sync.status.queued": "Queued",

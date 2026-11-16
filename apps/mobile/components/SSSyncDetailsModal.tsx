@@ -1,4 +1,3 @@
-import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 
@@ -26,6 +25,7 @@ function SSSyncDetailsModal({
   return (
     <SSModal
       visible={visible}
+      fullOpacity
       title={t('account.sync.details.title')}
       label={t('common.close')}
       onClose={onClose}
@@ -35,12 +35,7 @@ function SSSyncDetailsModal({
         <SSText color="muted" size="xs">
           {t('account.sync.details.quickCheckPending')}
         </SSText>
-        <SSHStack justifyBetween>
-          <SSText size="xs" color="muted">
-            {t('account.sync.details.lastSynced')}
-          </SSText>
-          <SSText size="xs">{lastSyncedLabel}</SSText>
-        </SSHStack>
+        <SSText size="xs">{lastSyncedLabel}</SSText>
         <SSButton
           label={t('account.sync.details.checkAll')}
           variant="secondary"
