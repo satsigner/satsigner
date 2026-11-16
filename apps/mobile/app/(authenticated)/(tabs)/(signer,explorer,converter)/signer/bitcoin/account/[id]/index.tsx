@@ -898,7 +898,11 @@ function TotalTransactions({
         }
         rightActions={
           <SSHStack>
-            <SSIconButton disabled style={styles.disabledIconButton}>
+            <SSIconButton
+              onPress={() =>
+                router.navigate(`/signer/bitcoin/account/${account.id}/search`)
+              }
+            >
               <SSIconSearch height={18} width={18} />
             </SSIconButton>
             <SSIconButton onPress={() => setShowHistoryChart((prev) => !prev)}>
@@ -2719,9 +2723,6 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
     width: 6
-  },
-  disabledIconButton: {
-    opacity: 0.3
   },
   excludeToolbarBadge: {
     alignItems: 'center',
