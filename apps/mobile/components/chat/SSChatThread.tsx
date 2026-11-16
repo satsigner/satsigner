@@ -9,6 +9,7 @@ import SSChatComposer from '@/components/chat/SSChatComposer'
 import type { SSChatComposerReply } from '@/components/chat/SSChatComposer'
 import SSChatDaySeparator from '@/components/chat/SSChatDaySeparator'
 import SSChatInvoiceCard from '@/components/chat/SSChatInvoiceCard'
+import SSChatReactions from '@/components/chat/SSChatReactions'
 import SSNewMessagesPill from '@/components/chat/SSNewMessagesPill'
 import SSNostrMessage from '@/components/SSNostrMessage'
 import SSPaymentMethodPicker from '@/components/SSPaymentMethodPicker'
@@ -33,6 +34,11 @@ import {
   isChatInvoiceExpired
 } from '@/utils/chatPaymentRequests'
 import type { ChatInvoice } from '@/utils/chatPaymentRequests'
+import { getPubKeyHexFromNpub } from '@/utils/nostr'
+import {
+  getChatAgentStatus,
+  summarizeChatReactions
+} from '@/utils/nostrChatReactions'
 import {
   buildChatRows,
   buildReplyPreview,
@@ -53,6 +59,9 @@ type ChatInvoiceActions = {
 
 type ChatThreadRowContext = {
   invoiceActions: ChatInvoiceActions
+  ownHex: string | null
+  peerHex: string | null
+  onRemoveReaction?: (reactionId: string) => void
   formattedNpubs: Map<string, AuthorDisplayInfo>
   messagesById: ReadonlyMap<string, NostrDM>
   todayStart: number
@@ -119,7 +128,12 @@ function ChatThreadRow({ row }: { row: ChatRow<NostrChatThreadItem> }) {
       />
     )
   }
-  const { dm, failed } = row.item
+  const { dm, failed, reactions } = row.item
+  // The status line only makes sense on my messages: the peer is answering them.
+  const agentStatus =
+    dm.author === context.ownNpub && context.peerHex
+      ? getChatAgentStatus(reactions, context.peerHex)
+      : null
   const preview = dm.replyToId
     ? buildReplyPreview(dm.replyToId, context.messagesById)
     : undefined
@@ -151,10 +165,19 @@ function ChatThreadRow({ row }: { row: ChatRow<NostrChatThreadItem> }) {
       onLongPress={context.onLongPress}
       renderMarkdown
       attachments={
-        <ChatMessageInvoices
-          actions={context.invoiceActions}
-          text={getDmText(dm)}
-        />
+        <>
+          <ChatMessageInvoices
+            actions={context.invoiceActions}
+            text={getDmText(dm)}
+          />
+          {context.onRemoveReaction ? (
+            <SSChatReactions
+              summaries={summarizeChatReactions(reactions, context.ownHex)}
+              agentStatus={agentStatus}
+              onRemove={context.onRemoveReaction}
+            />
+          ) : null}
+        </>
       }
     />
   )
@@ -195,6 +218,10 @@ type SSChatThreadProps = {
   onOpenMessage?: (msgId: string) => void
   replyTo?: SSChatComposerReply
   onCancelReply?: () => void
+  /** Hex pubkey of the peer, whose 👀 ✅ ⚠️ reactions read as agent status. */
+  peerHex?: string
+  /** Reactions are shown (NIP-17 threads) only when this is set. */
+  onRemoveReaction?: (reactionId: string) => void
 }
 
 /**
@@ -217,7 +244,9 @@ export default function SSChatThread({
   onMessageLongPress,
   onOpenMessage,
   replyTo,
-  onCancelReply
+  onCancelReply,
+  peerHex,
+  onRemoveReaction
 }: SSChatThreadProps) {
   const [visibleComponents, setVisibleComponents] = useState(
     NO_VISIBLE_COMPONENTS
@@ -280,9 +309,12 @@ export default function SSChatThread({
     messagesById: new Map(items.map(({ dm }) => [dm.id, dm])),
     onAuthorPress,
     onLongPress: onMessageLongPress,
+    onRemoveReaction,
     onReplyPreviewPress: handleReplyPreviewPress,
     onToggleVisibility: handleToggleVisibility,
+    ownHex: getPubKeyHexFromNpub(ownNpub),
     ownNpub,
+    peerHex: peerHex ?? null,
     todayStart,
     visibleComponents
   }

@@ -12,6 +12,7 @@ import {
   useNostrChatThread
 } from '@/hooks/useNostrChat'
 import { useNostrChatMessageActions } from '@/hooks/useNostrChatMessageActions'
+import { useNostrChatReactions } from '@/hooks/useNostrChatReactions'
 import { getAuthorLabel } from '@/hooks/useNostrMessage'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -73,6 +74,8 @@ export default function NostrChatThread() {
     setReplyTo
   } = useNostrChatThread(identity, protocol, peerNpub, peerPubkey ?? undefined)
   const canReply = protocol === 'nip17'
+  const reactions = useNostrChatReactions(identity, peerNpub)
+  const canReact = canReply && reactions.canReact
 
   function handleOpenMessage(messageId: string) {
     if (!identity) {
@@ -95,6 +98,14 @@ export default function NostrChatThread() {
         </SSVStack>
       </SSMainLayout>
     )
+  }
+
+  function handleReact(emoji: string) {
+    const message = messageActions.selectedMessage
+    messageActions.closeActions()
+    if (message) {
+      reactions.react(message.id, emoji)
+    }
   }
 
   async function sendOrReport(text: string) {
@@ -171,6 +182,8 @@ export default function NostrChatThread() {
             : undefined
         }
         onCancelReply={clearReplyTo}
+        peerHex={peerPubkey}
+        onRemoveReaction={canReact ? reactions.unreact : undefined}
       />
       <SSMessageActionsModal
         visible={messageActions.selectedMessage !== undefined}
@@ -180,6 +193,7 @@ export default function NostrChatThread() {
         onCopy={messageActions.handleCopy}
         onDetails={messageActions.handleDetails}
         onClose={messageActions.closeActions}
+        onReact={canReact ? handleReact : undefined}
       />
     </SSMainLayout>
   )

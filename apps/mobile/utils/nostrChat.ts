@@ -26,8 +26,10 @@ import {
 import { MS_PER_SECOND } from '@/constants/time'
 import {
   deleteChatMessages,
+  deleteChatReactions,
   failInterruptedChatSends,
   insertChatMessage,
+  insertChatReaction,
   markChatThreadRead,
   updateChatMessageStatus
 } from '@/db/mutations/nostrChat'
@@ -53,7 +55,8 @@ import {
   hasOutgoingChatMessage,
   listChatConversations,
   listChatReplies,
-  listChatThread
+  listChatThread,
+  listChatThreadReactions
 } from '@/db/queries/nostrChat'
 import type { AuthorDisplayInfo } from '@/hooks/useNostrMessage'
 import { queryClient } from '@/lib/queryClient'
@@ -68,6 +71,7 @@ import type {
   NostrChatMessage,
   NostrChatPipelineStatus,
   NostrChatProtocol,
+  NostrChatReaction,
   NostrChatThreadItem,
   NostrDM,
   NostrKind4ChatEvent,
@@ -81,6 +85,12 @@ import {
   safeNpubEncode
 } from '@/utils/nostr'
 import { isInboundMessageAllowed } from '@/utils/nostrChatFilter'
+import {
+  buildChatReactionTags,
+  getReactionTargetId,
+  groupReactionsByMessage,
+  parseReactionEmoji
+} from '@/utils/nostrChatReactions'
 import {
   buildMessageDeletionTags,
   buildReplyTag,
@@ -116,6 +126,18 @@ const Nip17DeletionRumorSchema = z.object({
 })
 
 type Nip17DeletionRumor = z.infer<typeof Nip17DeletionRumorSchema>
+
+/** Kind 7 rumor: a NIP-25 reaction to a chat message, inside a NIP-17 wrap. */
+const Nip17ReactionRumorSchema = z.object({
+  content: z.string(),
+  created_at: z.number().optional(),
+  id: z.string().min(1),
+  kind: z.literal(nostrKinds.Reaction),
+  pubkey: z.string().min(1),
+  tags: z.unknown().optional()
+})
+
+type Nip17ReactionRumor = z.infer<typeof Nip17ReactionRumorSchema>
 
 type ChatIdentity = {
   npub: string
@@ -632,6 +654,85 @@ async function deleteChatMessageForEveryone(
   forgetChatMessages(identity.npub, [{ author: ownHex, messageId }])
 }
 
+async function publishOrThrow(
+  api: NostrAPI,
+  identity: ChatIdentity,
+  delivery: Nip17Delivery,
+  rumor: NostrRumor
+): Promise<void> {
+  const outcome = await publishNip17Rumor(api, identity, delivery, rumor)
+  if (!outcome.ok) {
+    throw outcome.error instanceof Error
+      ? outcome.error
+      : new NostrPublishError([])
+  }
+}
+
+/**
+ * NIP-25 reaction to a NIP-17 message: a kind 7 rumor sealed for the peer and
+ * our own devices, as private as the message itself. Shown right away and
+ * dropped again if no relay takes it.
+ */
+async function sendChatReaction(
+  api: NostrAPI,
+  identity: ChatIdentity,
+  peerNpub: string,
+  messageId: string,
+  emoji: string
+): Promise<void> {
+  const ownHex = getPubKeyHexFromNpub(identity.npub)
+  const message = getChatMessage(identity.npub, messageId)
+  if (ownHex === null || !message || message.protocol !== 'nip17') {
+    return
+  }
+  const delivery = resolveNip17Delivery(identity, peerNpub)
+  const rumor = createNip17Rumor(
+    delivery,
+    nostrKinds.Reaction,
+    emoji,
+    buildChatReactionTags(messageId)
+  )
+  insertChatReaction({
+    author: ownHex,
+    created_at: rumor.created_at,
+    emoji,
+    id: rumor.id,
+    identityNpub: identity.npub,
+    messageId
+  })
+  invalidateChatQueries(identity.npub)
+  try {
+    await publishOrThrow(api, identity, delivery, rumor)
+  } catch (error) {
+    deleteChatReactions(identity.npub, ownHex, [rumor.id])
+    invalidateChatQueries(identity.npub)
+    throw error
+  }
+}
+
+/** Takes back one of our reactions with a gift-wrapped kind 5 naming it. */
+async function removeChatReaction(
+  api: NostrAPI,
+  identity: ChatIdentity,
+  peerNpub: string,
+  reactionId: string
+): Promise<void> {
+  const ownHex = getPubKeyHexFromNpub(identity.npub)
+  if (ownHex === null) {
+    return
+  }
+  const delivery = resolveNip17Delivery(identity, peerNpub)
+  const rumor = createNip17Rumor(delivery, nostrKinds.EventDeletion, '', [
+    ['e', reactionId],
+    ['k', String(nostrKinds.Reaction)]
+  ])
+  await publishOrThrow(api, identity, delivery, rumor)
+  await requestChatWrapDeletion(api, identity, delivery, reactionId)
+  deleteChatReactions(identity.npub, ownHex, [reactionId])
+  deleteMessageWraps(chatScope(identity.npub), [reactionId])
+  invalidateChatQueries(identity.npub)
+}
+
 /**
  * Live subscription window. With history stored, it only catches up from the
  * newest relay-confirmed message (NIP-59 backdates wraps by up to two days,
@@ -712,6 +813,8 @@ function applyChatDeletionRumor(
   rumor: Nip17DeletionRumor
 ): void {
   const targetIds = getDeletionTargetIds(rumor.tags)
+  // A kind 5 can also name reactions; deleteChatReactions only drops the requester's own.
+  deleteChatReactions(identityNpub, rumor.pubkey, targetIds)
   const owned = targetIds.filter((messageId) => {
     const message = getChatMessage(identityNpub, messageId)
     return !message || getChatMessageAuthor(message, ownHex) === rumor.pubkey
@@ -720,6 +823,49 @@ function applyChatDeletionRumor(
     identityNpub,
     owned.map((messageId) => ({ author: rumor.pubkey, messageId }))
   )
+}
+
+/**
+ * A reaction counts only on a stored message of this conversation: from the
+ * peer or our own copy, never a stranger. That also keeps it out of the
+ * proof-of-work filter, which is about unsolicited messages.
+ *
+ * Returns false when the target message isn't stored yet: wraps arrive in
+ * random order, so the reaction stays unprocessed and a later fetch reads it
+ * again once the message is in.
+ */
+function applyChatReactionRumor(
+  identityNpub: string,
+  ownHex: string | null,
+  rumor: Nip17ReactionRumor,
+  wrapCreatedAt: number
+): boolean {
+  const emoji = parseReactionEmoji(rumor.content)
+  const messageId = getReactionTargetId(rumor.tags)
+  if (emoji === null || messageId === null) {
+    return true
+  }
+  const message = getChatMessage(identityNpub, messageId)
+  if (!message) {
+    return false
+  }
+  const fromConversation =
+    rumor.pubkey === ownHex || rumor.pubkey === message.peerPubkey
+  if (message.protocol !== 'nip17' || !fromConversation) {
+    return true
+  }
+  const inserted = insertChatReaction({
+    author: rumor.pubkey,
+    created_at: rumor.created_at ?? wrapCreatedAt,
+    emoji,
+    id: rumor.id,
+    identityNpub,
+    messageId
+  })
+  if (inserted) {
+    invalidateChatQueries(identityNpub)
+  }
+  return true
 }
 
 /**
@@ -735,6 +881,15 @@ function ingestChatRumor(
   if (deletion.success) {
     applyChatDeletionRumor(identityNpub, ownHex, deletion.data)
     return true
+  }
+  const reaction = Nip17ReactionRumorSchema.safeParse(wrap.rumor)
+  if (reaction.success) {
+    return applyChatReactionRumor(
+      identityNpub,
+      ownHex,
+      reaction.data,
+      wrap.createdAt
+    )
   }
   const parsedRumor = Nip17ChatRumorSchema.safeParse(wrap.rumor)
   if (!parsedRumor.success) {
@@ -1214,7 +1369,8 @@ type ChatThreadAuthors = { ownHex: string; ownNpub: string; peerNpub: string }
 /** Adapts a stored chat message to the NostrDM shape the shared card expects. */
 function toChatThreadItem(
   message: NostrChatMessage,
-  authors: ChatThreadAuthors
+  authors: ChatThreadAuthors,
+  reactions: NostrChatReaction[] = []
 ): NostrChatThreadItem {
   const isOut = message.direction === 'out'
   const dm: NostrDM = {
@@ -1233,7 +1389,7 @@ function toChatThreadItem(
     read: message.read,
     replyToId: message.replyToId
   }
-  return { dm, failed: message.status === 'failed' }
+  return { dm, failed: message.status === 'failed', reactions }
 }
 
 function getChatThreadAuthors(
@@ -1293,8 +1449,12 @@ function loadChatThreadItems(
     })
   }
   const authors = getChatThreadAuthors(identityNpub, peerPubkey)
+  const reactions = groupReactionsByMessage(
+    listChatThreadReactions(identityNpub, protocol, peerPubkey, limit)
+  )
   return listChatThread(identityNpub, protocol, peerPubkey, limit).map(
-    (message) => toChatThreadItem(message, authors)
+    (message) =>
+      toChatThreadItem(message, authors, reactions.get(message.id) ?? [])
   )
 }
 
@@ -1402,8 +1562,10 @@ export {
   loadChatThreadItems,
   loadOlderChatHistory,
   nostrChatQueryKeys,
+  removeChatReaction,
   restartChatPipeline,
   sendNip04Chat,
+  sendChatReaction,
   sendNip17Chat,
   subscribeChatPipelineStatus,
   subscribeToIdentityChat
