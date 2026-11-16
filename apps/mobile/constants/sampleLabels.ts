@@ -96,9 +96,9 @@ export const SAMPLE_SELF_TRANSFER_LABELS = [
 ]
 
 export const SAMPLE_DUST_LABELS = [
-  '🧹 Dust - do not spend #dust',
+  '🧹 Dust - do not spend',
   "random dust?? don't touch",
-  'dust attack ⚠️ #dust',
+  'dust attack ⚠️',
   'Unknown sender, freeze'
 ]
 

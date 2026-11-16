@@ -1,4 +1,3 @@
-import { DUST_LIMIT } from '@/constants/btc'
 import {
   SAMPLE_CHANGE_ADDRESS_PREFIX,
   SAMPLE_CHANGE_LABEL_PREFIX,
@@ -8,7 +7,7 @@ import {
   SAMPLE_SELF_TRANSFER_LABELS,
   SAMPLE_SEND_BUCKETS
 } from '@/constants/sampleLabels'
-import { SELF_SEND_TAG } from '@/constants/transaction'
+import { DUST_ATTACK_MAX_SATS, SELF_SEND_TAG } from '@/constants/transaction'
 import { type Label } from '@/types/bips/329'
 import { type Account } from '@/types/models/Account'
 import { type Address } from '@/types/models/Address'
@@ -19,9 +18,6 @@ import { isSelfSend } from '@/utils/transaction'
 
 type LabelSource = Pick<Account, 'addresses' | 'transactions' | 'utxos'>
 
-// Payments this small are almost always dust attacks on signet samples.
-const SAMPLE_DUST_MAX_SATS = DUST_LIMIT * 2
-
 function compareByChainOrder(a: Transaction, b: Transaction) {
   const heightA = a.blockHeight ?? Number.MAX_SAFE_INTEGER
   const heightB = b.blockHeight ?? Number.MAX_SAFE_INTEGER
@@ -29,7 +25,7 @@ function compareByChainOrder(a: Transaction, b: Transaction) {
 }
 
 function isDustReceive(tx: Transaction) {
-  return tx.sent === 0 && tx.received <= SAMPLE_DUST_MAX_SATS
+  return tx.sent === 0 && tx.received <= DUST_ATTACK_MAX_SATS
 }
 
 function createStoryPicker(buckets: typeof SAMPLE_RECEIVE_BUCKETS) {
@@ -94,7 +90,7 @@ function getUtxoLabel(
   value: number,
   keychain: Address['keychain']
 ) {
-  if (value <= SAMPLE_DUST_MAX_SATS) {
+  if (value <= DUST_ATTACK_MAX_SATS) {
     return txLabel ?? SAMPLE_DUST_LABELS[0]
   }
   if (keychain === 'internal') {
