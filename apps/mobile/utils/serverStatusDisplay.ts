@@ -1,6 +1,6 @@
-import { type ConnectionVerifyStatus } from '@/hooks/useVerifyConnection'
+import type { ConnectionVerifyStatus } from '@/hooks/useVerifyConnection'
 import { Colors } from '@/styles'
-import { type ServerPrivacy } from '@/utils/serverPrivacy'
+import type { ServerPrivacy } from '@/utils/serverPrivacy'
 
 const PRIVACY_DOT_COLORS: Record<
   ServerPrivacy,

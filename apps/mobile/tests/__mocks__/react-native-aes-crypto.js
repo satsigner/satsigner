@@ -3,7 +3,7 @@ let randomKeyCounter = 0
 function simpleHash(text) {
   let hash = 0
   for (let i = 0; i < text.length; i += 1) {
-    const char = text.charCodeAt(i)
+    const char = text.codePointAt(i)
     hash = (hash << 5) - hash + char
     hash &= hash
   }

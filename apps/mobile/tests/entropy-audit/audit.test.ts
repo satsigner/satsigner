@@ -1,4 +1,5 @@
-import { sampleSource, type EntropySourceName } from './sources'
+import { sampleSource } from './sources'
+import type { EntropySourceName } from './sources'
 import {
   bitBalance,
   CHI_SQUARE_255_P001,

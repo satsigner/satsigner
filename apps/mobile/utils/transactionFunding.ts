@@ -1,6 +1,6 @@
-import { type AutoSelectUtxosAlgorithm } from '@/types/models/AutoSelectUtxos'
-import { type Output } from '@/types/models/Output'
-import { type Utxo } from '@/types/models/Utxo'
+import type { AutoSelectUtxosAlgorithm } from '@/types/models/AutoSelectUtxos'
+import type { Output } from '@/types/models/Output'
+import type { Utxo } from '@/types/models/Utxo'
 import { estimateTransactionSize } from '@/utils/transaction'
 
 export function getTransactionRemainingBalance(

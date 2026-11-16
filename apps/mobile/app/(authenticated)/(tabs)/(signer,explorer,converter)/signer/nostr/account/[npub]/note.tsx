@@ -6,14 +6,13 @@ import { useRef, useState } from 'react'
 import {
   ActivityIndicator,
   Image,
-  type LayoutChangeEvent,
   Pressable,
   ScrollView,
-  type ScrollViewInstance,
   StyleSheet,
   TextInput,
   View
 } from 'react-native'
+import type { LayoutChangeEvent, ScrollViewInstance } from 'react-native'
 import { toast } from 'sonner-native'
 
 import { NostrAPI } from '@/api/nostr'
@@ -95,9 +94,9 @@ import {
   buildNoteEventJson,
   getJsonNoteData,
   getNoteTagsForDisplay,
-  type NostrNoteEvent,
   withAuthorProfile
 } from '@/utils/nostrNoteDetail'
+import type { NostrNoteEvent } from '@/utils/nostrNoteDetail'
 import { extractImageUrlsFromNote } from '@/utils/nostrNoteMedia'
 import { extractMentionPubkeys } from '@/utils/nostrNoteMentions'
 import { getResolvedEventId } from '@/utils/nostrNoteQuotes'

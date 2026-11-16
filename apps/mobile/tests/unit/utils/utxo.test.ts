@@ -1,4 +1,4 @@
-import { type Utxo } from '@/types/models/Utxo'
+import type { Utxo } from '@/types/models/Utxo'
 import { shuffleWithJavaRandom } from '@/utils/array'
 import { javaSeededRandom } from '@/utils/crypto'
 import {
@@ -7,7 +7,8 @@ import {
   selectEfficientUtxos,
   selectStonewallUtxos,
   selectUtxos,
-  sortUtxosForSparrowSelection
+  sortUtxosForSparrowSelection,
+  sumUtxoValues
 } from '@/utils/utxo'
 
 const STONEWALL_TEST_SEED = 42
@@ -453,5 +454,15 @@ describe('stonewall utxo selection algorithm', () => {
     expect(result.error).toBeUndefined()
     expect(result.inputs).toBeDefined()
     expect(result.inputs.length).toBeGreaterThan(0)
+  })
+})
+
+describe('sumUtxoValues', () => {
+  it('adds up every utxo value', () => {
+    expect(sumUtxoValues(createMockUtxos([1000, 2500, 1]))).toBe(3501)
+  })
+
+  it('returns 0 for no utxos', () => {
+    expect(sumUtxoValues([])).toBe(0)
   })
 })

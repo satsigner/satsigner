@@ -1,9 +1,9 @@
 import * as bitcoinjs from 'bitcoinjs-lib'
 
-import { type AddressSnapshot } from '@/api/addressSync'
-import { type Account } from '@/types/models/Account'
-import { type Utxo } from '@/types/models/Utxo'
-import { type Network } from '@/types/settings/blockchain'
+import type { AddressSnapshot } from '@/api/addressSync'
+import type { Account } from '@/types/models/Account'
+import type { Utxo } from '@/types/models/Utxo'
+import type { Network } from '@/types/settings/blockchain'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { getUtxoOutpoint } from '@/utils/outpoint'
 

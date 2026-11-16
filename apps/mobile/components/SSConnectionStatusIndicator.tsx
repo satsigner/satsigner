@@ -1,10 +1,10 @@
 import { View } from 'react-native'
 
 import { SSIconStatusDot, SSIconTor } from '@/components/icons'
-import { type ConnectionVerifyStatus } from '@/hooks/useVerifyConnection'
+import type { ConnectionVerifyStatus } from '@/hooks/useVerifyConnection'
 import SSHStack from '@/layouts/SSHStack'
 import { Colors } from '@/styles'
-import { type ServerPrivacy } from '@/utils/serverPrivacy'
+import type { ServerPrivacy } from '@/utils/serverPrivacy'
 import { serverStatusDotColor } from '@/utils/serverStatusDisplay'
 
 type Props = {

@@ -10,7 +10,8 @@ import {
   useWindowDimensions,
   View
 } from 'react-native'
-import { type SceneRendererProps, TabView } from 'react-native-tab-view'
+import { TabView } from 'react-native-tab-view'
+import type { SceneRendererProps } from 'react-native-tab-view'
 import { toast } from 'sonner-native'
 
 import {
@@ -53,10 +54,10 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors, Sizes, Typography } from '@/styles'
-import { type LNDCombinedTransaction } from '@/types/models/Lightning'
+import type { LNDCombinedTransaction } from '@/types/models/Lightning'
 import { satsToFiat } from '@/utils/fiat'
 import { formatNumber, truncate } from '@/utils/format'
-import { type LightningBubbleChannelRow } from '@/utils/lightningChannelsBubbleLayout'
+import type { LightningBubbleChannelRow } from '@/utils/lightningChannelsBubbleLayout'
 import {
   lightningChannelHref,
   lightningOpenChannelHref
@@ -66,16 +67,17 @@ import {
   getLndChannelRemotePubkey,
   liquidityBarSegmentFlexParts,
   readLndChannelSatsField,
-  readLndChannelStringField
+  readLndChannelStringField,
+  sumLndChannelSatsField
 } from '@/utils/lndChannelDetail'
 import {
   formatLightningTxTimeAgo,
   getTxDisplayInfo,
   getTxLightningSendFeeSatString,
   getTxStatusBadge,
-  txDateOptions,
-  type TxStatusBadge
+  txDateOptions
 } from '@/utils/lndTransactionDisplay'
+import type { TxStatusBadge } from '@/utils/lndTransactionDisplay'
 
 const DASHBOARD_OVERLAY_LOADER_SIZE = 48
 
@@ -311,30 +313,15 @@ export default function NodeDetailPage() {
     const channelFiat = satsToFiat(channelBalance, btcPrice, fiatEnabled)
 
     const channelList = channels ?? []
-    const nodeTotalCapacity = channelList.reduce((sum, channel) => {
-      if (!channel || typeof channel !== 'object') {
-        return sum
-      }
-      return sum + readLndChannelSatsField(channel, ['capacity'])
-    }, 0)
-    const totalLocalSats = channelList.reduce((sum, channel) => {
-      if (!channel || typeof channel !== 'object') {
-        return sum
-      }
-      return (
-        sum +
-        readLndChannelSatsField(channel, ['local_balance', 'localBalance'])
-      )
-    }, 0)
-    const totalRemoteSats = channelList.reduce((sum, channel) => {
-      if (!channel || typeof channel !== 'object') {
-        return sum
-      }
-      return (
-        sum +
-        readLndChannelSatsField(channel, ['remote_balance', 'remoteBalance'])
-      )
-    }, 0)
+    const nodeTotalCapacity = sumLndChannelSatsField(channelList, ['capacity'])
+    const totalLocalSats = sumLndChannelSatsField(channelList, [
+      'local_balance',
+      'localBalance'
+    ])
+    const totalRemoteSats = sumLndChannelSatsField(channelList, [
+      'remote_balance',
+      'remoteBalance'
+    ])
     const nodeTotalCap = Math.max(0, nodeTotalCapacity)
     const loc =
       nodeTotalCap > 0 ? Math.max(0, Math.min(totalLocalSats, nodeTotalCap)) : 0
@@ -829,12 +816,7 @@ export default function NodeDetailPage() {
       )
     }
 
-    const nodeTotalCapacity = channels.reduce((sum, channel) => {
-      if (!channel || typeof channel !== 'object') {
-        return sum
-      }
-      return sum + readLndChannelSatsField(channel, ['capacity'])
-    }, 0)
+    const nodeTotalCapacity = sumLndChannelSatsField(channels, ['capacity'])
 
     return (
       <SSVStack gap="md" style={styles.section}>

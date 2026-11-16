@@ -37,10 +37,9 @@ export function getArkNextExpiryHeight(vtxos: ArkVtxo[]): number | null {
 }
 
 export function sumArkVtxoSats(vtxos: ArkVtxo[], ids: Set<string>): number {
-  return vtxos.reduce(
-    (total, vtxo) => (ids.has(vtxo.id) ? total + vtxo.amountSats : total),
-    0
-  )
+  return vtxos
+    .filter((vtxo) => ids.has(vtxo.id))
+    .reduce((total, vtxo) => total + vtxo.amountSats, 0)
 }
 
 export type ArkBusyVtxoIds = {

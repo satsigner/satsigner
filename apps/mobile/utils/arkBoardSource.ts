@@ -1,7 +1,7 @@
 import { ARK_BOARDING_WALLET_SOURCE_ID } from '@/constants/ark'
-import { type Account } from '@/types/models/Account'
-import { type ScriptVersionType } from '@/types/models/Script'
-import { type Network } from '@/types/settings/blockchain'
+import type { Account } from '@/types/models/Account'
+import type { ScriptVersionType } from '@/types/models/Script'
+import type { Network } from '@/types/settings/blockchain'
 import { getAccountTotalBalance } from '@/utils/account'
 import { canAccountFundArkBoard } from '@/utils/arkBoardFunding'
 

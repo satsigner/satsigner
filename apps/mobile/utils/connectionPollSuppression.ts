@@ -1,4 +1,4 @@
-import { type Network } from '@/types/settings/blockchain'
+import type { Network } from '@/types/settings/blockchain'
 
 const suppressedNetworks = new Set<Network>()
 const listeners = new Set<() => void>()

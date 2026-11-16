@@ -1,9 +1,9 @@
 import * as bitcoinjs from 'bitcoinjs-lib'
 import { useCallback, useState } from 'react'
-import { type PsbtLike } from 'react-native-bdk-sdk'
+import type { PsbtLike } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 
-import { type Key } from '@/types/models/Account'
+import type { Key } from '@/types/models/Account'
 import { getMultisigScriptTypeFromScriptVersion } from '@/utils/bitcoin'
 import { signPSBTWithSeed } from '@/utils/psbt'
 

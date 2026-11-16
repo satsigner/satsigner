@@ -9,8 +9,8 @@ import { advanceArkSwapJobs } from '@/services/arkSwap'
 import { useAccountsStore } from '@/store/accounts'
 import { useArkStore } from '@/store/ark'
 import { useArkSwapsStore } from '@/store/arkSwaps'
-import { type Account } from '@/types/models/Account'
-import { type ArkLightningToOnchainJob } from '@/types/models/ArkSwap'
+import type { Account } from '@/types/models/Account'
+import type { ArkLightningToOnchainJob } from '@/types/models/ArkSwap'
 
 jest.mock<typeof import('@/api/ark')>('@/api/ark', () => ({
   estimateArkLightningReceiveFee: jest.fn(),

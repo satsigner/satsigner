@@ -1,4 +1,4 @@
-import { type EcashMint, type EcashProof } from '@/types/models/Ecash'
+import type { EcashMint, EcashProof } from '@/types/models/Ecash'
 import {
   buildEcashBackupPayload,
   collectMintUrlsForRestore,

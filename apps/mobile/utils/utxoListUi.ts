@@ -1,6 +1,6 @@
 import { t } from '@/locales'
-import { type ScriptVersionType } from '@/types/models/Script'
-import { type UtxoGroupMode, type UtxoSortField } from '@/utils/utxoList'
+import type { ScriptVersionType } from '@/types/models/Script'
+import type { UtxoGroupMode, UtxoSortField } from '@/utils/utxoList'
 
 const UTXO_SORT_FIELDS: UtxoSortField[] = ['amount', 'label', 'date']
 

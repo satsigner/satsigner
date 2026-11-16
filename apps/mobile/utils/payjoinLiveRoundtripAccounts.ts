@@ -3,7 +3,7 @@ import {
   SAMPLE_SEGWIT_ACCOUNT_NAME,
   sampleSignetXpubFingerprint
 } from '@/constants/samples'
-import { type Account } from '@/types/models/Account'
+import type { Account } from '@/types/models/Account'
 
 function findRoundtripAccount(
   accounts: Account[],

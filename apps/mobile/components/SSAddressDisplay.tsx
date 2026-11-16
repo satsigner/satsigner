@@ -4,7 +4,8 @@ import SSHStack from '@/layouts/SSHStack'
 import { Colors } from '@/styles'
 
 import SSClipboardCopy from './SSClipboardCopy'
-import SSText, { type SSTextProps } from './SSText'
+import SSText from './SSText'
+import type { SSTextProps } from './SSText'
 
 type SSAddressDisplayProps = {
   address: string

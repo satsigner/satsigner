@@ -1,4 +1,4 @@
-import { type NostrChatMessage } from '@/types/models/Nostr'
+import type { NostrChatMessage } from '@/types/models/Nostr'
 
 import { getDb, runTransaction } from '../connection'
 import { boolToInt } from '../mappers'

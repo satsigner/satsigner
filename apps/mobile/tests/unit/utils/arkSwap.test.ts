@@ -14,13 +14,12 @@ import {
   BOLT11_DEFAULT_EXPIRY_SECONDS,
   LIGHTNING_CHANNEL_THRESHOLD
 } from '@/constants/lightning'
-import {
-  type ArkLightningToOnchainJob,
-  type ArkOnchainToLightningJob,
-  type ArkSwapJob
+import type {
+  ArkLightningToOnchainJob,
+  ArkOnchainToLightningJob,
+  ArkSwapJob
 } from '@/types/models/ArkSwap'
 import {
-  type ArkSwapForm,
   buildArkSwapRequest,
   canDismissArkSwapJob,
   canSubmitArkSwapInvoice,
@@ -53,6 +52,7 @@ import {
   resolveArkSwapRoute,
   willInvoiceOutlastBoard
 } from '@/utils/arkSwap'
+import type { ArkSwapForm } from '@/utils/arkSwap'
 
 const NOW = 1_800_000_000
 const PAYMENT_HASH = 'ab'.repeat(32)
@@ -507,12 +507,12 @@ describe('isArkSwapInvoiceAbandoned', () => {
   })
 })
 
+function sentTo(address: string, status: string) {
+  return { sentToAddresses: [address], status }
+}
+
 describe('getArkSwapPayoutOutcome', () => {
   const ADDRESS = 'tb1qpayout'
-
-  function sentTo(address: string, status: string) {
-    return { sentToAddresses: [address], status }
-  }
 
   it('completes only once a movement to the address is successful', () => {
     expect(

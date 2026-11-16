@@ -3,10 +3,10 @@ import {
   coveringMintUrls,
   meltSatsNeeded,
   mintCoversMeltQuote,
-  type MintSpendBalance,
   selectMintRoute,
   sliceAmountAfterFeeMiss
 } from '@/utils/ecashMintRoute'
+import type { MintSpendBalance } from '@/utils/ecashMintRoute'
 
 function mint(
   mintUrl: string,

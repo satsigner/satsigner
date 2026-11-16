@@ -8,8 +8,8 @@ import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
-import { Label } from '@/types/bips/329'
-import { type UtxoSearchParams } from '@/types/navigation/searchParams'
+import type { Label } from '@/types/bips/329'
+import type { UtxoSearchParams } from '@/types/navigation/searchParams'
 
 function UtxoLabel() {
   const { id: accountId, txid, vout } = useLocalSearchParams<UtxoSearchParams>()

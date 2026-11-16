@@ -1,4 +1,4 @@
-import { type NostrKind0Profile } from '@/types/models/Nostr'
+import type { NostrKind0Profile } from '@/types/models/Nostr'
 
 type CommonNostrKeys = {
   commonNpub: string

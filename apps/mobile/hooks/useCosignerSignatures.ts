@@ -5,8 +5,8 @@ import { WATCH_ONLY_COSIGNER_INDEX } from '@/constants/account'
 import { usePSBTManagement } from '@/hooks/usePSBTManagement'
 import { findSignedPsbtsPerCosignerInPsbt } from '@/services/cosignerSignatures'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
-import { type Account, type Key } from '@/types/models/Account'
-import { type Notice } from '@/types/ui/notice'
+import type { Account, Key } from '@/types/models/Account'
+import type { Notice } from '@/types/ui/notice'
 import { isFinalTransactionHex } from '@/utils/bitcoinContent'
 import {
   bindImportedSignature,

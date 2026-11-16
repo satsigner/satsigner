@@ -4,7 +4,7 @@ import {
   SEQUENCE_FINAL,
   SEQUENCE_RBF
 } from '@/constants/btc'
-import { type Utxo } from '@/types/models/Utxo'
+import type { Utxo } from '@/types/models/Utxo'
 import {
   buildCpfpDraft,
   buildDraftFromReplacementPsbt,

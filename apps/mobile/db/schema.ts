@@ -1,4 +1,4 @@
-import { type NitroSQLiteConnection } from 'react-native-nitro-sqlite'
+import type { NitroSQLiteConnection } from 'react-native-nitro-sqlite'
 
 const SCHEMA_V1 = `
 CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL);

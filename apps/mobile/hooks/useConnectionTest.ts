@@ -5,12 +5,12 @@ import {
   probeConnection,
   toConnectionTestFailure
 } from '@/services/connectionTest'
-import { type ConnectionTestResult } from '@/types/models/ConnectionTest'
-import {
-  type Backend,
-  type Network,
-  type ProxyConfig,
-  type RpcCredentials
+import type { ConnectionTestResult } from '@/types/models/ConnectionTest'
+import type {
+  Backend,
+  Network,
+  ProxyConfig,
+  RpcCredentials
 } from '@/types/settings/blockchain'
 
 export function useConnectionTest() {

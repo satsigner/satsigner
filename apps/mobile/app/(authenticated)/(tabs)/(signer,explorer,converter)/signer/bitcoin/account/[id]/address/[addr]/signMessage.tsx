@@ -14,16 +14,13 @@ import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
-import { type Address } from '@/types/models/Address'
-import { type AddrSearchParams } from '@/types/navigation/searchParams'
+import type { Address } from '@/types/models/Address'
+import type { AddrSearchParams } from '@/types/navigation/searchParams'
 import { getAddressDerivationPath } from '@/utils/bitcoin'
 import { decryptAccountKeySecret } from '@/utils/decryption'
 import { getAddressKeyPair } from '@/utils/key'
-import {
-  getSupportedSignMethods,
-  type MessageSignMethod,
-  signAddressMessage
-} from '@/utils/message'
+import { getSupportedSignMethods, signAddressMessage } from '@/utils/message'
+import type { MessageSignMethod } from '@/utils/message'
 
 function signWithPrivateKey(
   privateKeyHex: string,

@@ -10,19 +10,19 @@ import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
-import { type Account } from '@/types/models/Account'
-import { type PsbtBuildStatus } from '@/types/models/Psbt'
-import { type Utxo } from '@/types/models/Utxo'
-import { type Message, type Notice } from '@/types/ui/notice'
+import type { Account } from '@/types/models/Account'
+import type { PsbtBuildStatus } from '@/types/models/Psbt'
+import type { Utxo } from '@/types/models/Utxo'
+import type { Message, Notice } from '@/types/ui/notice'
 import {
   createMockPsbt,
   createPlaceholderTransactionId,
-  type ExtractedTransactionData,
   extractTransactionDataFromPSBT,
   extractTransactionDataFromPSBTEnhanced,
   generateTransactionId,
   getPsbtExtractionNotice
 } from '@/utils/psbt'
+import type { ExtractedTransactionData } from '@/utils/psbt'
 import {
   findFirstInvalidOutputAddress,
   mapBuildTransactionError

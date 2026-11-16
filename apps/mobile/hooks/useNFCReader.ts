@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
-import { AppState, type AppStateStatus } from 'react-native'
+import { AppState } from 'react-native'
+import type { AppStateStatus } from 'react-native'
 import NfcManager, { Ndef, NfcTech } from 'react-native-nfc-manager'
 
 import { NFC_AVAILABILITY_RETRY_MS } from '@/constants/nfc'
-import { type NFCReadResult } from '@/types/models/Nfc'
+import type { NFCReadResult } from '@/types/models/Nfc'
 import { getNfcAdapterStatus } from '@/utils/nfcAdapterStatus'
 import { NfcDisabledError } from '@/utils/nfcError'
 import { toNfcSessionError } from '@/utils/nfcSession'
@@ -87,7 +88,7 @@ export function useNFCReader() {
       const type =
         typeof record.type === 'string'
           ? record.type
-          : String.fromCharCode.apply(null, record.type)
+          : String.fromCodePoint.apply(null, record.type)
 
       if (record.tnf === Ndef.TNF_WELL_KNOWN && type === Ndef.RTD_TEXT) {
         const text = Ndef.text.decodePayload(new Uint8Array(record.payload))

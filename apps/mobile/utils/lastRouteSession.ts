@@ -12,11 +12,10 @@ import {
   isAuthenticatedRoute,
   isRestorableRoute,
   parseHref,
-  type RestorableRoute,
-  type RouteOwnership,
   routeFromSegments,
   serializeHref
 } from '@/utils/lastRoute'
+import type { RestorableRoute, RouteOwnership } from '@/utils/lastRoute'
 
 const WARNING_ROUTE = '/warning'
 

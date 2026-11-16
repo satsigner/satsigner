@@ -1,11 +1,6 @@
 import { useState } from 'react'
-import {
-  Pressable,
-  type PressableStateCallbackType,
-  StyleSheet,
-  type TextInput,
-  View
-} from 'react-native'
+import { Pressable, StyleSheet, View } from 'react-native'
+import type { PressableStateCallbackType, TextInput } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
 import { Colors, Sizes, Typography } from '@/styles'

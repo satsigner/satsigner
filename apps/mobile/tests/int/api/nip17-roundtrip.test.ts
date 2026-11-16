@@ -22,9 +22,9 @@ import {
   getPublicKey,
   nip17,
   nip59,
-  SimplePool,
-  type Event
+  SimplePool
 } from 'nostr-tools'
+import type { Event } from 'nostr-tools'
 
 const RELAYS = [
   'wss://nos.lol',

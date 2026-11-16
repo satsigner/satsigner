@@ -1,5 +1,5 @@
 import * as bitcoinjs from 'bitcoinjs-lib'
-import { type Href } from 'expo-router'
+import type { Href } from 'expo-router'
 
 import { AUTO_SELECT_FROM_URI_SEARCH_PARAM } from '@/constants/autoSelectUtxos'
 import { t } from '@/locales'

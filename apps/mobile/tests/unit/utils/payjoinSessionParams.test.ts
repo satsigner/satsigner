@@ -1,4 +1,4 @@
-import { type PayjoinSession } from '@/types/payjoin'
+import type { PayjoinSession } from '@/types/payjoin'
 import { withReceiverSessionBip21Params } from '@/utils/payjoinSessionParams'
 
 function baseSession(overrides?: Partial<PayjoinSession>): PayjoinSession {

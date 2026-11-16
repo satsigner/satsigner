@@ -4,9 +4,9 @@ import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
 import SSDevConsolePanel, {
-  type DevConsolePanelActions,
   PANEL_EDGE_GAP
 } from '@/components/SSDevConsolePanel'
+import type { DevConsolePanelActions } from '@/components/SSDevConsolePanel'
 import SSText from '@/components/SSText'
 import { t } from '@/locales'
 import { useDevConsoleStore } from '@/store/devConsole'

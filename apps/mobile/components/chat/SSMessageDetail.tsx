@@ -10,9 +10,9 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
-import {
-  type NostrMessageDetailRow,
-  type NostrMessagePreview
+import type {
+  NostrMessageDetailRow,
+  NostrMessagePreview
 } from '@/utils/nostrMessageDetail'
 
 type DeleteConfirmation = 'everyone' | 'me' | null

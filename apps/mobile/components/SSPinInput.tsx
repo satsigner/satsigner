@@ -1,12 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient'
-import {
-  type Dispatch,
-  type ReactNode,
-  type SetStateAction,
-  useEffect,
-  useRef,
-  useState
-} from 'react'
+import { useEffect, useRef, useState } from 'react'
+import type { Dispatch, ReactNode, SetStateAction } from 'react'
 import { StyleSheet, TextInput, View } from 'react-native'
 import Animated, {
   useAnimatedStyle,

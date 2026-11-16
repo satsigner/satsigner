@@ -1,4 +1,5 @@
-import { type BdkWallet, KeychainKind } from 'react-native-bdk-sdk'
+import { KeychainKind } from 'react-native-bdk-sdk'
+import type { BdkWallet } from 'react-native-bdk-sdk'
 
 import { peekDerivedAddress } from '@/utils/derivedAddress'
 

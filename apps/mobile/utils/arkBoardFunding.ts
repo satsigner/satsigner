@@ -6,9 +6,9 @@ import {
   ARK_BOARD_NATIVE_SEGWIT_OUTPUT_TYPES,
   ARK_BOARD_NATIVE_SEGWIT_SCRIPT_VERSIONS
 } from '@/constants/ark'
-import { type Account } from '@/types/models/Account'
-import { type ArkBoardIntent } from '@/types/models/Ark'
-import { type Network } from '@/types/settings/blockchain'
+import type { Account } from '@/types/models/Account'
+import type { ArkBoardIntent } from '@/types/models/Ark'
+import type { Network } from '@/types/settings/blockchain'
 import {
   bitcoinjsNetwork,
   getScriptTypeFromOutputScript
@@ -18,10 +18,10 @@ import {
   outputScriptFor,
   parsePsbt,
   parseTransaction,
-  type Prevout,
   prevoutForInput,
   unsignedTxid
 } from '@/utils/psbtInspection'
+import type { Prevout } from '@/utils/psbtInspection'
 
 type ArkBoardCosignRejection =
   | 'duplicateBoardOutput'

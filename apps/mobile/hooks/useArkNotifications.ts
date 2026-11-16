@@ -1,4 +1,5 @@
-import { type QueryClient, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
+import type { QueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { AppState } from 'react-native'
 

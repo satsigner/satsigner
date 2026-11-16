@@ -6,14 +6,15 @@ import SSDevOnlyRoute from '@/components/SSDevOnlyRoute'
 import SSText from '@/components/SSText'
 import {
   DESIGN_ICON_COUNT,
-  DESIGN_ICON_GROUPS,
-  type DesignIconEntry
+  DESIGN_ICON_GROUPS
 } from '@/constants/designIconCatalog'
+import type { DesignIconEntry } from '@/constants/designIconCatalog'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
-import { type DesignIconRow, toDesignIconRows } from '@/utils/designIcons'
+import { toDesignIconRows } from '@/utils/designIcons'
+import type { DesignIconRow } from '@/utils/designIcons'
 
 const tn = _tn('settings.developer.designSystem')
 

@@ -1,9 +1,5 @@
 import type NDK from '@nostr-dev-kit/ndk'
-import {
-  type NDKEvent,
-  type NDKFilter,
-  type NDKRelay
-} from '@nostr-dev-kit/ndk'
+import type { NDKEvent, NDKFilter, NDKRelay } from '@nostr-dev-kit/ndk'
 
 import { createEphemeralNdk, disconnectNdkPool } from '@/api/ndkRegistry'
 import { connectToFirstRelay } from '@/api/nostrRelayHealth'

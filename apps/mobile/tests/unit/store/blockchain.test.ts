@@ -1,5 +1,5 @@
 import { useBlockchainStore } from '@/store/blockchain'
-import { type Server } from '@/types/settings/blockchain'
+import type { Server } from '@/types/settings/blockchain'
 
 const CREDENTIALS = { password: 'hunter2', username: 'satoshi' }
 

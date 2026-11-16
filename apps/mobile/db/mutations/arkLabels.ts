@@ -1,4 +1,4 @@
-import { type Label } from '@/types/bips/329'
+import type { Label } from '@/types/bips/329'
 
 import { getDb } from '../connection'
 

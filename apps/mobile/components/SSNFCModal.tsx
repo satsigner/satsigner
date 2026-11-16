@@ -12,7 +12,7 @@ import { useNFCReader } from '@/hooks/useNFCReader'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { type NFCReadResult } from '@/types/models/Nfc'
+import type { NFCReadResult } from '@/types/models/Nfc'
 import { sanitizeScannedText } from '@/utils/parse'
 
 type SSNFCModalProps = {

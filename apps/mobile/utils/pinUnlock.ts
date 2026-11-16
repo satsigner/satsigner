@@ -1,6 +1,6 @@
 import { getKeySecret } from '@/storage/encrypted'
 import { useAccountsStore } from '@/store/accounts'
-import { type EncryptedKeySecret } from '@/types/models/Account'
+import type { EncryptedKeySecret } from '@/types/models/Account'
 import {
   commitPinMaterial,
   migratePinKdfIfNeeded,

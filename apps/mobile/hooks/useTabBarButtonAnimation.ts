@@ -2,11 +2,11 @@ import { createContext, useContext } from 'react'
 import {
   Extrapolation,
   interpolate,
-  type SharedValue,
   useAnimatedStyle,
   useSharedValue,
   withTiming
 } from 'react-native-reanimated'
+import type { SharedValue } from 'react-native-reanimated'
 
 import { selectionFromIndex } from '@/hooks/useTabBarIndicator'
 

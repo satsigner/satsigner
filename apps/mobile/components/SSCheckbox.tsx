@@ -1,13 +1,14 @@
-import { type StyleProp, StyleSheet, View, type ViewStyle } from 'react-native'
-import BouncyCheckbox, {
-  type BouncyCheckboxProps
-} from 'react-native-bouncy-checkbox'
+import { StyleSheet, View } from 'react-native'
+import type { StyleProp, ViewStyle } from 'react-native'
+import BouncyCheckbox from 'react-native-bouncy-checkbox'
+import type { BouncyCheckboxProps } from 'react-native-bouncy-checkbox'
 
 import SSVStack from '@/layouts/SSVStack'
 import { Colors, Sizes } from '@/styles'
 
 import SSPressable from './SSPressable'
-import SSText, { type SSTextProps } from './SSText'
+import SSText from './SSText'
+import type { SSTextProps } from './SSText'
 
 const DEFAULT_CONTAINER_STYLE: ViewStyle = {}
 const DEFAULT_LABEL_PROPS: SSTextProps = {

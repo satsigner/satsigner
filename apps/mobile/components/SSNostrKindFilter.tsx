@@ -11,8 +11,8 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
-import { type TextFontSize, type TextFontWeight } from '@/styles/sizes'
-import { type NostrNoteKindFilterOption } from '@/types/models/Nostr'
+import type { TextFontSize, TextFontWeight } from '@/styles/sizes'
+import type { NostrNoteKindFilterOption } from '@/types/models/Nostr'
 
 const DROPDOWN_LABEL_MAX_CHARS = 36
 

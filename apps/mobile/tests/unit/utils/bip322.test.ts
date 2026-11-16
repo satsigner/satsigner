@@ -379,17 +379,17 @@ describe('bip322 utils - dispatcher', () => {
   })
 })
 
-describe('bip322 utils - runtime without TypedArray species', () => {
-  // Hermes ignores Symbol.species, so Buffer#subarray returns a plain
-  // Uint8Array there. The `buffer` polyfill's slice resets the prototype.
-  function plainSubarray(buffer: Buffer, start?: number, end?: number) {
-    return new Uint8Array(
-      buffer.buffer,
-      buffer.byteOffset,
-      buffer.length
-    ).subarray(start, end)
-  }
+// Hermes ignores Symbol.species, so Buffer#subarray returns a plain
+// Uint8Array there. The `buffer` polyfill's slice resets the prototype.
+function plainSubarray(buffer: Buffer, start?: number, end?: number) {
+  return new Uint8Array(
+    buffer.buffer,
+    buffer.byteOffset,
+    buffer.length
+  ).subarray(start, end)
+}
 
+describe('bip322 utils - runtime without TypedArray species', () => {
   beforeEach(() => {
     jest
       .spyOn(Buffer.prototype, 'subarray')

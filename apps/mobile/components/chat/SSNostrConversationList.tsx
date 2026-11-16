@@ -1,4 +1,5 @@
-import { FlashList, type ListRenderItemInfo } from '@shopify/flash-list'
+import { FlashList } from '@shopify/flash-list'
+import type { ListRenderItemInfo } from '@shopify/flash-list'
 import { createContext, use } from 'react'
 import { Image, Pressable, StyleSheet, View } from 'react-native'
 
@@ -8,7 +9,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useNostrStore } from '@/store/nostr'
 import { Colors } from '@/styles'
-import { type NostrChatConversationItem } from '@/types/models/Nostr'
+import type { NostrChatConversationItem } from '@/types/models/Nostr'
 import { formatNpub } from '@/utils/format'
 import { isNonEmptyString } from '@/utils/string'
 

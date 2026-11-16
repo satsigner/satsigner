@@ -1,4 +1,4 @@
-import { type PayjoinSession } from '@/types/payjoin'
+import type { PayjoinSession } from '@/types/payjoin'
 import {
   receiverPollEffectKey,
   resolveReceiverPollMode

@@ -6,10 +6,8 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors, Typography } from '@/styles'
-import {
-  type ArkVtxoLineageStep,
-  getArkVtxoLineageView
-} from '@/utils/arkVtxoDetail'
+import { getArkVtxoLineageView } from '@/utils/arkVtxoDetail'
+import type { ArkVtxoLineageStep } from '@/utils/arkVtxoDetail'
 import { formatMaskedNumber, formatTxId } from '@/utils/format'
 
 const MAX_SIBLING_DOTS = 6

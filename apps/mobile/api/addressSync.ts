@@ -2,8 +2,8 @@ import { hex } from '@scure/base'
 import * as bitcoinjs from 'bitcoinjs-lib'
 
 import { MS_PER_SECOND } from '@/constants/time'
-import { type Transaction } from '@/types/models/Transaction'
-import { type Network, type Server } from '@/types/settings/blockchain'
+import type { Transaction } from '@/types/models/Transaction'
+import type { Network, Server } from '@/types/settings/blockchain'
 import { mapEsploraTxToAddressTransaction } from '@/utils/explorerAddressTx'
 
 import ElectrumClient, { closeElectrumClientQuietly } from './electrum'

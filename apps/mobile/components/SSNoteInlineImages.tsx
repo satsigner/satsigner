@@ -1,11 +1,6 @@
 import { useState } from 'react'
-import {
-  Image,
-  StyleSheet,
-  View,
-  type StyleProp,
-  type ViewStyle
-} from 'react-native'
+import { Image, StyleSheet, View } from 'react-native'
+import type { StyleProp, ViewStyle } from 'react-native'
 
 import SSFullscreenImageViewer from '@/components/SSFullscreenImageViewer'
 import { useImageActionsStore } from '@/store/imageActions'

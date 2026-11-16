@@ -1,7 +1,8 @@
 import ecc from '@bitcoinerlab/secp256k1'
 import { hex } from '@scure/base'
 import { HDKey } from '@scure/bip32' // TODO: remove @scure
-import { BIP32Factory, type BIP32Interface } from 'bip32'
+import { BIP32Factory } from 'bip32'
+import type { BIP32Interface } from 'bip32'
 import {
   KeychainKind,
   Mnemonic,
@@ -18,9 +19,9 @@ import {
   BIP86_PURPOSE
 } from '@/constants/derivation'
 import { EXTENDED_PUBKEY_PATTERN } from '@/constants/descriptor'
-import { type AddressKeyPair } from '@/types/models/Address'
-import { type ScriptVersionType } from '@/types/models/Script'
-import { type Network as AppNetwork } from '@/types/settings/blockchain'
+import type { AddressKeyPair } from '@/types/models/Address'
+import type { ScriptVersionType } from '@/types/models/Script'
+import type { Network as AppNetwork } from '@/types/settings/blockchain'
 import {
   getDerivationPathFromScriptVersion,
   getMultisigDerivationPathFromScriptVersion

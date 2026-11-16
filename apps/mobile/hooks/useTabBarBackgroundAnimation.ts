@@ -1,9 +1,6 @@
 import { useContext } from 'react'
-import {
-  type SharedValue,
-  useAnimatedStyle,
-  useSharedValue
-} from 'react-native-reanimated'
+import { useAnimatedStyle, useSharedValue } from 'react-native-reanimated'
+import type { SharedValue } from 'react-native-reanimated'
 
 import { TabBarIndicatorContext } from '@/hooks/useTabBarButtonAnimation'
 import { selectionFromIndex } from '@/hooks/useTabBarIndicator'

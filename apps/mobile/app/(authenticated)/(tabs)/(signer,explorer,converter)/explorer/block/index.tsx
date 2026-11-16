@@ -1,12 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useRef, useState } from 'react'
-import {
-  ScrollView,
-  StyleSheet,
-  type TextInputInstance,
-  View
-} from 'react-native'
+import { ScrollView, StyleSheet, View } from 'react-native'
+import type { TextInputInstance } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -17,10 +13,8 @@ import SSIconButton from '@/components/SSIconButton'
 import SSNumberInput from '@/components/SSNumberInput'
 import SSPressable from '@/components/SSPressable'
 import SSText from '@/components/SSText'
-import {
-  type ExplorerExampleBlock,
-  EXPLORER_EXAMPLE_BLOCKS
-} from '@/constants/explorerExamples'
+import { EXPLORER_EXAMPLE_BLOCKS } from '@/constants/explorerExamples'
+import type { ExplorerExampleBlock } from '@/constants/explorerExamples'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'

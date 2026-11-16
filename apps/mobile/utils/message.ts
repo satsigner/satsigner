@@ -1,11 +1,11 @@
-import { type ScriptVersionType } from '@/types/models/Script'
-import { type Network as AppNetwork } from '@/types/settings/blockchain'
+import type { ScriptVersionType } from '@/types/models/Script'
+import type { Network as AppNetwork } from '@/types/settings/blockchain'
 import {
-  type Bip137AddressType,
   isBip137SignatureFormat,
   signMessageBip137,
   verifyMessageBip137
 } from '@/utils/bip137'
+import type { Bip137AddressType } from '@/utils/bip137'
 import { signMessageBip322, verifyMessageBip322 } from '@/utils/bip322'
 import { getScriptTypeFromAddress } from '@/utils/bitcoin'
 

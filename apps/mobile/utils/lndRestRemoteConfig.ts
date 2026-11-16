@@ -246,6 +246,17 @@ export async function resolveLndConfigFromConnectionInput(
   return await fetchLndConfig(parsed.url)
 }
 
+const decodeBase64Padded = (input: string): Buffer | null => {
+  const normalized = input.replaceAll('-', '+').replaceAll('_', '/')
+  const padLen = (4 - (normalized.length % 4)) % 4
+  const padded = normalized + '='.repeat(padLen)
+  try {
+    return Buffer.from(padded, 'base64')
+  } catch {
+    return null
+  }
+}
+
 /**
  * LND REST expects `Grpc-Metadata-macaroon` as the macaroon bytes in
  * hexadecimal. Hosts often ship base64 or base64url in JSON.
@@ -261,17 +272,6 @@ export function macaroonToLndRestHexHeader(raw: string): string {
       throw new Error('Macaroon hex has odd length')
     }
     return s.toLowerCase()
-  }
-
-  const decodeBase64Padded = (input: string): Buffer | null => {
-    const normalized = input.replaceAll('-', '+').replaceAll('_', '/')
-    const padLen = (4 - (normalized.length % 4)) % 4
-    const padded = normalized + '='.repeat(padLen)
-    try {
-      return Buffer.from(padded, 'base64')
-    } catch {
-      return null
-    }
   }
 
   const buf = decodeBase64Padded(s)

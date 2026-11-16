@@ -12,7 +12,8 @@ import { NostrNoRelaysError, NostrPublishError } from '@/utils/errors'
 
 import { BASE_CREATED_AT } from './support/fixtures'
 import { CONNECT_TIMEOUT_MS } from './support/testNdk'
-import { startTestRelay, type TestRelay } from './support/testRelay'
+import { startTestRelay } from './support/testRelay'
+import type { TestRelay } from './support/testRelay'
 
 const LIVE_EVENT_WAIT_MS = 2000
 const TEXT_NOTE_KIND = 1

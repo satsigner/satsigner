@@ -1,7 +1,7 @@
 import { prefillSendFromAccount } from '@/services/transactionBuilderPrefill'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
-import { type Account } from '@/types/models/Account'
+import type { Account } from '@/types/models/Account'
 
 jest.mock<typeof import('@/utils/contentProcessor')>(
   '@/utils/contentProcessor',

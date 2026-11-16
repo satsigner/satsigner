@@ -1,15 +1,15 @@
 import { decode as decodeBolt11 } from '@gandlaf21/bolt11-decode'
 import { sha256 } from '@noble/hashes/sha2'
 import { bytesToHex, utf8ToBytes } from '@noble/hashes/utils'
-import { type NDKEvent, type NDKFilter } from '@nostr-dev-kit/ndk'
+import type { NDKEvent, NDKFilter } from '@nostr-dev-kit/ndk'
 import {
-  type Event,
   finalizeEvent,
   nip19,
   nip57,
   validateEvent,
   verifyEvent
 } from 'nostr-tools'
+import type { Event } from 'nostr-tools'
 import * as nostrKinds from 'nostr-tools/kinds'
 
 import { fetchProfilesCoalesced } from '@/api/nostrProfileFetcher'
@@ -22,16 +22,16 @@ import {
   NOSTR_ZAP_RECEIPT_FETCH_LIMIT
 } from '@/constants/nostr'
 import {
-  type CachedEvent,
   cacheEvents,
   getCachedZapReceipts,
   getCachedZapsByPubkey,
   getNewestCachedZapTimestamp
 } from '@/db/nostrCache'
+import type { CachedEvent } from '@/db/nostrCache'
 import type { LNURLPayResponse } from '@/types/models/Lightning'
-import {
-  type NostrFetchResult,
-  type NostrKind0Profile,
+import type {
+  NostrFetchResult,
+  NostrKind0Profile,
   ZapReceiptInfo,
   ZapReceiptDirection,
   ZapFlowParams,

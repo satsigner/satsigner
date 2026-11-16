@@ -2,8 +2,8 @@ import { toast } from 'sonner-native'
 
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
-import { type Label } from '@/types/bips/329'
-import { type NostrMsgHandler } from '@/types/models/Nostr'
+import type { Label } from '@/types/bips/329'
+import type { NostrMsgHandler } from '@/types/models/Nostr'
 import { JSONLtoLabels } from '@/utils/bip329'
 
 import { isSenderAllowed } from './useNostrDMStorage'

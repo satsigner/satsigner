@@ -1,20 +1,22 @@
-import { Skia, type SkParagraph, TextAlign } from '@shopify/react-native-skia'
-import { type ScaleTime } from 'd3-scale'
-import { type MutableRefObject, useMemo, useState } from 'react'
-import { type LayoutChangeEvent } from 'react-native'
+import { Skia, TextAlign } from '@shopify/react-native-skia'
+import type { SkParagraph } from '@shopify/react-native-skia'
+import type { ScaleTime } from 'd3-scale'
+import { useMemo, useState } from 'react'
+import type { MutableRefObject } from 'react'
+import type { LayoutChangeEvent } from 'react-native'
 import { Gesture } from 'react-native-gesture-handler'
 import { useSharedValue } from 'react-native-reanimated'
 import { scheduleOnRN } from 'react-native-worklets'
 
-import { useGeistFonts } from '@/hooks/useGeistFonts'
+import type { useGeistFonts } from '@/hooks/useGeistFonts'
 import { Colors, Typography } from '@/styles'
-import { type Currency } from '@/types/models/Blockchain'
-import { type Transaction } from '@/types/models/Transaction'
-import { type Rectangle } from '@/types/ui/geometry'
-import {
-  type HistoryChartData,
-  type TxInfoLabel,
-  type UtxoRectangle
+import type { Currency } from '@/types/models/Blockchain'
+import type { Transaction } from '@/types/models/Transaction'
+import type { Rectangle } from '@/types/ui/geometry'
+import type {
+  HistoryChartData,
+  TxInfoLabel,
+  UtxoRectangle
 } from '@/types/ui/historyChart'
 import { futureDate } from '@/utils/date'
 import {
@@ -23,11 +25,8 @@ import {
   formatPercentualChange
 } from '@/utils/format'
 import { hexToRgba } from '@/utils/historyChart'
-import {
-  type HistoryChartViewportState,
-  panViewport,
-  pinchViewport
-} from '@/utils/historyChartViewport'
+import { panViewport, pinchViewport } from '@/utils/historyChartViewport'
+import type { HistoryChartViewportState } from '@/utils/historyChartViewport'
 
 const DAYS_AHEAD = 5
 const LABEL_FONT = [Typography.geistSkiaFamily]

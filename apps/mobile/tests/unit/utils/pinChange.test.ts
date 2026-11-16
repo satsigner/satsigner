@@ -37,6 +37,10 @@ function journalReEncrypt(oldDigest: string, newDigest: string) {
   return Promise.resolve()
 }
 
+function keychainBusy() {
+  return Promise.reject(new Error('keychain busy'))
+}
+
 describe('changePin', () => {
   beforeEach(async () => {
     setSessionPinDigest(null)
@@ -238,9 +242,6 @@ describe('changePin', () => {
     function writeThrough(key: string, value: string) {
       secureStore[key] = value
       return Promise.resolve()
-    }
-    function keychainBusy() {
-      return Promise.reject(new Error('keychain busy'))
     }
     jest
       .mocked(SecureStore.setItemAsync)

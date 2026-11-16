@@ -1,8 +1,5 @@
-import {
-  BROADCAST_IDLE,
-  type BroadcastState,
-  transitionBroadcast
-} from '@/utils/broadcastMachine'
+import { BROADCAST_IDLE, transitionBroadcast } from '@/utils/broadcastMachine'
+import type { BroadcastState } from '@/utils/broadcastMachine'
 
 const BROADCASTING: BroadcastState = { status: 'broadcasting' }
 

@@ -1,6 +1,6 @@
-import { type Account } from '@/types/models/Account'
-import { type Transaction } from '@/types/models/Transaction'
-import { type Utxo } from '@/types/models/Utxo'
+import type { Account } from '@/types/models/Account'
+import type { Transaction } from '@/types/models/Transaction'
+import type { Utxo } from '@/types/models/Utxo'
 import { getAccountAddressSets } from '@/utils/address'
 import { getUtxoOutpoint } from '@/utils/utxo'
 

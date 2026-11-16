@@ -6,10 +6,8 @@ import {
   ECASH_UNREACHABLE_MINT_RETRY_MS
 } from '@/constants/ecash'
 import { getEcashAccountStore } from '@/services/ecash/accountStore'
-import {
-  type RestoreSummary,
-  restoreProofsFromMints
-} from '@/services/ecash/restore'
+import { restoreProofsFromMints } from '@/services/ecash/restore'
+import type { RestoreSummary } from '@/services/ecash/restore'
 import {
   getEcashSeed,
   getEcashWalletOptions
@@ -21,11 +19,8 @@ import type {
   WalletOptions
 } from '@/types/models/Ecash'
 import { assertNever } from '@/utils/assertNever'
-import {
-  listPendingMints,
-  type PendingMint,
-  toPendingMintStep
-} from '@/utils/ecashMintQuote'
+import { listPendingMints, toPendingMintStep } from '@/utils/ecashMintQuote'
+import type { PendingMint } from '@/utils/ecashMintQuote'
 import { withTimeout } from '@/utils/time'
 
 type PendingMintResult =

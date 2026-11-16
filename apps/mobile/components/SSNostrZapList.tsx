@@ -1,5 +1,5 @@
 import { FlashList } from '@shopify/flash-list'
-import { type ReactElement } from 'react'
+import type { ReactElement } from 'react'
 import { ActivityIndicator, Image, StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 

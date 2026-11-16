@@ -16,7 +16,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
-import { type Key } from '@/types/models/Account'
+import type { Key } from '@/types/models/Account'
 import { getScriptVersionDisplayName } from '@/utils/scripts'
 
 export default function MultiSig() {

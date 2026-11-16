@@ -14,9 +14,9 @@ import { t, tn as _tn } from '@/locales'
 import { Colors } from '@/styles'
 import {
   BLOCK_DECODE_PREVIEW_CHARS,
-  type DecodeBlockResult,
   decodeBlockFromHex
 } from '@/utils/blockDecoded'
+import type { DecodeBlockResult } from '@/utils/blockDecoded'
 import { formatNumber } from '@/utils/format'
 import { formatHexDump } from '@/utils/hexDump'
 

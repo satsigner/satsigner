@@ -4,9 +4,9 @@ import { useState } from 'react'
 import { WATCH_ONLY_COSIGNER_INDEX } from '@/constants/account'
 import { useClipboardPaste } from '@/hooks/useClipboardPaste'
 import { useNFCReader } from '@/hooks/useNFCReader'
-import { type NFCReadResult } from '@/types/models/Nfc'
-import { type Notice } from '@/types/ui/notice'
-import { type DetectedContent } from '@/utils/contentDetector'
+import type { NFCReadResult } from '@/types/models/Nfc'
+import type { Notice } from '@/types/ui/notice'
+import type { DetectedContent } from '@/utils/contentDetector'
 import { getNfcErrorKey } from '@/utils/nfcError'
 
 type UsePsbtSignatureImportParams = {

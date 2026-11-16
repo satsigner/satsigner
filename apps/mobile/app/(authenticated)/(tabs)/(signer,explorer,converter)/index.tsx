@@ -5,11 +5,11 @@ import Animated, {
   cancelAnimation,
   Extrapolation,
   interpolate,
-  type SharedValue,
   useAnimatedStyle,
   useSharedValue,
   withTiming
 } from 'react-native-reanimated'
+import type { SharedValue } from 'react-native-reanimated'
 
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
@@ -19,7 +19,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { Colors } from '@/styles'
-import { type NavMenuItem } from '@/types/navigation/navMenu'
+import type { NavMenuItem } from '@/types/navigation/navMenu'
 import { getTabSegmentLabel } from '@/utils/tabSegment'
 
 const STAGGER_DELAY = 60

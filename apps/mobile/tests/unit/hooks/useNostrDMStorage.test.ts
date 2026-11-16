@@ -1,7 +1,7 @@
 import { nip19 } from 'nostr-tools'
 
 import { buildNewMessage, storeNostrDmBatch } from '@/hooks/useNostrDMStorage'
-import { type NostrDM, type NostrUnwrappedEvent } from '@/types/models/Nostr'
+import type { NostrDM, NostrUnwrappedEvent } from '@/types/models/Nostr'
 
 jest.mock<typeof import('sonner-native')>('sonner-native', () => ({
   toast: {

@@ -1,4 +1,4 @@
-import { type ViewToken } from '@shopify/flash-list'
+import type { ViewToken } from '@shopify/flash-list'
 
 import { fetchProfilesCoalesced } from '@/api/nostrProfileFetcher'
 import { useNostrProfilesStore } from '@/store/nostrProfiles'

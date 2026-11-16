@@ -1,4 +1,4 @@
-import z from 'zod'
+import { z } from 'zod'
 
 const HEX_16_BYTES_PATTERN = /^[0-9a-f]{32}$/i
 const HEX_12_BYTES_PATTERN = /^[0-9a-f]{24}$/i

@@ -22,7 +22,7 @@ import {
   submitArkSwapInvoice
 } from '@/services/arkSwap'
 import { useArkSwapsStore } from '@/store/arkSwaps'
-import { type ArkSwapJob, type ArkSwapRequest } from '@/types/models/ArkSwap'
+import type { ArkSwapJob, ArkSwapRequest } from '@/types/models/ArkSwap'
 import { arkBoardIoPreviewHref } from '@/utils/arkBoardDeposit'
 import {
   canSubmitArkSwapInvoice,

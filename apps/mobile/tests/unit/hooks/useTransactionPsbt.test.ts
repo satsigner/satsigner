@@ -1,6 +1,7 @@
 import * as bitcoinjs from 'bitcoinjs-lib'
 import { createElement } from 'react'
-import { act, create, type ReactTestRenderer } from 'react-test-renderer'
+import { act, create } from 'react-test-renderer'
+import type { ReactTestRenderer } from 'react-test-renderer'
 
 import {
   buildPsbtWithRpcOrBdkWallet,
@@ -10,7 +11,7 @@ import { useTransactionPsbt } from '@/hooks/useTransactionPsbt'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
-import { type Account } from '@/types/models/Account'
+import type { Account } from '@/types/models/Account'
 import { createMockPsbt } from '@/utils/psbt'
 
 jest.mock<Partial<typeof import('@/api/bdk')>>('@/api/bdk', () => ({
