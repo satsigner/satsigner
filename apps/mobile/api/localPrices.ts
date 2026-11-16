@@ -1,5 +1,6 @@
 import z from 'zod'
 
+import { MS_PER_SECOND } from '@/constants/time'
 import { type Currency, CurrencySchema } from '@/types/models/Blockchain'
 
 const FIAT_CURRENCIES: Currency[] = [
@@ -115,6 +116,21 @@ function getLocalPriceSeries(
 }
 
 /** Every bundled timestamp, including days whose close is missing. */
+function getLocalPriceCoverage(
+  currency: Currency
+): { first: Date; last: Date } | null {
+  const { times } = loadPriceBundle(currency)
+  const first = times.at(0)
+  const last = times.at(-1)
+  if (first === undefined || last === undefined) {
+    return null
+  }
+  return {
+    first: new Date(first * MS_PER_SECOND),
+    last: new Date(last * MS_PER_SECOND)
+  }
+}
+
 function getLocalPriceCloses(currency: Currency) {
   const bundle = loadPriceBundle(currency)
   return bundle.times.map((time, index) => {
@@ -159,6 +175,7 @@ export {
   getLocalLatestPrices,
   getLocalPriceAt,
   getLocalPriceCloses,
+  getLocalPriceCoverage,
   getLocalPricesAt,
   getLocalPriceSeries,
   isUsablePrice

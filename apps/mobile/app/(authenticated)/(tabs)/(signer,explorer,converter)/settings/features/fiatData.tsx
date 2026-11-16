@@ -1,6 +1,7 @@
 import { Stack } from 'expo-router'
 import { StyleSheet } from 'react-native'
 
+import { getLocalPriceCoverage } from '@/api/localPrices'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSCollapsible from '@/components/SSCollapsible'
 import SSText from '@/components/SSText'
@@ -17,14 +18,11 @@ import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { tn } from '@/locales'
 import { normalizeFiatPriceApiUrl } from '@/utils/fiat'
+import { formatDate } from '@/utils/format'
 
 const tl = tn('settings.features.fiatData')
 
-const DATA_AVAILABLE_KEYS = [
-  'currentSpotPrices',
-  'crossCurrencyRates',
-  'historicalPriceAtTimestamp'
-] as const
+const COVERAGE_CURRENCY = 'USD'
 
 export default function FiatData() {
   const {
@@ -66,6 +64,10 @@ export default function FiatData() {
 
   const isMempool = fiatPriceProvider === 'mempool'
   const isCustom = fiatPriceProvider === 'custom'
+  const providerName = isMempool
+    ? tl('provider.mempool')
+    : tl('provider.custom')
+  const coverage = getLocalPriceCoverage(COVERAGE_CURRENCY)
 
   return (
     <>
@@ -82,37 +84,62 @@ export default function FiatData() {
         >
           <SSVStack gap="lg">
             <SSVStack gap="sm">
-              <SSText>{tl('fetching.title')}</SSText>
+              <SSText weight="medium">{tl('current.title')}</SSText>
+              <SSText color="muted" size="sm">
+                {tl('current.description')}
+              </SSText>
               <SSCheckbox
-                label={tl('fetchCurrentPrices')}
+                label={tl('current.toggle')}
                 selected={fetchCurrentPrices}
                 onPress={toggleFetchCurrentPrices}
               />
+              <SSText color="muted" size="xs">
+                {tl('current.source', { provider: providerName })}
+              </SSText>
+            </SSVStack>
+            <SSVStack gap="sm">
+              <SSText weight="medium">{tl('historical.title')}</SSText>
+              <SSText color="muted" size="sm">
+                {tl('historical.description')}
+              </SSText>
               <SSCheckbox
-                label={tl('fetchHistoricalPrices')}
+                label={tl('historical.toggle')}
                 selected={fetchHistoricalPrices}
                 onPress={toggleFetchHistoricalPrices}
               />
               {fetchHistoricalPrices ? (
-                <SSVStack gap="xs" style={styles.networkOptIn}>
+                <SSVStack gap="sm" style={styles.indented}>
+                  <SSVStack gap="xxs">
+                    <SSText size="sm">{tl('historical.onDevice.title')}</SSText>
+                    <SSText color="muted" size="xs">
+                      {coverage
+                        ? tl('historical.onDevice.coverage', {
+                            first: formatDate(coverage.first),
+                            last: formatDate(coverage.last)
+                          })
+                        : tl('historical.onDevice.private')}
+                    </SSText>
+                  </SSVStack>
                   <SSCheckbox
-                    label={tl('fetchHistoricalPricesFromNetwork')}
+                    label={tl('historical.network.toggle', {
+                      provider: providerName
+                    })}
                     onPress={toggleFetchHistoricalPricesFromNetwork}
                     selected={fetchHistoricalPricesFromNetwork}
                   />
                   <SSText color="muted" size="xs">
-                    {tl('fetchHistoricalPricesFromNetworkWarning')}
+                    {tl('historical.network.warning')}
                   </SSText>
                 </SSVStack>
               ) : null}
-              <SSText color="muted" size="sm">
-                {tl('disclaimer')}
-              </SSText>
             </SSVStack>
             <SSFormLayout>
               <SSFormLayout.Item>
-                <SSFormLayout.Label label={tl('priceProvider')} />
                 <SSVStack gap="sm">
+                  <SSText weight="medium">{tl('provider.title')}</SSText>
+                  <SSText color="muted" size="sm">
+                    {tl('provider.description')}
+                  </SSText>
                   <SSCheckbox
                     label={tl('provider.mempool')}
                     selected={isMempool}
@@ -167,14 +194,6 @@ export default function FiatData() {
                 </SSVStack>
               </SSFormLayout.Item>
             </SSFormLayout>
-            <SSVStack gap="sm">
-              <SSText>{tl('dataAvailable.title')}</SSText>
-              {DATA_AVAILABLE_KEYS.map((key) => (
-                <SSText key={key} color="muted" size="sm">
-                  • {tl(`dataAvailable.${key}`)}
-                </SSText>
-              ))}
-            </SSVStack>
           </SSVStack>
         </SSScrollView>
       </SSMainLayout>
@@ -191,7 +210,7 @@ const styles = StyleSheet.create({
     paddingLeft: 8,
     width: '100%'
   },
-  networkOptIn: {
+  indented: {
     paddingLeft: 8
   },
   providerUrl: {

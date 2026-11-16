@@ -1,6 +1,7 @@
 import {
   findClosestPrice,
   getLocalPriceAt,
+  getLocalPriceCoverage,
   getLocalPricesAt
 } from '@/api/localPrices'
 import { CurrencySchema } from '@/types/models/Blockchain'
@@ -62,5 +63,15 @@ describe('getLocalPricesAt', () => {
 
   it('is empty before the bundled history starts', () => {
     expect(getLocalPricesAt(0)).toStrictEqual({})
+  })
+})
+
+describe('getLocalPriceCoverage', () => {
+  it('spans the first to the last bundled day', () => {
+    const coverage = getLocalPriceCoverage('USD')
+    expect(coverage?.first.getTime()).toBeLessThan(
+      coverage?.last.getTime() ?? 0
+    )
+    expect(coverage?.first.getUTCFullYear()).toBeLessThanOrEqual(2011)
   })
 })
