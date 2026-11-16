@@ -27,6 +27,7 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { Colors, Sizes } from '@/styles'
 import { type Transaction } from '@/types/models/Transaction'
 import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import { getAutomaticTagsByTxid } from '@/utils/automaticTags'
 import { formatDate } from '@/utils/format'
 import {
   type TransactionDirection,
@@ -84,7 +85,11 @@ export default function AccountTransactionSearchPage() {
     return <Redirect href="/" />
   }
 
-  const availableTags = getTransactionTags(account.transactions)
+  const automaticTagsByTxid = getAutomaticTagsByTxid(account)
+  const availableTags = getTransactionTags(
+    account.transactions,
+    automaticTagsByTxid
+  )
   const dateBounds = getTransactionDateBounds(account.transactions)
   const isSliderMode = dateInputMode === 'slider' && dateBounds !== undefined
   const activeFilters = {
@@ -94,7 +99,11 @@ export default function AccountTransactionSearchPage() {
     tags: selectedTags,
     to: dateRange.to
   }
-  const results = filterTransactions(account.transactions, activeFilters)
+  const results = filterTransactions(
+    account.transactions,
+    activeFilters,
+    automaticTagsByTxid
+  )
   const filterSummary = describeActiveFilters(activeFilters)
   const hasFilters = filterSummary.length > 0
   const showPinnedFilters = hasFilters && isPastFilters
@@ -182,6 +191,7 @@ export default function AccountTransactionSearchPage() {
       <SSTransactionCard
         {...display}
         transaction={item}
+        automaticTags={automaticTagsByTxid.get(item.id)}
         expand={false}
         blockHeight={blockHeight}
         onPress={() => handleOpenTransaction(item.id)}

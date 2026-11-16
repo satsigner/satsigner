@@ -29,8 +29,22 @@ function endOfDay(date: Date) {
   return day
 }
 
-function getTransactionTags(transactions: Transaction[]) {
-  const tags = transactions.flatMap((tx) => parseLabel(tx.label ?? '').tags)
+type AutomaticTagsByTxid = ReadonlyMap<string, string[]>
+
+const NO_AUTOMATIC_TAGS: AutomaticTagsByTxid = new Map()
+
+function getTagsOf(tx: Transaction, automaticTagsByTxid: AutomaticTagsByTxid) {
+  return [
+    ...parseLabel(tx.label ?? '').tags,
+    ...(automaticTagsByTxid.get(tx.id) ?? [])
+  ]
+}
+
+function getTransactionTags(
+  transactions: Transaction[],
+  automaticTagsByTxid = NO_AUTOMATIC_TAGS
+) {
+  const tags = transactions.flatMap((tx) => getTagsOf(tx, automaticTagsByTxid))
   return [...new Set(tags)].toSorted((a, b) => a.localeCompare(b))
 }
 
@@ -45,11 +59,15 @@ function matchesQuery(tx: Transaction, query: string) {
   )
 }
 
-function matchesTags(tx: Transaction, tags: string[]) {
+function matchesTags(
+  tx: Transaction,
+  tags: string[],
+  automaticTagsByTxid: AutomaticTagsByTxid
+) {
   if (tags.length === 0) {
     return true
   }
-  const txTags = parseLabel(tx.label ?? '').tags
+  const txTags = getTagsOf(tx, automaticTagsByTxid)
   return tags.every((tag) => txTags.includes(tag))
 }
 
@@ -73,14 +91,15 @@ function matchesDateRange(tx: Transaction, from?: Date, to?: Date) {
 
 function filterTransactions(
   transactions: Transaction[],
-  { direction, query, tags, from, to }: TransactionSearchFilters
+  { direction, query, tags, from, to }: TransactionSearchFilters,
+  automaticTagsByTxid = NO_AUTOMATIC_TAGS
 ) {
   return transactions
     .filter(
       (tx) =>
         matchesDirection(tx, direction) &&
         matchesQuery(tx, query) &&
-        matchesTags(tx, tags) &&
+        matchesTags(tx, tags, automaticTagsByTxid) &&
         matchesDateRange(tx, from, to)
     )
     .toSorted(

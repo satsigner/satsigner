@@ -82,6 +82,7 @@ function HistoricalFiatUnavailable({
 
 type SSTransactionCardProps = DisplayPreferences & {
   transaction: Transaction
+  automaticTags?: string[]
   blockHeight: number
   walletBalance?: number
   onPress: () => void
@@ -91,9 +92,11 @@ type SSTransactionCardProps = DisplayPreferences & {
 }
 
 const DEFAULT_STYLE: ViewStyle = {}
+const NO_AUTOMATIC_TAGS: string[] = []
 
 function SSTransactionCard({
   transaction,
+  automaticTags = NO_AUTOMATIC_TAGS,
   blockHeight,
   fiatCurrency,
   btcPrice,
@@ -122,7 +125,9 @@ function SSTransactionCard({
   const confirmationColor = getConfirmationsColorStyle(confirmations)
 
   const { amount, type } = getWalletTransactionEffect(transaction)
-  const { label, tags } = parseLabel(transaction.label || '')
+  const parsedLabel = parseLabel(transaction.label || '')
+  const { label } = parsedLabel
+  const tags = [...new Set([...parsedLabel.tags, ...automaticTags])]
 
   const { prices } = transaction
   const oldPrice = historicalFiatEnabled && prices ? prices[fiatCurrency] : null

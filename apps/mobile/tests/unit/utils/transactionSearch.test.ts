@@ -128,6 +128,23 @@ describe('filterTransactions', () => {
   })
 })
 
+describe('automatic tags in search', () => {
+  const automaticTags = new Map([['aaa111', ['rbf']]])
+
+  it('lists computed tags next to label tags', () => {
+    expect(getTransactionTags(transactions, automaticTags)).toContain('rbf')
+  })
+
+  it('filters by computed tags', () => {
+    const result = filterTransactions(
+      transactions,
+      { ...noFilters, tags: ['rbf'] },
+      automaticTags
+    )
+    expect(ids(result)).toStrictEqual(['aaa111'])
+  })
+})
+
 describe('toggleTag', () => {
   it('adds and removes a tag', () => {
     expect(toggleTag(['food'], 'friends')).toStrictEqual(['food', 'friends'])
