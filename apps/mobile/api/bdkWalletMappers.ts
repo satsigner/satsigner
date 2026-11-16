@@ -41,12 +41,17 @@ function lastUsedIndexForKeychain(
   addresses: Account['addresses'],
   keychain: 'external' | 'internal'
 ): number {
-  const indices = addresses.flatMap((address) =>
-    address.keychain === keychain && address.index !== undefined
-      ? [address.index]
-      : []
-  )
-  return Math.max(-1, ...indices)
+  let lastUsed = -1
+  for (const address of addresses) {
+    if (
+      address.keychain === keychain &&
+      address.index !== undefined &&
+      address.index > lastUsed
+    ) {
+      lastUsed = address.index
+    }
+  }
+  return lastUsed
 }
 
 type CoreDescriptorIndex = {
