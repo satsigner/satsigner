@@ -1,5 +1,5 @@
-import type NDK from '@nostr-dev-kit/ndk'
-import { type NDKFilter, NDKRelaySet } from '@nostr-dev-kit/ndk'
+import type { default as NDK, NDKFilter } from '@nostr-dev-kit/ndk'
+import { NDKRelaySet } from '@nostr-dev-kit/ndk'
 import * as nostrKinds from 'nostr-tools/kinds'
 
 import {
@@ -55,9 +55,9 @@ import { sleep, withTimeout } from '@/utils/time'
 import {
   checkNip17LiveRoundtrip,
   checkNip17Roundtrip,
-  checkRelayPersistence,
-  type LegacyDiagnosticResult
+  checkRelayPersistence
 } from '../coreChecks'
+import type { LegacyDiagnosticResult } from '../coreChecks'
 import type {
   DiagnosticCheck,
   DiagnosticOutcome,

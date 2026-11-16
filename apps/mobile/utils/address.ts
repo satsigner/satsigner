@@ -1,7 +1,7 @@
 import { t } from '@/locales'
-import { type Account } from '@/types/models/Account'
-import { type ScriptVersionType } from '@/types/models/Script'
-import { type Transaction } from '@/types/models/Transaction'
+import type { Account } from '@/types/models/Account'
+import type { ScriptVersionType } from '@/types/models/Script'
+import type { Transaction } from '@/types/models/Transaction'
 import { parseLabel } from '@/utils/parse'
 
 const P2WPKH_ADDRESS_MIN_LENGTH = 42

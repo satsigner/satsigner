@@ -1,11 +1,12 @@
 import { createElement } from 'react'
-import { act, create, type ReactTestRenderer } from 'react-test-renderer'
+import { act, create } from 'react-test-renderer'
+import type { ReactTestRenderer } from 'react-test-renderer'
 
 import { useBitcoinContentHandler } from '@/hooks/useBitcoinContentHandler'
 import { t } from '@/locales'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
-import { type Account } from '@/types/models/Account'
-import { type DetectedContent } from '@/utils/contentDetector'
+import type { Account } from '@/types/models/Account'
+import type { DetectedContent } from '@/utils/contentDetector'
 
 const mockNavigate = jest.fn()
 jest.mock<Partial<typeof import('expo-router')>>('expo-router', () => ({

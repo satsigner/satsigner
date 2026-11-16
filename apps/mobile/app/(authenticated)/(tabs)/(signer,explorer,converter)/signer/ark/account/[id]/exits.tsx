@@ -24,11 +24,8 @@ import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
 import { getAccountTotalBalance } from '@/utils/account'
 import { getAccountKindLabelFromAccount } from '@/utils/accountKindLabel'
-import {
-  type ArkExitClaimBlocker,
-  type ArkExitClaimFeeSpeed,
-  sortArkExits
-} from '@/utils/arkExit'
+import { sortArkExits } from '@/utils/arkExit'
+import type { ArkExitClaimBlocker, ArkExitClaimFeeSpeed } from '@/utils/arkExit'
 import { setClipboard } from '@/utils/clipboard'
 import { formatMaskedSats } from '@/utils/format'
 

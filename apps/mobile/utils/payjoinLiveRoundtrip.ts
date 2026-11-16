@@ -11,12 +11,12 @@ import {
   PAYJOIN_DEFAULT_PJOS
 } from '@/constants/payjoin'
 import { t } from '@/locales'
-import {
-  type PayjoinDeps,
-  type PayjoinSession,
-  type PayjoinWalletCallbacks
+import type {
+  PayjoinDeps,
+  PayjoinSession,
+  PayjoinWalletCallbacks
 } from '@/types/payjoin'
-import { type Network } from '@/types/settings/blockchain'
+import type { Network } from '@/types/settings/blockchain'
 import { AppError } from '@/utils/errors'
 import { compactError } from '@/utils/payjoinLog'
 

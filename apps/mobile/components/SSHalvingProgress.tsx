@@ -29,6 +29,21 @@ type SSHalvingProgressProps = {
   height: number
 }
 
+function arcPath(
+  centerX: number,
+  centerY: number,
+  radius: number,
+  startAngle: number,
+  endAngle: number
+): string {
+  const x1 = centerX + radius * Math.cos(startAngle)
+  const y1 = centerY + radius * Math.sin(startAngle)
+  const x2 = centerX + radius * Math.cos(endAngle)
+  const y2 = centerY + radius * Math.sin(endAngle)
+  const largeArc = endAngle - startAngle > Math.PI ? 1 : 0
+  return `M ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2}`
+}
+
 export default function SSHalvingProgress({ height }: SSHalvingProgressProps) {
   const { width } = useWindowDimensions()
   const fontCenterLg = useFont(require('@/assets/fonts/Geist-Regular.ttf'), 20)
@@ -54,21 +69,6 @@ export default function SSHalvingProgress({ height }: SSHalvingProgressProps) {
 
   const START_ANGLE = -Math.PI / 2
   const sweepAngle = progress * 2 * Math.PI
-
-  function arcPath(
-    centerX: number,
-    centerY: number,
-    radius: number,
-    startAngle: number,
-    endAngle: number
-  ): string {
-    const x1 = centerX + radius * Math.cos(startAngle)
-    const y1 = centerY + radius * Math.sin(startAngle)
-    const x2 = centerX + radius * Math.cos(endAngle)
-    const y2 = centerY + radius * Math.sin(endAngle)
-    const largeArc = endAngle - startAngle > Math.PI ? 1 : 0
-    return `M ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2}`
-  }
 
   const trackPath = Skia.Path.MakeFromSVGString(
     arcPath(cx, cy, TRACK_RADIUS, 0, 2 * Math.PI - 0.001)

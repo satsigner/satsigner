@@ -3,13 +3,13 @@ import { sha256 } from '@noble/hashes/sha2'
 import { hexToBytes, utf8ToBytes } from '@noble/hashes/utils'
 import NDK, { NDKEvent } from '@nostr-dev-kit/ndk'
 import {
-  type NostrEvent,
   finalizeEvent,
   getEventHash,
   getPublicKey,
   nip44,
   nip59
 } from 'nostr-tools'
+import type { NostrEvent } from 'nostr-tools'
 import * as nostrKinds from 'nostr-tools/kinds'
 import { z } from 'zod'
 

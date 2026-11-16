@@ -12,7 +12,7 @@ import { useNFCReader } from '@/hooks/useNFCReader'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { type DetectedContent } from '@/utils/contentDetector'
+import type { DetectedContent } from '@/utils/contentDetector'
 import { normalizePsbtToBase64 } from '@/utils/psbtTransport'
 
 type SSPsbtTransportProps = {

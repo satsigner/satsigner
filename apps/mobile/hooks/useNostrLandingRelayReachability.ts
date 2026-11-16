@@ -2,9 +2,9 @@ import { useQuery } from '@tanstack/react-query'
 
 import { probeIdentityRelays, reconnectNdkForRelays } from '@/api/nostr'
 import { NOSTR_RELAY_REACHABILITY_STALE_TIME_MS } from '@/constants/nostr'
-import {
-  type NostrIdentity,
-  type NostrRelayConnectionInfo
+import type {
+  NostrIdentity,
+  NostrRelayConnectionInfo
 } from '@/types/models/Nostr'
 import {
   getNostrIdentityRelays,

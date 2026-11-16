@@ -1,7 +1,8 @@
 import SSHStack from '@/layouts/SSHStack'
 import { t } from '@/locales'
 
-import SSText, { type SSTextProps } from './SSText'
+import SSText from './SSText'
+import type { SSTextProps } from './SSText'
 
 type SSFeeReplacementFlagsProps = {
   cpfp: boolean

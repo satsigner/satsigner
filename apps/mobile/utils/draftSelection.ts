@@ -1,6 +1,6 @@
-import { type AutoSelectUtxosAlgorithm } from '@/types/models/AutoSelectUtxos'
-import { type Output } from '@/types/models/Output'
-import { type Utxo } from '@/types/models/Utxo'
+import type { AutoSelectUtxosAlgorithm } from '@/types/models/AutoSelectUtxos'
+import type { Output } from '@/types/models/Output'
+import type { Utxo } from '@/types/models/Utxo'
 import { isChangeOutputLabel } from '@/utils/address'
 
 const DEFAULT_AUTO_SELECT: AutoSelectUtxosAlgorithm = 'user'

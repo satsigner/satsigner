@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { toast } from 'sonner-native'
 
 import { t } from '@/locales'
-import { type NostrDM } from '@/types/models/Nostr'
+import type { NostrDM } from '@/types/models/Nostr'
 import { setClipboard } from '@/utils/clipboard'
 
 type UseNostrChatMessageActionsParams = {

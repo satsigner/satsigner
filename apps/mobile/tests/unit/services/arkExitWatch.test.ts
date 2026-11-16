@@ -6,7 +6,7 @@ import {
 } from '@/services/arkExitWatch'
 import { useArkStore } from '@/store/ark'
 import { useArkExitClaimsStore } from '@/store/arkExitClaims'
-import { type ArkExit } from '@/types/models/Ark'
+import type { ArkExit } from '@/types/models/Ark'
 
 jest.mock<typeof import('@/api/ark')>('@/api/ark', () => ({
   listArkExits: jest.fn(),

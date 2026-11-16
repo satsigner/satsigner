@@ -2,11 +2,9 @@ import { useQuery } from '@tanstack/react-query'
 
 import { listPeersWrittenTo } from '@/db/queries/nostrChat'
 import { useNostrFollowsFetch } from '@/hooks/useNostrFollowsFetch'
-import {
-  type NostrChatFilter,
-  useNostrChatSettingsStore
-} from '@/store/nostrChatSettings'
-import { type NostrChatConversationItem } from '@/types/models/Nostr'
+import { useNostrChatSettingsStore } from '@/store/nostrChatSettings'
+import type { NostrChatFilter } from '@/store/nostrChatSettings'
+import type { NostrChatConversationItem } from '@/types/models/Nostr'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
 import { nostrChatQueryKeys } from '@/utils/nostrChat'
 import {

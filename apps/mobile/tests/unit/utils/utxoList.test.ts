@@ -1,4 +1,4 @@
-import { type Utxo } from '@/types/models/Utxo'
+import type { Utxo } from '@/types/models/Utxo'
 import { getUtxoOutpoint } from '@/utils/outpoint'
 import {
   applyUtxoDenylist,

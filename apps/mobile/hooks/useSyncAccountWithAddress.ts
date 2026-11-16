@@ -12,19 +12,17 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
-import { type Account } from '@/types/models/Account'
-import { type Currency } from '@/types/models/Blockchain'
-import { type Transaction } from '@/types/models/Transaction'
+import type { Account } from '@/types/models/Account'
+import type { Currency } from '@/types/models/Blockchain'
+import type { Transaction } from '@/types/models/Transaction'
 import { updateAccountObjectLabels } from '@/utils/account'
 import { applyAddressSnapshot } from '@/utils/addressSync'
 import { decryptAccountKeySecrets } from '@/utils/decryption'
 import { formatTimestamp } from '@/utils/format'
 import { parseAddressDescriptorToAddress } from '@/utils/parse'
 import { resolveHistoricalPrices } from '@/utils/resolveHistoricalPrices'
-import {
-  type SyncErrorReporter,
-  reportSyncFailure
-} from '@/utils/syncFailureToasts'
+import { reportSyncFailure } from '@/utils/syncFailureToasts'
+import type { SyncErrorReporter } from '@/utils/syncFailureToasts'
 
 // Convert timestamps to Date objects and collect unix timestamps
 // Skip transactions that already have a cached price — they are immutable

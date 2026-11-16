@@ -1,5 +1,5 @@
 import { NOSTR_DEFAULT_RETRY_CONFIG } from '@/constants/nostr'
-import { NostrRetryManagerHandle } from '@/types/models/Nostr'
+import type { NostrRetryManagerHandle } from '@/types/models/Nostr'
 import {
   calculateRetryDelay,
   createRetryManager

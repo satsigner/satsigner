@@ -1,4 +1,5 @@
-import { text, type TextFontSize, type TextFontWeight } from '@/styles/sizes'
+import { text } from '@/styles/sizes'
+import type { TextFontSize, TextFontWeight } from '@/styles/sizes'
 
 function isTextFontSize(key: string): key is TextFontSize {
   return key in text.fontSize

@@ -5,15 +5,15 @@ import { __resetPayjoinMock } from 'react-native-payjoin'
 import {
   createReceivePayjoinSession,
   finalizeReceiverPayjoin,
-  sendPayjoin,
-  type FetchLike
+  sendPayjoin
 } from '@/api/payjoin'
+import type { FetchLike } from '@/api/payjoin'
 import * as payjoinNative from '@/api/payjoinNative'
 import {
   getPayjoinDeps,
   usePayjoinSessionsStore
 } from '@/store/payjoinSessions'
-import { type PayjoinWalletCallbacks } from '@/types/payjoin'
+import type { PayjoinWalletCallbacks } from '@/types/payjoin'
 import { validatePayjoinProposal } from '@/utils/payjoinValidate'
 
 function buildPsbt(params: {
@@ -43,6 +43,9 @@ const TXID_B = 'bb'.repeat(32)
 const TXID_C = 'cc'.repeat(32)
 const paymentScript = Buffer.from(`0014${'22'.repeat(20)}`, 'hex')
 const changeScript = Buffer.from(`0014${'33'.repeat(20)}`, 'hex')
+
+const offlineFetch: FetchLike = () =>
+  Promise.reject(new Error('network should not be used'))
 
 describe('payjoin hardening (phase 7)', () => {
   beforeEach(() => {
@@ -260,8 +263,6 @@ describe('payjoin hardening (phase 7)', () => {
       inputs: [{ txid: TXID_A, vout: 0 }],
       outputs: [{ script: changeScript, value: 90_000 }]
     })
-    const fetchImpl: FetchLike = () =>
-      Promise.reject(new Error('network should not be used'))
 
     const result = await sendPayjoin({
       callbacks: {
@@ -272,7 +273,7 @@ describe('payjoin hardening (phase 7)', () => {
         signPsbt: (p) => p
       },
       deps: getPayjoinDeps(),
-      fetchImpl,
+      fetchImpl: offlineFetch,
       originalPsbtBase64: original.toBase64(),
       outputScriptsHex: [changeScript.toString('hex')],
       payjoinUri:

@@ -5,7 +5,7 @@ import {
   hasUnfinishedDraft,
   useTransactionBuilderStore
 } from '@/store/transactionBuilder'
-import { type FeeReplacementDraft } from '@/types/models/FeeReplacement'
+import type { FeeReplacementDraft } from '@/types/models/FeeReplacement'
 
 const ACCOUNT_ID = 'acc-draft-1'
 const PAYJOIN_URI = 'bitcoin:tb1qtest?pj=https://pj.example'

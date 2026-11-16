@@ -1,4 +1,4 @@
-import { type NostrChatConversationItem } from '@/types/models/Nostr'
+import type { NostrChatConversationItem } from '@/types/models/Nostr'
 import {
   getFollowedPubkeySet,
   isInboundMessageAllowed,

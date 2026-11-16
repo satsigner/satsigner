@@ -1,5 +1,5 @@
 import { PRIVACY_MASK } from '@/constants/privacy'
-import { type EcashProof } from '@/types/models/Ecash'
+import type { EcashProof } from '@/types/models/Ecash'
 import {
   ecashProofsToBubbleData,
   proofsAfterMelt,

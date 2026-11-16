@@ -1,4 +1,5 @@
-import { type StyleProp, StyleSheet, Text, type TextStyle } from 'react-native'
+import { StyleSheet, Text } from 'react-native'
+import type { StyleProp, TextStyle } from 'react-native'
 
 import { Colors, Sizes, Typography } from '@/styles'
 import { chunkArray } from '@/utils/chunkArray'

@@ -10,7 +10,7 @@ import SSActionButton from '@/components/SSActionButton'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import { Colors } from '@/styles'
-import { type ContentContext } from '@/utils/contentDetector'
+import type { ContentContext } from '@/utils/contentDetector'
 
 const GRADIENT_START = { x: 0, y: 0 }
 const GRADIENT_END = { x: 1, y: 0 }

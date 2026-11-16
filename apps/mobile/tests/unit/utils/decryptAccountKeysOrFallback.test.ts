@@ -1,4 +1,4 @@
-import { type Account, type Key } from '@/types/models/Account'
+import type { Account, Key } from '@/types/models/Account'
 import { decryptAccountKeysOrFallback } from '@/utils/decryption'
 
 jest.mock<Partial<typeof import('@/storage/encrypted')>>(

@@ -4,7 +4,7 @@ import {
 } from '@/constants/nostr'
 import { MS_PER_SECOND, SECONDS_PER_DAY } from '@/constants/time'
 import { t } from '@/locales'
-import { type NostrDM } from '@/types/models/Nostr'
+import type { NostrDM } from '@/types/models/Nostr'
 import { toSingleLinePreview } from '@/utils/string'
 
 type ChatDayRow = { dayStart: number; key: string; kind: 'day' }

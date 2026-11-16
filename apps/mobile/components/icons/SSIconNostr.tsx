@@ -1,13 +1,7 @@
-import Svg, {
-  ClipPath,
-  Defs,
-  G,
-  Path,
-  Rect,
-  type SvgProps
-} from 'react-native-svg'
+import Svg, { ClipPath, Defs, G, Path, Rect } from 'react-native-svg'
+import type { SvgProps } from 'react-native-svg'
 
-import { type NavMenuItemIconProps } from '@/types/navigation/navMenu'
+import type { NavMenuItemIconProps } from '@/types/navigation/navMenu'
 
 type IconProps = Pick<SvgProps, 'width' | 'height' | 'color'>
 

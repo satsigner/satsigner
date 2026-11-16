@@ -23,7 +23,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useSettingsStore } from '@/store/settings'
-import { type ConfirmWordSearchParams } from '@/types/navigation/searchParams'
+import type { ConfirmWordSearchParams } from '@/types/navigation/searchParams'
 import { getConfirmWordCandidates } from '@/utils/seed'
 
 // A failed account creation must leave the screen usable, not spinning.

@@ -1,6 +1,7 @@
 import { bech32 } from 'bech32'
 import { createElement } from 'react'
-import { act, create, type ReactTestRenderer } from 'react-test-renderer'
+import { act, create } from 'react-test-renderer'
+import type { ReactTestRenderer } from 'react-test-renderer'
 import { toast } from 'sonner-native'
 
 import { useEcashSend } from '@/hooks/useEcashSend'

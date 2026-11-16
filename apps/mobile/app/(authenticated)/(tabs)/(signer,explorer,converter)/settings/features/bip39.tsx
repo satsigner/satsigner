@@ -10,7 +10,8 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
 import { useSettingsStore } from '@/store/settings'
-import { type WordListName, WORDLIST_LIST } from '@/types/bips/39'
+import { WORDLIST_LIST } from '@/types/bips/39'
+import type { WordListName } from '@/types/bips/39'
 
 const tn = _tn('settings.features.bip39')
 

@@ -1,14 +1,14 @@
-import { type Href, useRouter } from 'expo-router'
+import { useRouter } from 'expo-router'
+import type { Href } from 'expo-router'
 import { useCallback, useState } from 'react'
 
 import { useNFCReader } from '@/hooks/useNFCReader'
 import { t } from '@/locales'
 import {
-  type ContentContext,
   detectContentByContext,
-  type DetectedContent,
   prepareEcashTokenInput
 } from '@/utils/contentDetector'
+import type { ContentContext, DetectedContent } from '@/utils/contentDetector'
 import { getContentHref } from '@/utils/contentProcessor'
 
 type UseContentHandlerProps = {

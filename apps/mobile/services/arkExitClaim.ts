@@ -20,19 +20,21 @@ import {
   useArkExitClaimsStore
 } from '@/store/arkExitClaims'
 import { useBlockchainStore } from '@/store/blockchain'
-import { type Account } from '@/types/models/Account'
-import {
-  type ArkAccount,
-  type ArkExit,
-  type ArkExitClaimRecord
+import type { Account } from '@/types/models/Account'
+import type {
+  ArkAccount,
+  ArkExit,
+  ArkExitClaimRecord
 } from '@/types/models/Ark'
 import { getArkExitClaimBlocker, getClaimableArkExits } from '@/utils/arkExit'
 import {
-  type ArkExitClaimTerms,
   matchesApprovedArkExitClaim,
-  type VerifiedArkExitClaim,
   verifyArkExitClaimDraft,
   verifyArkExitClaimSignedTx
+} from '@/utils/arkExitClaim'
+import type {
+  ArkExitClaimTerms,
+  VerifiedArkExitClaim
 } from '@/utils/arkExitClaim'
 import {
   canAccountReceiveArkSweep,

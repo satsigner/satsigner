@@ -1,7 +1,7 @@
-import mmkvStorage from '@/storage/mmkv'
+import { mmkvStorage } from '@/storage/mmkv'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useChartSettingStore } from '@/store/chartSettings'
-import { type Server } from '@/types/settings/blockchain'
+import type { Server } from '@/types/settings/blockchain'
 
 const OWN_NODE: Server = {
   backend: 'electrum',

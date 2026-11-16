@@ -12,7 +12,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
-import { type Config, type Network } from '@/types/settings/blockchain'
+import type { Config, Network } from '@/types/settings/blockchain'
 
 const tn = _tn('settings.network.config')
 

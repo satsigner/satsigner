@@ -4,7 +4,7 @@ import {
   ElectrumUnreachableError
 } from '@/api/electrumReachability'
 import { openServerChainReader } from '@/api/serverChain'
-import { type Server } from '@/types/settings/blockchain'
+import type { Server } from '@/types/settings/blockchain'
 
 jest.mock<typeof import('@/api/electrum')>('@/api/electrum', () => ({
   __esModule: true,

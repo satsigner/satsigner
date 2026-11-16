@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { BackHandler, StyleSheet, View } from 'react-native'
 import Animated, {
+  createAnimatedComponent,
   Easing,
   FadeIn,
   FadeInDown,
@@ -27,8 +28,8 @@ import { Colors, Layout } from '@/styles'
 import type { ArkReceiveOverlayEvent } from '@/types/models/Ark'
 import { formatFiatPrice } from '@/utils/format'
 
-const AnimatedCircle = Animated.createAnimatedComponent(Circle)
-const AnimatedPath = Animated.createAnimatedComponent(Path)
+const AnimatedCircle = createAnimatedComponent(Circle)
+const AnimatedPath = createAnimatedComponent(Path)
 
 const ICON_SIZE = 150
 const CIRCLE_RADIUS = 54

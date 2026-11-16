@@ -7,7 +7,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn } from '@/locales'
 import { useSettingsStore } from '@/store/settings'
-import { type AutoSelectUtxosAlgorithm } from '@/types/models/AutoSelectUtxos'
+import type { AutoSelectUtxosAlgorithm } from '@/types/models/AutoSelectUtxos'
 import {
   autoSelectUtxosDescriptionKey,
   autoSelectUtxosTitleKey

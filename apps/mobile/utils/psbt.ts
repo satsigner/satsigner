@@ -13,14 +13,11 @@ import {
   PSBT_MAGIC_HEX
 } from '@/constants/btc'
 import { UNDECODABLE_OUTPUT_ADDRESS_PREFIX } from '@/constants/transaction'
-import { type Account, type Key, type Secret } from '@/types/models/Account'
-import {
-  type MockPsbt,
-  type PsbtInputWithSignatures
-} from '@/types/models/Psbt'
-import { type MultisigScriptType } from '@/types/models/Script'
-import { type Network as AppNetwork } from '@/types/settings/blockchain'
-import { type Notice } from '@/types/ui/notice'
+import type { Account, Key, Secret } from '@/types/models/Account'
+import type { MockPsbt, PsbtInputWithSignatures } from '@/types/models/Psbt'
+import type { MultisigScriptType } from '@/types/models/Script'
+import type { Network as AppNetwork } from '@/types/settings/blockchain'
+import type { Notice } from '@/types/ui/notice'
 import { mnemonicToSeed, validateMnemonic } from '@/utils/bip39'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { bytesEqual } from '@/utils/byteArray'

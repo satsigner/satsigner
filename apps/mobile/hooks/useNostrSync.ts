@@ -1,6 +1,6 @@
 import { getWalletData } from '@/api/bdk'
 import { useNostrStore } from '@/store/nostr'
-import { type Label } from '@/types/bips/329'
+import type { Label } from '@/types/bips/329'
 import type { Account } from '@/types/models/Account'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { getAccountWithDecryptedKeys } from '@/utils/decryption'

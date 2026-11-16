@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 
-import { type Direction } from '@/types/logic/sort'
+import type { Direction } from '@/types/logic/sort'
 
 import { SSIconChevronDown, SSIconChevronUp } from './icons'
 import SSPressable from './SSPressable'

@@ -15,7 +15,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
-import { type TransactionConfirmationSearchParams } from '@/types/navigation/searchParams'
+import type { TransactionConfirmationSearchParams } from '@/types/navigation/searchParams'
 import { formatAddress } from '@/utils/format'
 
 const TITLE_DELAY_MS = 350

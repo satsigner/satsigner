@@ -1,4 +1,4 @@
-import NetInfo from '@react-native-community/netinfo'
+import { fetch as fetchNetInfo } from '@react-native-community/netinfo'
 
 import { normalizeRelayUrl } from '@/api/nostrRelayHealth'
 import { useAccountsStore } from '@/store/accounts'
@@ -24,7 +24,7 @@ function configuredNostrRelays(): string[] {
 }
 
 async function buildDiagnosticsContext(): Promise<DiagnosticsContext> {
-  const netState = await NetInfo.fetch()
+  const netState = await fetchNetInfo()
   return {
     identityRelays: configuredNostrRelays(),
     isOnline: netState.isConnected !== false,

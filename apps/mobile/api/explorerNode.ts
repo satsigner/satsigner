@@ -1,4 +1,4 @@
-import z from 'zod'
+import { z } from 'zod'
 
 import ElectrumClient, { closeElectrumClientQuietly } from '@/api/electrum'
 import BitcoinRpc from '@/api/rpc'

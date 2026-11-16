@@ -1,7 +1,8 @@
 import { useAccountsStore } from '@/store/accounts'
-import { type Account } from '@/types/models/Account'
+import type { Account } from '@/types/models/Account'
 
-import { createTestIdentity, type TestIdentity } from './identities'
+import { createTestIdentity } from './identities'
+import type { TestIdentity } from './identities'
 
 type SyncAccountKeys = {
   common: TestIdentity

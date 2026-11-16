@@ -18,22 +18,22 @@ import {
 } from '@/constants/ark'
 import { t } from '@/locales'
 import {
-  type ArkExitClaimRequest,
   claimArkExits,
   discardArkExitClaim,
   previewArkExitClaim,
   refreshArkExits,
   retryArkExitClaimBroadcast
 } from '@/services/arkExitClaim'
+import type { ArkExitClaimRequest } from '@/services/arkExitClaim'
 import { prepareArkExitFunding } from '@/services/arkExitFunding'
 import {
-  type ClaimableArkExitsNotice,
   findNewlyClaimableArkExits,
   markArkExitsAnnounced
 } from '@/services/arkExitWatch'
+import type { ClaimableArkExitsNotice } from '@/services/arkExitWatch'
 import { getArkAccountOrThrow, useArkStore } from '@/store/ark'
 import { useArkExitClaimsStore } from '@/store/arkExitClaims'
-import { type ArkExit } from '@/types/models/Ark'
+import type { ArkExit } from '@/types/models/Ark'
 import { arkBoardIoPreviewHref } from '@/utils/arkBoardDeposit'
 import { getArkExitsRoute, isArkExitLive } from '@/utils/arkExit'
 

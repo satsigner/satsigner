@@ -5,7 +5,7 @@
  */
 
 import { ENCODINGS } from './consts'
-import { type Encoding, type JoinResult } from './types'
+import type { Encoding, JoinResult } from './types'
 import { decodeData } from './utils'
 
 function isEncoding(value: string): value is Encoding {

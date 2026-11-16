@@ -1,4 +1,4 @@
-import { type NostrMsgHandler } from '@/types/models/Nostr'
+import type { NostrMsgHandler } from '@/types/models/Nostr'
 
 const dmHandler: NostrMsgHandler = {
   canHandle: (context) => {

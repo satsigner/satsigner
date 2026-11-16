@@ -25,11 +25,8 @@ import { error as errorColor, warning } from '@/styles/colors'
 import { emptyPin } from '@/utils/pin'
 import { toPinAttempts } from '@/utils/pinAttempts'
 import { changePinOrFail } from '@/utils/pinChange'
-import {
-  getPinSetupStart,
-  isPinSetupLocked,
-  type PinSetupStart
-} from '@/utils/pinSetup'
+import { getPinSetupStart, isPinSetupLocked } from '@/utils/pinSetup'
+import type { PinSetupStart } from '@/utils/pinSetup'
 import { secureWipeAfterMaxPinTries } from '@/utils/secureWipe'
 
 // 'done' is terminal: the new PIN is committed, so no keypad may be offered.

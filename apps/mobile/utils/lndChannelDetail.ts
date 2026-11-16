@@ -1,4 +1,4 @@
-import { type LNDChannel } from '@/types/models/Lightning'
+import type { LNDChannel } from '@/types/models/Lightning'
 import { isRecord } from '@/utils/object'
 
 /**
@@ -67,6 +67,16 @@ export function readLndChannelSatsField(
     return parseLndSats(raw)
   }
   return 0
+}
+
+export function sumLndChannelSatsField(
+  channels: readonly unknown[],
+  keys: readonly string[]
+): number {
+  return channels.reduce<number>(
+    (sum, channel) => sum + readLndChannelSatsField(channel, keys),
+    0
+  )
 }
 
 /** Flex parts for a 3-segment row; sum is at most this value. */

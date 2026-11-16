@@ -7,18 +7,20 @@ import { NOSTR_FEED_STALE_TIME_MS } from '@/constants/nostr'
 import { MS_PER_SECOND } from '@/constants/time'
 import { nostrKeys } from '@/db/keys'
 import { t } from '@/locales'
-import {
-  type NostrEngagementEvent,
-  type NostrEngagementSigner
+import type {
+  NostrEngagementEvent,
+  NostrEngagementSigner
 } from '@/types/models/Nostr'
 import { getNostrContactsRelaysKey } from '@/utils/nostrContacts'
 import {
   applyEngagementToggle,
-  type EngagementAction,
-  type EngagementTarget,
   getOwnEngagementIds,
   settleEngagementToggle,
   summarizeNoteEngagement
+} from '@/utils/nostrEngagement'
+import type {
+  EngagementAction,
+  EngagementTarget
 } from '@/utils/nostrEngagement'
 import { getNostrErrorMessage } from '@/utils/nostrErrorMessage'
 

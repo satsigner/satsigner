@@ -8,8 +8,8 @@ import SSText from '@/components/SSText'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
-import { type ArkEmergencyExitFee } from '@/types/models/Ark'
-import { type ArkExitFunding } from '@/utils/arkExit'
+import type { ArkEmergencyExitFee } from '@/types/models/Ark'
+import type { ArkExitFunding } from '@/utils/arkExit'
 import { formatMaskedSats } from '@/utils/format'
 
 const WARNING_ICON_SIZE = 20

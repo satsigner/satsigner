@@ -83,7 +83,7 @@ function readAscii(view: DataView, offset: number, count: number): string {
   const nullIdx = raw.indexOf(0)
   const bytes = nullIdx !== -1 ? raw.slice(0, nullIdx) : raw
   return bytes
-    .map((b) => String.fromCharCode(b))
+    .map((b) => String.fromCodePoint(b))
     .join('')
     .trim()
 }
@@ -220,7 +220,7 @@ function parseIptc(view: DataView, offset: number, length: number): IptcData {
 
     const dataPos = pos
     const text = Array.from({ length: dataLen }, (_, i) =>
-      String.fromCharCode(view.getUint8(dataPos + i))
+      String.fromCodePoint(view.getUint8(dataPos + i))
     )
       .join('')
       .trim()
@@ -303,7 +303,7 @@ export async function parseImageExif(
       if (marker === 0xff_e1 && dataLen > 6) {
         const header = [0, 1, 2, 3, 4, 5]
           .map((i) => view.getUint8(dataStart + i))
-          .map((b) => String.fromCharCode(b))
+          .map((b) => String.fromCodePoint(b))
           .join('')
 
         if (header === 'Exif\0\0') {
@@ -371,7 +371,7 @@ export async function parseImageExif(
       if (marker === 0xff_ed && dataLen > 14) {
         const header = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
           .map((i) => view.getUint8(dataStart + i))
-          .map((b) => String.fromCharCode(b))
+          .map((b) => String.fromCodePoint(b))
           .join('')
 
         if (header.startsWith('Photoshop 3.0')) {

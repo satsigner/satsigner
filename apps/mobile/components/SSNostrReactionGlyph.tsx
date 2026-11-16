@@ -4,7 +4,7 @@ import SSIconHeart from '@/components/icons/SSIconHeart'
 import SSText from '@/components/SSText'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
-import { type NostrReaction } from '@/types/models/Nostr'
+import type { NostrReaction } from '@/types/models/Nostr'
 
 const GLYPH_SIZE = 16
 /** Reaction content is untrusted free text; keep a long one to one short line. */

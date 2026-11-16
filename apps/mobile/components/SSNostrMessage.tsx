@@ -2,17 +2,15 @@ import { Image, Pressable, StyleSheet, View } from 'react-native'
 
 import SSText from '@/components/SSText'
 import SSTransactionDetails from '@/components/SSTransactionDetails'
-import {
-  type AuthorDisplayInfo,
-  useNostrMessage
-} from '@/hooks/useNostrMessage'
+import { useNostrMessage } from '@/hooks/useNostrMessage'
+import type { AuthorDisplayInfo } from '@/hooks/useNostrMessage'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
-import { type Account } from '@/types/models/Account'
-import { type NostrDM } from '@/types/models/Nostr'
-import { type KeyFingerprintsByAccount } from '@/utils/psbt'
+import type { Account } from '@/types/models/Account'
+import type { NostrDM } from '@/types/models/Nostr'
+import type { KeyFingerprintsByAccount } from '@/utils/psbt'
 
 const RETRY_HIT_SLOP = 8
 const AVATAR_SIZE = 24

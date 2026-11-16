@@ -251,9 +251,10 @@ export function wipeDevConsoleLog(): void {
   clearDevConsole()
 }
 
+const pad = (value: number, length = 2) => String(value).padStart(length, '0')
+
 export function formatDevConsoleTime(time: number): string {
   const date = new Date(time)
-  const pad = (value: number, length = 2) => String(value).padStart(length, '0')
   return `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}.${pad(date.getMilliseconds(), 3)}`
 }
 

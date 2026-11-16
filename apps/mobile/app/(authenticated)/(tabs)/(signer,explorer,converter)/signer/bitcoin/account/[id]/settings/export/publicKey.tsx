@@ -1,6 +1,7 @@
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import { useCallback, useRef, useState } from 'react'
-import { ScrollView, View, type ViewInstance } from 'react-native'
+import { ScrollView, View } from 'react-native'
+import type { ViewInstance } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
@@ -15,14 +16,14 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import type { AccountSearchParams } from '@/types/navigation/searchParams'
 import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
 import {
   convertKeyFormat,
   getNetworkKeyFormatName,
-  getPubkeyExportFormats,
-  type PubkeyExportFormat
+  getPubkeyExportFormats
 } from '@/utils/bitcoin'
+import type { PubkeyExportFormat } from '@/utils/bitcoin'
 import { decryptAccountKeySecret } from '@/utils/decryption'
 import { shareFile } from '@/utils/filesystem'
 

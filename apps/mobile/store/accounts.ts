@@ -1,4 +1,4 @@
-import { type Draft } from 'immer'
+import type { Draft } from 'immer'
 import { create } from 'zustand'
 import { immer } from 'zustand/middleware/immer'
 
@@ -24,11 +24,11 @@ import {
   deleteDms as deleteDmsDb,
   insertDms as insertDmsDb,
   markDmsAsRead as markDmsAsReadDb,
-  type NostrDmStatusPatch,
   replaceDm as replaceDmDb,
   updateAccountNostr as updateAccountNostrDb,
   updateDmStatus as updateDmStatusDb
 } from '@/db/mutations/nostr'
+import type { NostrDmStatusPatch } from '@/db/mutations/nostr'
 import {
   deleteTags as deleteTagsDb,
   getTags as getTagsDb,
@@ -38,14 +38,10 @@ import { upsertSingleTransaction } from '@/db/mutations/transactions'
 import { getAccountById, getAccounts } from '@/db/queries/accounts'
 import { deleteAllKeySecrets, deleteKeySecret } from '@/storage/encrypted'
 import { useNostrStore } from '@/store/nostr'
-import { type Label } from '@/types/bips/329'
-import {
-  type Account,
-  type SyncProgress,
-  type SyncStatus
-} from '@/types/models/Account'
-import { type NostrAccount, type NostrDM } from '@/types/models/Nostr'
-import { type Transaction } from '@/types/models/Transaction'
+import type { Label } from '@/types/bips/329'
+import type { Account, SyncProgress, SyncStatus } from '@/types/models/Account'
+import type { NostrAccount, NostrDM } from '@/types/models/Nostr'
+import type { Transaction } from '@/types/models/Transaction'
 import { createResetKey, dropSeedFromKey } from '@/utils/account'
 import { sortDmsByCreatedAt } from '@/utils/nostrDms'
 import {

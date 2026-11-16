@@ -1,7 +1,7 @@
 import { refreshArkExits } from '@/services/arkExitClaim'
 import { useArkStore } from '@/store/ark'
 import { useArkExitClaimsStore } from '@/store/arkExitClaims'
-import { type ArkAccount } from '@/types/models/Ark'
+import type { ArkAccount } from '@/types/models/Ark'
 import {
   getClaimableArkExits,
   getNewlyClaimableArkExitIds

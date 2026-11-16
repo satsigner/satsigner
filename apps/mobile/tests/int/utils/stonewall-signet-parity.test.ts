@@ -4,9 +4,9 @@ import {
   SPARROW_STONEWALL_FEE,
   SPARROW_STONEWALL_SELECTION,
   SPARROW_UTXO_CATALOG,
-  toOutpoint,
-  type SparrowUtxoRef
+  toOutpoint
 } from '@/tests/int/utils/signetStonewallFixture'
+import type { SparrowUtxoRef } from '@/tests/int/utils/signetStonewallFixture'
 /**
  * STONEWALL parity vs Sparrow on Signet.
  *
@@ -20,10 +20,10 @@ import {
   fetchWalletSnapshot,
   SIGNET_STONEWALL_AMOUNT,
   SIGNET_STONEWALL_FEE_RATE,
-  SIGNET_STONEWALL_RECIPIENT,
-  type ScannedUtxo
+  SIGNET_STONEWALL_RECIPIENT
 } from '@/tests/int/utils/signetStonewallWallet'
-import { type Utxo } from '@/types/models/Utxo'
+import type { ScannedUtxo } from '@/tests/int/utils/signetStonewallWallet'
+import type { Utxo } from '@/types/models/Utxo'
 import { getUtxoOutpoint, selectStonewallUtxos } from '@/utils/utxo'
 
 function formatOutpoints(outpoints: string[]) {

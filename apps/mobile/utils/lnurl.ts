@@ -1,5 +1,5 @@
 import { bech32 } from 'bech32'
-import z from 'zod'
+import { z } from 'zod'
 
 import { MILLISATS_PER_SAT } from '@/constants/btc'
 import { HTTP_STATUS } from '@/constants/http'

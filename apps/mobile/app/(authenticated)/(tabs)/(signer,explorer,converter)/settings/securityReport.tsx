@@ -22,9 +22,9 @@ import { Colors } from '@/styles'
 import { getNostrContactsRelays } from '@/utils/nostrContacts'
 import {
   createThrowawayIdentity,
-  sendSecurityReport,
-  type ThrowawayIdentity
+  sendSecurityReport
 } from '@/utils/securityReport'
+import type { ThrowawayIdentity } from '@/utils/securityReport'
 
 export default function SecurityReport() {
   const router = useRouter()

@@ -1,4 +1,4 @@
-import { type Secret } from '@/types/models/Account'
+import type { Secret } from '@/types/models/Account'
 import { randomNum } from '@/utils/crypto'
 
 /**

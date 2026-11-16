@@ -1,5 +1,5 @@
 import { useArkStore } from '@/store/ark'
-import { type Output } from '@/types/models/Output'
+import type { Output } from '@/types/models/Output'
 import { findArkBoardIntent } from '@/utils/arkBoardFunding'
 
 export function useArkBoardFundingIntent(outputs: Pick<Output, 'to'>[]) {

@@ -1,9 +1,5 @@
-import {
-  type DimensionValue,
-  type StyleProp,
-  StyleSheet,
-  type ViewStyle
-} from 'react-native'
+import { StyleSheet } from 'react-native'
+import type { DimensionValue, StyleProp, ViewStyle } from 'react-native'
 
 function isAutoDimension(value: DimensionValue | undefined) {
   return value === undefined || value === 'auto'

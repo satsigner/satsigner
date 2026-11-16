@@ -19,18 +19,20 @@ import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import {
   DIAGNOSTIC_CATEGORIES,
   DIAGNOSTIC_CHECKS,
-  type DiagnosticCategory,
-  type DiagnosticResult,
-  type DiagnosticStatus,
   formatDiagnosticsReport,
   FULL_RUN_CHECKS,
   getDiagnosticCheck
 } from '@/utils/diagnostics'
+import type {
+  DiagnosticCategory,
+  DiagnosticResult,
+  DiagnosticStatus
+} from '@/utils/diagnostics'
 import {
   buildDiagnosticsReport,
-  type DiagnosticsReportPayload,
   submitDiagnosticsReport
 } from '@/utils/diagnosticsReport'
+import type { DiagnosticsReportPayload } from '@/utils/diagnosticsReport'
 import { runPayjoinLiveRoundtrip } from '@/utils/payjoinLiveRoundtrip'
 import { buildPayjoinLiveRoundtripEnv } from '@/utils/payjoinLiveRoundtripEnv'
 

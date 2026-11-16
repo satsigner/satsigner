@@ -3,7 +3,7 @@ import { act, create } from 'react-test-renderer'
 
 import useAccountNameValidation from '@/hooks/useAccountNameValidation'
 import { useAccountsStore } from '@/store/accounts'
-import { type Account } from '@/types/models/Account'
+import type { Account } from '@/types/models/Account'
 
 function makeAccount(overrides: Partial<Account> = {}): Account {
   return {

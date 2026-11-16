@@ -6,7 +6,7 @@ import SSVerifyMessage from '@/components/SSVerifyMessage'
 import SSScrollView from '@/layouts/SSScrollView'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
-import { type AddrSearchParams } from '@/types/navigation/searchParams'
+import type { AddrSearchParams } from '@/types/navigation/searchParams'
 
 function AddressVerifyMessage() {
   const { id: accountId, addr } = useLocalSearchParams<AddrSearchParams>()

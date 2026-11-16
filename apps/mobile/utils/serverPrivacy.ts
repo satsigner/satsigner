@@ -1,5 +1,5 @@
 import { servers } from '@/constants/servers'
-import { type Server } from '@/types/settings/blockchain'
+import type { Server } from '@/types/settings/blockchain'
 import { isSameServerEndpoint } from '@/utils/server'
 
 /**

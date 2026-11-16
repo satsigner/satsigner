@@ -35,7 +35,8 @@ import {
   getLndChannelPeerAlias,
   getLndChannelRemotePubkey,
   readLndChannelSatsField,
-  readLndChannelStringField
+  readLndChannelStringField,
+  sumLndChannelSatsField
 } from '@/utils/lndChannelDetail'
 import { getLndErrorMessage, isLndPermissionError } from '@/utils/lndHttpError'
 
@@ -308,12 +309,7 @@ export default function LightningChannelDetailPage() {
       : ''
   const channel = findChannelByChanId(channels, chanIdDecoded)
 
-  const nodeTotalCapacity = (channels ?? []).reduce((sum, ch) => {
-    if (!ch || typeof ch !== 'object') {
-      return sum
-    }
-    return sum + readLndChannelSatsField(ch, ['capacity'])
-  }, 0)
+  const nodeTotalCapacity = sumLndChannelSatsField(channels ?? [], ['capacity'])
 
   const historyQuery = useLndChannelHistoryQuery(
     makeRequest,

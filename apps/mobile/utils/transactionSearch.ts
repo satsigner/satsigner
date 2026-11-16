@@ -1,5 +1,5 @@
 import { t } from '@/locales'
-import { type Transaction } from '@/types/models/Transaction'
+import type { Transaction } from '@/types/models/Transaction'
 import { formatDate } from '@/utils/format'
 import { parseLabel } from '@/utils/parse'
 

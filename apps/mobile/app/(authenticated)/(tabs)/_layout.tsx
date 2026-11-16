@@ -1,13 +1,8 @@
 import { LinearGradient } from 'expo-linear-gradient'
 import { Tabs, usePathname, useRouter, useSegments } from 'expo-router'
-import { type BottomTabBarButtonProps } from 'expo-router/js-tabs'
-import {
-  type GestureResponderEvent,
-  type LayoutChangeEvent,
-  Pressable,
-  StyleSheet,
-  View
-} from 'react-native'
+import type { BottomTabBarButtonProps } from 'expo-router/js-tabs'
+import { Pressable, StyleSheet, View } from 'react-native'
+import type { GestureResponderEvent, LayoutChangeEvent } from 'react-native'
 import Animated, { useSharedValue } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -32,11 +27,8 @@ import { useTabBarIndicator } from '@/hooks/useTabBarIndicator'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { text } from '@/styles/sizes'
-import {
-  DEFAULT_TAB_SEGMENT,
-  TAB_SEGMENTS,
-  type TabSegment
-} from '@/types/navigation/tabs'
+import { DEFAULT_TAB_SEGMENT, TAB_SEGMENTS } from '@/types/navigation/tabs'
+import type { TabSegment } from '@/types/navigation/tabs'
 import { showNavigation } from '@/utils/navigation'
 import {
   TAB_BAR_INDICATOR_RADIUS,

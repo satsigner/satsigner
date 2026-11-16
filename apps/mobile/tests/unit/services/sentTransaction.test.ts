@@ -3,7 +3,7 @@ import * as bitcoinjs from 'bitcoinjs-lib'
 import { recordSentTransaction } from '@/services/sentTransaction'
 import { useAccountsStore } from '@/store/accounts'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
-import { type Account } from '@/types/models/Account'
+import type { Account } from '@/types/models/Account'
 
 const ACCOUNT_ID = 'wallet-1'
 const TXID = 'c'.repeat(64)

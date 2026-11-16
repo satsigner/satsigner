@@ -1,6 +1,6 @@
 import { BDK_PRIVATE_EXTENDED_KEY_PREFIXES } from '@/constants/bdk'
 import { KEY_ORIGIN_FINGERPRINT_PATTERN } from '@/constants/descriptor'
-import { type ScriptVersionType } from '@/types/models/Script'
+import type { ScriptVersionType } from '@/types/models/Script'
 import { getDescriptorChecksum } from '@/utils/descriptorChecksum'
 import { AppError } from '@/utils/errors'
 import {

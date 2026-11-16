@@ -1,6 +1,6 @@
 import { Network } from 'react-native-bdk-sdk'
 
-import { type DecryptedKey } from '@/types/models/Account'
+import type { DecryptedKey } from '@/types/models/Account'
 import {
   getExtendedPublicKeyFromMnemonic,
   getExtendedPublicKeyFromMnemonicCustom

@@ -1,4 +1,4 @@
-import { type Account } from '@/types/models/Account'
+import type { Account } from '@/types/models/Account'
 import { listPinSecretSlots, rekeyPinSecrets } from '@/utils/pinRekey'
 
 /**

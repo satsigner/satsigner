@@ -7,7 +7,8 @@ import {
 } from 'expo-router'
 import { useMemo, useRef, useState } from 'react'
 import { ScrollView, View } from 'react-native'
-import { Psbt, type PsbtLike } from 'react-native-bdk-sdk'
+import { Psbt } from 'react-native-bdk-sdk'
+import type { PsbtLike } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -49,12 +50,12 @@ import {
 } from '@/store/payjoinSessions'
 import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
-import { type Output } from '@/types/models/Output'
-import { type Transaction } from '@/types/models/Transaction'
-import { type Utxo } from '@/types/models/Utxo'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { type PayjoinSession } from '@/types/payjoin'
-import { type Network as AppNetwork } from '@/types/settings/blockchain'
+import type { Output } from '@/types/models/Output'
+import type { Transaction } from '@/types/models/Transaction'
+import type { Utxo } from '@/types/models/Utxo'
+import type { AccountSearchParams } from '@/types/navigation/searchParams'
+import type { PayjoinSession } from '@/types/payjoin'
+import type { Network as AppNetwork } from '@/types/settings/blockchain'
 import {
   isArkBoardPayjoinSend,
   txidFromSignedDraft

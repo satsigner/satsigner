@@ -13,14 +13,13 @@ import {
 } from 'react-native-reanimated'
 import { scheduleOnRN } from 'react-native-worklets'
 
-import {
-  ANIMATION_VALUE,
-  type OnPanEndCallback,
-  type OnPanStartCallback,
-  type OnPinchEndCallback,
-  type OnPinchStartCallback,
-  ZOOM_TYPE,
-  type ZoomUseGesturesProps
+import { ANIMATION_VALUE, ZOOM_TYPE } from '@/types/ui/gestures'
+import type {
+  OnPanEndCallback,
+  OnPanStartCallback,
+  OnPinchEndCallback,
+  OnPinchStartCallback,
+  ZoomUseGesturesProps
 } from '@/types/ui/gestures'
 import { clamp, limits, sum } from '@/utils/worklet'
 

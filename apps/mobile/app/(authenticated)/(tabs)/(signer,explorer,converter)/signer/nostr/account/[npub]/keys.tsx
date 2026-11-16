@@ -26,10 +26,9 @@ import { chunkArray } from '@/utils/chunkArray'
 import {
   formatNostrKey,
   generateColorFromNpub,
-  getNostrKeyLabel,
-  type NostrKeyFormat,
-  type NostrKeyType
+  getNostrKeyLabel
 } from '@/utils/nostr'
+import type { NostrKeyFormat, NostrKeyType } from '@/utils/nostr'
 
 type KeysParams = {
   npub: string

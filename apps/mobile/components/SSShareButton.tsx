@@ -1,5 +1,6 @@
-import { type RefObject } from 'react'
-import { StyleSheet, type ViewInstance } from 'react-native'
+import type { RefObject } from 'react'
+import { StyleSheet } from 'react-native'
+import type { ViewInstance } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSHStack from '@/layouts/SSHStack'
@@ -7,7 +8,8 @@ import { t } from '@/locales'
 import { shareImage, shareText, shareViewAsImage } from '@/utils/share'
 
 import { SSIconShare } from './icons'
-import SSButton, { type SSButtonProps } from './SSButton'
+import SSButton from './SSButton'
+import type { SSButtonProps } from './SSButton'
 import SSText from './SSText'
 
 type SSShareButtonBaseProps = {

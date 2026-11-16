@@ -1,5 +1,5 @@
 import { useRef } from 'react'
-import { type StyleProp, type TextStyle, type ViewStyle } from 'react-native'
+import type { StyleProp, TextStyle, ViewStyle } from 'react-native'
 import TimeAgo from 'react-timeago'
 
 import SSHStack from '@/layouts/SSHStack'
@@ -7,7 +7,8 @@ import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { formatDate, formatTime } from '@/utils/format'
 
-import SSText, { type SSTextProps } from './SSText'
+import SSText from './SSText'
+import type { SSTextProps } from './SSText'
 
 // The style is applied both to text and, when a suffix is present, to a
 // wrapping SSHStack (a View), so it must satisfy both style shapes.

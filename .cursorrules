@@ -18,4 +18,4 @@ For typescript we prefer to use function keyword to create functions
 We prefer types over interfaces
 For constants we use uppercase and underscores like: ELECTRUM_URL
 We try to avoid any at all costs
-When importing types, we add the type keyword before the type name like: import { type Block } from '...'
+When importing types, we use a separate type-only import like: import type { Block } from '...'
