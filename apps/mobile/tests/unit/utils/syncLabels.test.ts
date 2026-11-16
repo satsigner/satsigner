@@ -10,7 +10,13 @@ describe('syncProgressLabel', () => {
   it('counts addresses for address syncs', () => {
     expect(
       syncProgressLabel({ tasksDone: 2, totalTasks: 45, unit: 'addresses' })
-    ).toBe('2/45 addresses')
+    ).toBe('02/45 addresses')
+  })
+
+  it('pads the count to the total digits', () => {
+    expect(
+      syncProgressLabel({ tasksDone: 7, totalTasks: 1000, unit: 'addresses' })
+    ).toBe('0007/1000 addresses')
   })
 
   it('shows block heights for block scans', () => {
@@ -29,7 +35,7 @@ describe('syncTickerLabels', () => {
         totalTasks: 45,
         unit: 'addresses'
       })
-    ).toStrictEqual(['2/45 addresses', 'Full check'])
+    ).toStrictEqual(['02/45 addresses', 'Full check'])
   })
 
   it('names quick checks', () => {

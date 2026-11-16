@@ -13,7 +13,7 @@ import { SYNC_LABEL_TICK_MS } from '@/constants/sync'
 
 import SSText from './SSText'
 
-const MARQUEE_SCROLL_MS = 2500
+const MARQUEE_SCROLL_MS = 4000
 const MARQUEE_SEPARATOR = ' – '
 const TICKER_HEIGHT = 18
 

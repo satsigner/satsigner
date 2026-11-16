@@ -15,9 +15,12 @@ function syncProgressLabel({
     return t('account.syncing')
   }
   if (unit === 'addresses') {
+    // Padding the count to the total's digits keeps the label one width,
+    // so the sync ticker doesn't resize as it counts up.
+    const total = String(totalTasks)
     return t('account.syncProgressAddresses', {
-      current: tasksDone.toLocaleString(),
-      total: totalTasks.toLocaleString()
+      current: String(tasksDone).padStart(total.length, '0'),
+      total
     })
   }
   const pct = Math.min(100, Math.round((tasksDone / totalTasks) * 100))
