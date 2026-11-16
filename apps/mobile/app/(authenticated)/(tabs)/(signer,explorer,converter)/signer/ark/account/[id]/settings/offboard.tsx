@@ -22,20 +22,13 @@ import { t } from '@/locales'
 import { useArkStore } from '@/store/ark'
 import { usePriceStore } from '@/store/price'
 import { Colors } from '@/styles'
-import type { ArkVtxo } from '@/types/models/Ark'
+import { sumArkVtxoSats } from '@/utils/arkVtxo'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { type DetectedContent } from '@/utils/contentDetector'
 import { formatFiatPrice, formatNumber, truncate } from '@/utils/format'
 import { validateAddress } from '@/utils/validation'
 
 const OFFBOARD_CONTEXT = 'bitcoin' as const
-
-function sumVtxoSats(vtxos: ArkVtxo[], selected: Set<string>): number {
-  return vtxos.reduce(
-    (acc, vtxo) => (selected.has(vtxo.id) ? acc + vtxo.amountSats : acc),
-    0
-  )
-}
 
 function parsePreselectedVtxoIds(raw: string | undefined): string[] {
   if (!raw) {
@@ -77,7 +70,7 @@ export default function ArkSendOffboardPage() {
     setDidAutoSelectAll(true)
   }
   const selectedArray = [...selectedIds]
-  const selectedAmount = sumVtxoSats(vtxos, selectedIds)
+  const selectedAmount = sumArkVtxoSats(vtxos, selectedIds)
   const trimmedAddress = address.trim()
   const addressValid =
     trimmedAddress.length > 0 &&

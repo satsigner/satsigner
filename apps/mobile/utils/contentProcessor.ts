@@ -115,7 +115,7 @@ export function extractPayjoinUriFromContent(
 }
 
 function highestValueUtxo(utxos: Utxo[]): Utxo {
-  return utxos.reduce((max, utxo) => (utxo.value > max.value ? utxo : max))
+  return utxos.toSorted((a, b) => b.value - a.value)[0]
 }
 
 export function autoSelectUtxos(

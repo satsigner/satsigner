@@ -178,10 +178,12 @@ export function estimateTransactionSize(
     })
   }
 
-  const outputSize = allOutputs.reduce((sum, o) => {
-    const type: ScriptVersionType = getScriptVersionType(o.to) || 'P2PKH'
-    return sum + OUTPUT_SIZES[type]
-  }, 0)
+  const outputSize = allOutputs
+    .map((o) => {
+      const type: ScriptVersionType = getScriptVersionType(o.to) || 'P2PKH'
+      return OUTPUT_SIZES[type]
+    })
+    .reduce((sum, size) => sum + size, 0)
 
   const baseSize = BASE_SIZE + inputBase + outputSize
 

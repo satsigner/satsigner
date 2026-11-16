@@ -27,7 +27,7 @@ import { Colors } from '@/styles'
 import { formatNumber } from '@/utils/format'
 import {
   liquidityBarSegmentFlexParts,
-  readLndChannelSatsField
+  sumLndChannelSatsField
 } from '@/utils/lndChannelDetail'
 import { lndAliasIsNodeId, lndNodeTitle } from '@/utils/lndNodeCardTitle'
 import { showNavigation } from '@/utils/navigation'
@@ -103,30 +103,15 @@ export default function LightningPage() {
       : t('lightning.landing.chainNotSynced')
 
     const channelList = lndChannels ?? []
-    const nodeTotalCapacity = channelList.reduce((sum, channel) => {
-      if (!channel || typeof channel !== 'object') {
-        return sum
-      }
-      return sum + readLndChannelSatsField(channel, ['capacity'])
-    }, 0)
-    const totalLocalSats = channelList.reduce((sum, channel) => {
-      if (!channel || typeof channel !== 'object') {
-        return sum
-      }
-      return (
-        sum +
-        readLndChannelSatsField(channel, ['local_balance', 'localBalance'])
-      )
-    }, 0)
-    const totalRemoteSats = channelList.reduce((sum, channel) => {
-      if (!channel || typeof channel !== 'object') {
-        return sum
-      }
-      return (
-        sum +
-        readLndChannelSatsField(channel, ['remote_balance', 'remoteBalance'])
-      )
-    }, 0)
+    const nodeTotalCapacity = sumLndChannelSatsField(channelList, ['capacity'])
+    const totalLocalSats = sumLndChannelSatsField(channelList, [
+      'local_balance',
+      'localBalance'
+    ])
+    const totalRemoteSats = sumLndChannelSatsField(channelList, [
+      'remote_balance',
+      'remoteBalance'
+    ])
 
     const nodeTotal = Math.max(0, nodeTotalCapacity)
     const loc =

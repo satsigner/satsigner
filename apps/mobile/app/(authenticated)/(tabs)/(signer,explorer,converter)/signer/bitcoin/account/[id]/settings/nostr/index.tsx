@@ -167,12 +167,10 @@ export default function NostrSync() {
           ? { color: NOSTR_FALLBACK_NPUB_COLOR, npub: member }
           : member
       )
-      .reduce<{ npub: string; color: string }[]>((acc, member) => {
-        if (!acc.some((m) => m.npub === member.npub)) {
-          acc.push(member)
-        }
-        return acc
-      }, [])
+      .filter(
+        (member, index, all) =>
+          all.findIndex((m) => m.npub === member.npub) === index
+      )
   }, [rawMembers])
 
   const { clearStoredDMs, generateCommonNostrKeys, deviceAnnouncement } =

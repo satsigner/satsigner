@@ -66,7 +66,8 @@ import {
   getLndChannelRemotePubkey,
   liquidityBarSegmentFlexParts,
   readLndChannelSatsField,
-  readLndChannelStringField
+  readLndChannelStringField,
+  sumLndChannelSatsField
 } from '@/utils/lndChannelDetail'
 import {
   formatLightningTxTimeAgo,
@@ -311,30 +312,15 @@ export default function NodeDetailPage() {
     const channelFiat = satsToFiat(channelBalance, btcPrice, fiatEnabled)
 
     const channelList = channels ?? []
-    const nodeTotalCapacity = channelList.reduce((sum, channel) => {
-      if (!channel || typeof channel !== 'object') {
-        return sum
-      }
-      return sum + readLndChannelSatsField(channel, ['capacity'])
-    }, 0)
-    const totalLocalSats = channelList.reduce((sum, channel) => {
-      if (!channel || typeof channel !== 'object') {
-        return sum
-      }
-      return (
-        sum +
-        readLndChannelSatsField(channel, ['local_balance', 'localBalance'])
-      )
-    }, 0)
-    const totalRemoteSats = channelList.reduce((sum, channel) => {
-      if (!channel || typeof channel !== 'object') {
-        return sum
-      }
-      return (
-        sum +
-        readLndChannelSatsField(channel, ['remote_balance', 'remoteBalance'])
-      )
-    }, 0)
+    const nodeTotalCapacity = sumLndChannelSatsField(channelList, ['capacity'])
+    const totalLocalSats = sumLndChannelSatsField(channelList, [
+      'local_balance',
+      'localBalance'
+    ])
+    const totalRemoteSats = sumLndChannelSatsField(channelList, [
+      'remote_balance',
+      'remoteBalance'
+    ])
     const nodeTotalCap = Math.max(0, nodeTotalCapacity)
     const loc =
       nodeTotalCap > 0 ? Math.max(0, Math.min(totalLocalSats, nodeTotalCap)) : 0
@@ -829,12 +815,7 @@ export default function NodeDetailPage() {
       )
     }
 
-    const nodeTotalCapacity = channels.reduce((sum, channel) => {
-      if (!channel || typeof channel !== 'object') {
-        return sum
-      }
-      return sum + readLndChannelSatsField(channel, ['capacity'])
-    }, 0)
+    const nodeTotalCapacity = sumLndChannelSatsField(channels, ['capacity'])
 
     return (
       <SSVStack gap="md" style={styles.section}>

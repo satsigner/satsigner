@@ -85,6 +85,16 @@ export function buildChartData(
   })
 }
 
+export function earliestChartDate(chartData: HistoryChartData[]): Date {
+  let earliest = chartData[0].date
+  for (const point of chartData) {
+    if (point.date < earliest) {
+      earliest = point.date
+    }
+  }
+  return earliest
+}
+
 export function buildBalanceHistory(
   transactions: Transaction[],
   walletAddresses: Set<string>

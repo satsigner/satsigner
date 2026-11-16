@@ -85,10 +85,7 @@ function SSMultipleSankeyDiagram({
 
   const { width: w, height: h, center, onCanvasLayout } = useLayout()
   const maxDepthH = useMemo(
-    () =>
-      sankeyNodes.length === 0
-        ? 0
-        : sankeyNodes.reduce((max, node) => Math.max(max, node.depthH), 0),
+    () => Math.max(0, ...sankeyNodes.map((node) => node.depthH)),
     [sankeyNodes]
   )
 

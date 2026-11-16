@@ -29,22 +29,16 @@ function SSNavMenu(props: SSNavMenuProps) {
     android: PLATFORM.ANDROID,
     ios: PLATFORM.IOS
   })
-  const filteredNavMenuGroups = navMenuGroups.reduce<NavMenuGroup[]>(
-    (acc, group) => {
-      if (group.items && Array.isArray(group.items)) {
-        const filteredItems = group.items.filter(
-          (item) =>
-            item.platform === PLATFORM.HYBRID ||
-            item.platform === currentPlatform
-        )
-        if (filteredItems.length > 0) {
-          acc.push({ ...group, items: filteredItems })
-        }
-      }
-      return acc
-    },
-    []
-  )
+  const filteredNavMenuGroups = navMenuGroups.flatMap<NavMenuGroup>((group) => {
+    if (!group.items || !Array.isArray(group.items)) {
+      return []
+    }
+    const filteredItems = group.items.filter(
+      (item) =>
+        item.platform === PLATFORM.HYBRID || item.platform === currentPlatform
+    )
+    return filteredItems.length > 0 ? [{ ...group, items: filteredItems }] : []
+  })
 
   return (
     <View

@@ -42,18 +42,12 @@ function lastUsedIndexForKeychain(
   addresses: Account['addresses'],
   keychain: 'external' | 'internal'
 ): number {
-  return addresses.reduce((lastUsed, address) => {
-    if (address.keychain !== keychain) {
-      return lastUsed
-    }
-    if (address.index === undefined) {
-      return lastUsed
-    }
-    if (address.index > lastUsed) {
-      return address.index
-    }
-    return lastUsed
-  }, -1)
+  const indices = addresses.flatMap((address) =>
+    address.keychain === keychain && address.index !== undefined
+      ? [address.index]
+      : []
+  )
+  return Math.max(-1, ...indices)
 }
 
 type CoreDescriptorIndex = {
@@ -76,16 +70,11 @@ function maxCoreKeychainIndex(
   descriptors: CoreDescriptorIndex[],
   internal: boolean
 ): number {
-  return descriptors.reduce((maxIndex, entry) => {
-    if (entry.internal !== internal) {
-      return maxIndex
-    }
-    const candidate = Math.max(entry.next_index - 1, entry.range[1])
-    if (candidate > maxIndex) {
-      return candidate
-    }
-    return maxIndex
-  }, -1)
+  const candidates = descriptors
+    .filter((entry) => entry.internal === internal)
+    .map((entry) => Math.max(entry.next_index - 1, entry.range[1]))
+    .filter((candidate) => !Number.isNaN(candidate))
+  return Math.max(-1, ...candidates)
 }
 
 function lastIndexToReveal(
