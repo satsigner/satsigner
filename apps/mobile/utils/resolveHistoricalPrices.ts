@@ -5,11 +5,8 @@ import {
   isUsablePrice
 } from '@/api/localPrices'
 import { getFiatPriceApiUrl, useSettingsStore } from '@/store/settings'
-import {
-  type Currency,
-  CurrencySchema,
-  type Prices
-} from '@/types/models/Blockchain'
+import { CurrencySchema } from '@/types/models/Blockchain'
+import type { Currency, Prices } from '@/types/models/Blockchain'
 
 // The API's exchange rates are USD-based, so a USD quote converts correctly
 // into every other currency.

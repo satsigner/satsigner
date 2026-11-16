@@ -1,11 +1,9 @@
 import * as bitcoinjs from 'bitcoinjs-lib'
 
-import {
-  type AddressSyncProgress,
-  fetchAddressSnapshot
-} from '@/api/addressSync'
-import { type EsploraTx } from '@/types/models/Esplora'
-import { type Transaction } from '@/types/models/Transaction'
+import { fetchAddressSnapshot } from '@/api/addressSync'
+import type { AddressSyncProgress } from '@/api/addressSync'
+import type { EsploraTx } from '@/types/models/Esplora'
+import type { Transaction } from '@/types/models/Transaction'
 
 const ADDRESS = 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq'
 const OTHER_ADDRESS = 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh'

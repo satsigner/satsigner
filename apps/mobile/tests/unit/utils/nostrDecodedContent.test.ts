@@ -1,4 +1,4 @@
-import { type NostrDecodedContent } from '@/types/models/Nostr'
+import type { NostrDecodedContent } from '@/types/models/Nostr'
 import {
   getDecodedContentRelays,
   getDecodedContentTags

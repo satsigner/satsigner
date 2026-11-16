@@ -10,9 +10,9 @@ import {
   sampleSignetXpubFingerprint,
   sampleTestnet4Address
 } from '@/constants/samples'
-import { type Account, type PolicyType } from '@/types/models/Account'
-import { type ScriptVersionType } from '@/types/models/Script'
-import { type Network } from '@/types/settings/blockchain'
+import type { Account, PolicyType } from '@/types/models/Account'
+import type { ScriptVersionType } from '@/types/models/Script'
+import type { Network } from '@/types/settings/blockchain'
 import { getFingerprintFromMnemonic } from '@/utils/bip39'
 
 type SampleWallet =

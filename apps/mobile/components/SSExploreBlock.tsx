@@ -7,7 +7,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors, Layout } from '@/styles'
-import { type Block as BaseBlock } from '@/types/models/Blockchain'
+import type { Block as BaseBlock } from '@/types/models/Blockchain'
 import type { PartialSome } from '@/types/utils'
 import {
   formatBlockWeight,

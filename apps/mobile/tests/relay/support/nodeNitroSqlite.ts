@@ -1,4 +1,5 @@
-import { DatabaseSync, type SQLInputValue } from 'node:sqlite'
+import { DatabaseSync } from 'node:sqlite'
+import type { SQLInputValue } from 'node:sqlite'
 
 import { mockQueryResult } from '../../unit/db/queryResult'
 

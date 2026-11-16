@@ -3,8 +3,8 @@ import { useShallow } from 'zustand/react/shallow'
 
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
-import { type Output } from '@/types/models/Output'
-import { type Utxo } from '@/types/models/Utxo'
+import type { Output } from '@/types/models/Output'
+import type { Utxo } from '@/types/models/Utxo'
 import { formatDate, formatRelativeTime } from '@/utils/date'
 import { getFeePercentage, isHighMinerFee } from '@/utils/feeWarnings'
 import { formatAddress, formatNumber, formatTxId } from '@/utils/format'
@@ -458,49 +458,49 @@ export const useNodesAndLinks = ({
 
           const minerFee = totalInputValue - totalOutputValue
 
-          const allInputNodes = tx.vin.reduce<TxNode[]>((nodes, input) => {
-            if (
-              outputAddresses.includes(input.address) &&
-              outputValues.includes(input.value ?? 0)
-            ) {
-              return nodes
-            }
+          const allInputNodes = tx.vin
+            .filter(
+              (input) =>
+                !(
+                  outputAddresses.includes(input.address) &&
+                  outputValues.includes(input.value ?? 0)
+                )
+            )
+            .map<TxNode>((input) => {
+              const depthH = tx.depthH - 1
+              const currentIndex = depthIndices.get(depthH) || 0
+              depthIndices.set(depthH, currentIndex + 1)
 
-            const depthH = tx.depthH - 1
-            const currentIndex = depthIndices.get(depthH) || 0
-            depthIndices.set(depthH, currentIndex + 1)
-
-            const node = {
-              depthH,
-              id: `vin-${depthH}-${currentIndex}`,
-              ioData: {
-                address: formatTxId(input.previousOutput.txid, 'compact'),
-                fiatCurrency,
-                fiatValue: formatNumber(satsToFiat(input.value ?? 0), 2),
-                isInput: true,
-                isSelfSend: ownAddresses.has(input.address),
-                label: resolveSankeyInputLabel(
-                  input.previousOutput.txid,
-                  input.previousOutput.vout,
-                  txLabelsById,
-                  accountOutpointLabelsByRef
-                ),
-                prevTxId: input.previousOutput.txid,
-                text: t('common.from'),
+              const node = {
+                depthH,
+                id: `vin-${depthH}-${currentIndex}`,
+                ioData: {
+                  address: formatTxId(input.previousOutput.txid, 'compact'),
+                  fiatCurrency,
+                  fiatValue: formatNumber(satsToFiat(input.value ?? 0), 2),
+                  isInput: true,
+                  isSelfSend: ownAddresses.has(input.address),
+                  label: resolveSankeyInputLabel(
+                    input.previousOutput.txid,
+                    input.previousOutput.vout,
+                    txLabelsById,
+                    accountOutpointLabelsByRef
+                  ),
+                  prevTxId: input.previousOutput.txid,
+                  text: t('common.from'),
+                  txId: tx.id,
+                  value: input.value ?? 0,
+                  vout: input.previousOutput.vout
+                },
+                prevout: input.previousOutput,
                 txId: tx.id,
+                type: 'text',
                 value: input.value ?? 0,
                 vout: input.previousOutput.vout
-              },
-              prevout: input.previousOutput,
-              txId: tx.id,
-              type: 'text',
-              value: input.value ?? 0,
-              vout: input.previousOutput.vout
-            }
+              }
 
-            nodes.push(node)
-            return nodes
-          }, [])
+              return node
+            })
 
           const vsize = weightToVsize(tx?.weight ?? 0)
           const blockDepth = tx.depthH

@@ -1,5 +1,5 @@
 import { MS_PER_SECOND } from '@/constants/time'
-import { type Currency } from '@/types/models/Blockchain'
+import type { Currency } from '@/types/models/Blockchain'
 import { resolvePricesAt } from '@/utils/resolveHistoricalPrices'
 
 // Bundled history has one close per UTC day, so the calendar day the user

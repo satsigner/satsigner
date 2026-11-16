@@ -1,15 +1,13 @@
 import { useCallback } from 'react'
-import {
-  type AnimatableValue,
-  type AnimationCallback,
-  useSharedValue
+import { useSharedValue } from 'react-native-reanimated'
+import type {
+  AnimatableValue,
+  AnimationCallback
 } from 'react-native-reanimated'
 import { scheduleOnRN } from 'react-native-worklets'
 
-import {
-  ANIMATION_VALUE,
-  type OnResetAnimationEndCallback
-} from '@/types/ui/gestures'
+import { ANIMATION_VALUE } from '@/types/ui/gestures'
+import type { OnResetAnimationEndCallback } from '@/types/ui/gestures'
 
 type OnAnimationEndCallback = AnimationCallback extends (
   ...a: infer I

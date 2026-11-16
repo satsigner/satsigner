@@ -3,10 +3,8 @@ import { useShallow } from 'zustand/react/shallow'
 
 import ElectrumClient, { closeElectrumClientQuietly } from '@/api/electrum'
 import Esplora from '@/api/esplora'
-import {
-  fetchMempoolBasicData,
-  type MempoolBasicData
-} from '@/api/explorerMempool'
+import { fetchMempoolBasicData } from '@/api/explorerMempool'
+import type { MempoolBasicData } from '@/api/explorerMempool'
 import { getLocalPriceSeries, isUsablePrice } from '@/api/localPrices'
 import BitcoinRpc from '@/api/rpc'
 import { MS_PER_SECOND, SECONDS_PER_DAY } from '@/constants/time'

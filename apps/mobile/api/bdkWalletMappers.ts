@@ -1,18 +1,17 @@
 import { hex } from '@scure/base'
-import {
-  addressFromScript,
-  type BdkWallet,
-  KeychainKind,
-  type LocalOutputN,
-  type Network,
-  type TxDetailsN
+import { addressFromScript, KeychainKind } from 'react-native-bdk-sdk'
+import type {
+  BdkWallet,
+  LocalOutputN,
+  Network,
+  TxDetailsN
 } from 'react-native-bdk-sdk'
 
 import { MS_PER_SECOND } from '@/constants/time'
-import { type Account } from '@/types/models/Account'
-import { type Transaction } from '@/types/models/Transaction'
-import { type Utxo } from '@/types/models/Utxo'
-import { type Network as BlockchainNetwork } from '@/types/settings/blockchain'
+import type { Account } from '@/types/models/Account'
+import type { Transaction } from '@/types/models/Transaction'
+import type { Utxo } from '@/types/models/Utxo'
+import type { Network as BlockchainNetwork } from '@/types/settings/blockchain'
 import { indexFirstBy } from '@/utils/array'
 import { peekDerivedAddress } from '@/utils/derivedAddress'
 import { parseAccountAddressesDetails } from '@/utils/parse'
@@ -42,18 +41,17 @@ function lastUsedIndexForKeychain(
   addresses: Account['addresses'],
   keychain: 'external' | 'internal'
 ): number {
-  return addresses.reduce((lastUsed, address) => {
-    if (address.keychain !== keychain) {
-      return lastUsed
+  let lastUsed = -1
+  for (const address of addresses) {
+    if (
+      address.keychain === keychain &&
+      address.index !== undefined &&
+      address.index > lastUsed
+    ) {
+      lastUsed = address.index
     }
-    if (address.index === undefined) {
-      return lastUsed
-    }
-    if (address.index > lastUsed) {
-      return address.index
-    }
-    return lastUsed
-  }, -1)
+  }
+  return lastUsed
 }
 
 type CoreDescriptorIndex = {
@@ -76,16 +74,11 @@ function maxCoreKeychainIndex(
   descriptors: CoreDescriptorIndex[],
   internal: boolean
 ): number {
-  return descriptors.reduce((maxIndex, entry) => {
-    if (entry.internal !== internal) {
-      return maxIndex
-    }
-    const candidate = Math.max(entry.next_index - 1, entry.range[1])
-    if (candidate > maxIndex) {
-      return candidate
-    }
-    return maxIndex
-  }, -1)
+  const candidates = descriptors
+    .filter((entry) => entry.internal === internal)
+    .map((entry) => Math.max(entry.next_index - 1, entry.range[1]))
+    .filter((candidate) => !Number.isNaN(candidate))
+  return Math.max(-1, ...candidates)
 }
 
 function lastIndexToReveal(

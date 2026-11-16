@@ -1,7 +1,8 @@
-import { type Label } from '@/types/bips/329'
+import type { Label } from '@/types/bips/329'
 
 import { getDb } from '../connection'
-import { type ArkLabelRow, rowToArkLabel } from '../mappers'
+import { rowToArkLabel } from '../mappers'
+import type { ArkLabelRow } from '../mappers'
 
 function getArkLabelsByAccount(accountId: string): Record<string, Label> {
   const db = getDb()

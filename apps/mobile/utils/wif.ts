@@ -1,9 +1,9 @@
 import ecc from '@bitcoinerlab/secp256k1'
 import bs58check from 'bs58check'
 
-import { type Account, type Secret } from '@/types/models/Account'
-import { type ScriptVersionType } from '@/types/models/Script'
-import { type Network } from '@/types/settings/blockchain'
+import type { Account, Secret } from '@/types/models/Account'
+import type { ScriptVersionType } from '@/types/models/Script'
+import type { Network } from '@/types/settings/blockchain'
 import { addDescriptorChecksum } from '@/utils/descriptor'
 
 const PRIVATE_KEY_BYTE_LENGTH = 32

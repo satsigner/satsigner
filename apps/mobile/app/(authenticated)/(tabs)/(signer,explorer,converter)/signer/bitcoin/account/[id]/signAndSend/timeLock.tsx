@@ -1,7 +1,8 @@
 import { router } from 'expo-router'
 import { useState } from 'react'
 import { View } from 'react-native'
-import { type SceneRendererProps, TabView } from 'react-native-tab-view'
+import { TabView } from 'react-native-tab-view'
+import type { SceneRendererProps } from 'react-native-tab-view'
 
 import SSButton from '@/components/SSButton'
 import SSNumberInput from '@/components/SSNumberInput'

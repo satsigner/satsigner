@@ -5,8 +5,10 @@ import {
   useRouter,
   useSegments
 } from 'expo-router'
-import { type DrawerNavigationProp, useDrawerStatus } from 'expo-router/drawer'
-import { Platform, type ViewStyle, View } from 'react-native'
+import { useDrawerStatus } from 'expo-router/drawer'
+import type { DrawerNavigationProp } from 'expo-router/drawer'
+import { Platform, View } from 'react-native'
+import type { ViewStyle } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useShallow } from 'zustand/react/shallow'
 

@@ -1,10 +1,6 @@
 import { useState } from 'react'
-import {
-  StyleSheet,
-  TextInput,
-  View,
-  type TextInputInstance
-} from 'react-native'
+import { StyleSheet, TextInput, View } from 'react-native'
+import type { TextInputInstance } from 'react-native'
 
 import { Colors, Sizes, Typography } from '@/styles'
 

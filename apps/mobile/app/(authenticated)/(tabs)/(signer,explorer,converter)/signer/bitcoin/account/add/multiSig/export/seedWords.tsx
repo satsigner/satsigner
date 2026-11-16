@@ -18,7 +18,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { Colors } from '@/styles'
-import { type Key } from '@/types/models/Account'
+import type { Key } from '@/types/models/Account'
 import { decryptAccountKeySecret, decryptKeySecret } from '@/utils/decryption'
 
 // The PIN is asked once per visit; a key still holding its plaintext seed

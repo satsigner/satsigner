@@ -3,7 +3,7 @@ import { createJSONStorage, persist } from 'zustand/middleware'
 
 import { MempoolOracle } from '@/api/blockchain'
 import { getLocalLatestPrices } from '@/api/localPrices'
-import mmkvStorage from '@/storage/mmkv'
+import { mmkvStorage } from '@/storage/mmkv'
 import { getFiatPriceApiUrl, useSettingsStore } from '@/store/settings'
 import type { Currency, Prices } from '@/types/models/Blockchain'
 import { satsToFiat } from '@/utils/fiat'

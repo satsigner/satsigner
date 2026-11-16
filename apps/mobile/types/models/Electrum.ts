@@ -1,4 +1,4 @@
-import z from 'zod'
+import { z } from 'zod'
 
 import { NetworkSchema } from '../settings/blockchain'
 import { TransactionSchema } from './Transaction'

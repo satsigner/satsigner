@@ -5,12 +5,12 @@ import {
   SYNC_STALL_TIMEOUT_TOR_MS
 } from '@/constants/sync'
 import {
-  type AccountSyncHistory,
   getSyncStallTimeoutMs,
   isTransactionHistoryLoading,
   shouldFullScan,
   toRestoredSyncStatus
 } from '@/utils/accountSync'
+import type { AccountSyncHistory } from '@/utils/accountSync'
 
 function makeAccount(
   overrides: Partial<AccountSyncHistory> = {}

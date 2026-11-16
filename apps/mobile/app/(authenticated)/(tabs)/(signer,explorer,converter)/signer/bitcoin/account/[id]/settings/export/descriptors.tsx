@@ -1,8 +1,10 @@
 import * as Print from 'expo-print'
 import { Redirect, router, Stack, useLocalSearchParams } from 'expo-router'
 import * as Sharing from 'expo-sharing'
-import { type RefObject, useEffect, useRef, useState } from 'react'
-import { ScrollView, StyleSheet, View, type ViewInstance } from 'react-native'
+import { useEffect, useRef, useState } from 'react'
+import type { RefObject } from 'react'
+import { ScrollView, StyleSheet, View } from 'react-native'
+import type { ViewInstance } from 'react-native'
 import { captureRef } from 'react-native-view-shot'
 
 import { getExtendedPublicKeyFromAccountKey } from '@/api/bdk'
@@ -19,9 +21,9 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import { type Account } from '@/types/models/Account'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { type Network } from '@/types/settings/blockchain'
+import type { Account } from '@/types/models/Account'
+import type { AccountSearchParams } from '@/types/navigation/searchParams'
+import type { Network } from '@/types/settings/blockchain'
 import {
   getExtendedKeyFromDescriptor,
   getFingerprintFromExtendedPublicKey

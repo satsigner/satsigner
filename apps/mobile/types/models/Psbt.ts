@@ -1,6 +1,6 @@
-import { type PsbtLike } from 'react-native-bdk-sdk'
+import type { PsbtLike } from 'react-native-bdk-sdk'
 
-import { type QRDisplayMode } from '@/constants/qr'
+import type { QRDisplayMode } from '@/constants/qr'
 
 export type MockPsbt = PsbtLike
 

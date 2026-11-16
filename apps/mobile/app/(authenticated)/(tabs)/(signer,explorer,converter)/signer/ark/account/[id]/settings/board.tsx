@@ -1,6 +1,7 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useRef, useState } from 'react'
-import { StyleSheet, View, type ViewInstance } from 'react-native'
+import { StyleSheet, View } from 'react-native'
+import type { ViewInstance } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -36,19 +37,17 @@ import { useArkStore } from '@/store/ark'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors, Typography } from '@/styles'
 import { getAccountKindLabel } from '@/utils/accountKindLabel'
-import {
-  type ArkBoardValidationReason,
-  validateBoardAmount
-} from '@/utils/arkBoard'
+import { validateBoardAmount } from '@/utils/arkBoard'
+import type { ArkBoardValidationReason } from '@/utils/arkBoard'
 import {
   matchingUnbroadcastBoardTxid,
   txidFromSignedDraft
 } from '@/utils/arkBoardDeposit'
 import {
-  type ArkBoardSource,
   getArkBoardSources,
   resolveArkBoardSource
 } from '@/utils/arkBoardSource'
+import type { ArkBoardSource } from '@/utils/arkBoardSource'
 import { setClipboard } from '@/utils/clipboard'
 import { formatNumber, formatTxId } from '@/utils/format'
 

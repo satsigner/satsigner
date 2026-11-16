@@ -47,11 +47,8 @@ import {
   getNostrErrorMessageForCode
 } from '@/utils/nostrErrorMessage'
 import { generateDeviceNostrKeysFromSeed } from '@/utils/nostrIdentity'
-import {
-  checkRelayStatuses,
-  countDisconnected,
-  type NostrRelayCheckStatus
-} from '@/utils/nostrRelayStatus'
+import { checkRelayStatuses, countDisconnected } from '@/utils/nostrRelayStatus'
+import type { NostrRelayCheckStatus } from '@/utils/nostrRelayStatus'
 import { nostrSyncService } from '@/utils/nostrSyncService'
 
 const SYNCING_MESSAGE_KEYS = [
@@ -167,12 +164,10 @@ export default function NostrSync() {
           ? { color: NOSTR_FALLBACK_NPUB_COLOR, npub: member }
           : member
       )
-      .reduce<{ npub: string; color: string }[]>((acc, member) => {
-        if (!acc.some((m) => m.npub === member.npub)) {
-          acc.push(member)
-        }
-        return acc
-      }, [])
+      .filter(
+        (member, index, all) =>
+          all.findIndex((m) => m.npub === member.npub) === index
+      )
   }, [rawMembers])
 
   const { clearStoredDMs, generateCommonNostrKeys, deviceAnnouncement } =

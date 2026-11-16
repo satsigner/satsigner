@@ -1,8 +1,5 @@
-import {
-  fetchKind10063Servers,
-  listBlossomFiles,
-  type BlobDescriptor
-} from '@/api/blossom'
+import { fetchKind10063Servers, listBlossomFiles } from '@/api/blossom'
+import type { BlobDescriptor } from '@/api/blossom'
 import { NostrAPI } from '@/api/nostr'
 import { BYTES_PER_KIB } from '@/constants/format'
 import {
@@ -11,9 +8,9 @@ import {
 } from '@/constants/nostr'
 import { MS_PER_SECOND } from '@/constants/time'
 import { t } from '@/locales'
-import {
-  type BlossomFileCategory,
-  type BlossomFileTypeFilter
+import type {
+  BlossomFileCategory,
+  BlossomFileTypeFilter
 } from '@/types/models/Blossom'
 import { formatBytes } from '@/utils/format'
 

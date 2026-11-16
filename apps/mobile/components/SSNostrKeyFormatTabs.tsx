@@ -1,6 +1,6 @@
 import SSPairedTabs from '@/components/SSPairedTabs'
 import { t } from '@/locales'
-import { type NostrKeyFormat } from '@/utils/nostr'
+import type { NostrKeyFormat } from '@/utils/nostr'
 
 type SSNostrKeyFormatTabsProps = {
   format: NostrKeyFormat

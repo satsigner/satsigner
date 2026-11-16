@@ -2,7 +2,7 @@ import {
   NOSTR_PENDING_DM_ID_PREFIX,
   NOSTR_PENDING_MATCH_CREATED_AT_TOLERANCE_SEC
 } from '@/constants/nostr'
-import { type NostrDM } from '@/types/models/Nostr'
+import type { NostrDM } from '@/types/models/Nostr'
 
 function sortDmsByCreatedAt(dms: NostrDM[]): NostrDM[] {
   return dms.toSorted((a, b) => a.created_at - b.created_at)

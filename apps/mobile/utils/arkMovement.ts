@@ -1,7 +1,7 @@
 import { HASH_HEX_LENGTH, TXID_HEX_PATTERN } from '@/constants/btc'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
-import { type Direction } from '@/types/logic/sort'
+import type { Direction } from '@/types/logic/sort'
 import type {
   ArkMovement,
   ArkMovementEvent,

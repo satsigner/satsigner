@@ -1,8 +1,8 @@
-import { type Href } from 'expo-router'
+import type { Href } from 'expo-router'
 import { nip19 } from 'nostr-tools'
 
-import { type NostrChatProtocol } from '@/types/models/Nostr'
-import { type DetectedContent } from '@/utils/contentDetector'
+import type { NostrChatProtocol } from '@/types/models/Nostr'
+import type { DetectedContent } from '@/utils/contentDetector'
 import { parseNostrConnectUri } from '@/utils/nip46'
 import { getNip19Type } from '@/utils/nostr'
 

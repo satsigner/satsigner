@@ -12,7 +12,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors, Typography } from '@/styles'
-import { type ArkSwapJob } from '@/types/models/ArkSwap'
+import type { ArkSwapJob } from '@/types/models/ArkSwap'
 import { canDismissArkSwapJob, canSubmitArkSwapInvoice } from '@/utils/arkSwap'
 import { formatNumber } from '@/utils/format'
 

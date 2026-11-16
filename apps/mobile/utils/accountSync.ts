@@ -7,8 +7,8 @@ import {
   SYNC_STALL_TIMEOUT_RPC_MS,
   SYNC_STALL_TIMEOUT_TOR_MS
 } from '@/constants/sync'
-import { type Account } from '@/types/models/Account'
-import { type Server } from '@/types/settings/blockchain'
+import type { Account } from '@/types/models/Account'
+import type { Server } from '@/types/settings/blockchain'
 import { isOnionUrl } from '@/utils/serverPrivacy'
 
 type SyncCheckpoint =

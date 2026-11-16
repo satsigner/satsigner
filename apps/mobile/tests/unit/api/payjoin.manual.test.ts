@@ -6,7 +6,7 @@ import {
   applyManualSenderProposal,
   processManualOriginalPsbt
 } from '@/api/payjoin'
-import { type PayjoinWalletCallbacks } from '@/types/payjoin'
+import type { PayjoinWalletCallbacks } from '@/types/payjoin'
 
 function buildPsbt(params: {
   inputs: { txid: string; vout: number }[]

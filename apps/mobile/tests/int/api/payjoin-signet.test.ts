@@ -29,9 +29,9 @@ import {
   pollReceiverSession,
   sendPayjoin,
   startBip77Send,
-  tryResumeReceiverSession,
-  type FetchLike
+  tryResumeReceiverSession
 } from '@/api/payjoin'
+import type { FetchLike } from '@/api/payjoin'
 import {
   sampleSignetWalletSeed,
   sampleSignetXpubFingerprint
@@ -41,7 +41,7 @@ import {
   payjoinSessionStore,
   usePayjoinSessionsStore
 } from '@/store/payjoinSessions'
-import { type PayjoinWalletCallbacks } from '@/types/payjoin'
+import type { PayjoinWalletCallbacks } from '@/types/payjoin'
 import { mnemonicToSeed } from '@/utils/bip39'
 import { parsePayjoinUri } from '@/utils/payjoinUri'
 

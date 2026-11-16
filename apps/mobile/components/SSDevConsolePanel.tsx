@@ -1,15 +1,10 @@
 import { FlashList } from '@shopify/flash-list'
-import {
-  Pressable,
-  type StyleProp,
-  StyleSheet,
-  View,
-  type ViewStyle
-} from 'react-native'
+import { Pressable, StyleSheet, View } from 'react-native'
+import type { StyleProp, ViewStyle } from 'react-native'
 
 import SSText from '@/components/SSText'
 import { t } from '@/locales'
-import { type DevConsoleDock } from '@/store/devConsole'
+import type { DevConsoleDock } from '@/store/devConsole'
 import { Colors } from '@/styles'
 import type {
   DevConsoleEntry,

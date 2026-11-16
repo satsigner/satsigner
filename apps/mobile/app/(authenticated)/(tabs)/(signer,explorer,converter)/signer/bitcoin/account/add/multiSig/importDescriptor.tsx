@@ -18,8 +18,8 @@ import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import { type NFCReadResult } from '@/types/models/Nfc'
-import { type DetectedContent } from '@/utils/contentDetector'
+import type { NFCReadResult } from '@/types/models/Nfc'
+import type { DetectedContent } from '@/utils/contentDetector'
 import { getScriptVersionFromDescriptor } from '@/utils/descriptor'
 import {
   isUnsortedMultisigDescriptor,

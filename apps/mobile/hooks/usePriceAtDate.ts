@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 
 import { useSettingsStore } from '@/store/settings'
-import { type Currency } from '@/types/models/Blockchain'
+import type { Currency } from '@/types/models/Blockchain'
 import {
   fetchPriceAtTimestamp,
   getPriceDateTimestamp

@@ -1,10 +1,10 @@
 import { MempoolOracle } from '@/api/blockchain'
-import {
-  type BlockchainOracle,
-  type PriceValue,
-  TxPrioritySchema,
-  MemPoolFees
+import type {
+  BlockchainOracle,
+  MemPoolFees,
+  PriceValue
 } from '@/types/models/Blockchain'
+import { TxPrioritySchema } from '@/types/models/Blockchain'
 
 const mempoolspace: BlockchainOracle = new MempoolOracle(
   'https://mempool.space/api'

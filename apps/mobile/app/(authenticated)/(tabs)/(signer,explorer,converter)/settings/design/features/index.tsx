@@ -21,10 +21,8 @@ import {
 import SSDevOnlyRoute from '@/components/SSDevOnlyRoute'
 import SSSettingsCard from '@/components/SSSettingsCard'
 import SSText from '@/components/SSText'
-import {
-  DESIGN_FEATURE_IDS,
-  type DesignFeatureId
-} from '@/constants/designSystem'
+import { DESIGN_FEATURE_IDS } from '@/constants/designSystem'
+import type { DesignFeatureId } from '@/constants/designSystem'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'

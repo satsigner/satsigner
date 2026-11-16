@@ -11,9 +11,8 @@ import {
   NostrReactionsPreview
 } from '@/components/SSDesignNostrPreviews'
 import SSDesignSection from '@/components/SSDesignSection'
-import SSDevConsolePanel, {
-  type DevConsolePanelActions
-} from '@/components/SSDevConsolePanel'
+import SSDevConsolePanel from '@/components/SSDevConsolePanel'
+import type { DevConsolePanelActions } from '@/components/SSDevConsolePanel'
 import SSHistoryChart from '@/components/SSHistoryChart'
 import SSKeyboard from '@/components/SSKeyboard'
 import SSKeyboardWordSelector from '@/components/SSKeyboardWordSelector'
@@ -45,18 +44,18 @@ import {
   DESIGN_TRANSACTION_CARD_STATES,
   DESIGN_TRANSACTION_CHART_SETS,
   DESIGN_UTXO_SETS,
-  DESIGN_WORD_STATES,
-  type DesignSampleSetName
+  DESIGN_WORD_STATES
 } from '@/constants/designSampleVariations'
+import type { DesignSampleSetName } from '@/constants/designSampleVariations'
 import {
   DESIGN_SAMPLE_BLOCK_HEIGHT,
   DESIGN_SAMPLE_DEV_CONSOLE_ENTRIES,
   DESIGN_SAMPLE_DEV_CONSOLE_PAUSED_STEPS,
   DESIGN_SAMPLE_MULTISIG_MAX_KEYS,
   DESIGN_SAMPLE_SCRIPT_HEX,
-  DESIGN_SAMPLE_TX_HEX,
-  type DesignFeatureId
+  DESIGN_SAMPLE_TX_HEX
 } from '@/constants/designSystem'
+import type { DesignFeatureId } from '@/constants/designSystem'
 import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import SSHStack from '@/layouts/SSHStack'
 import SSScrollView from '@/layouts/SSScrollView'

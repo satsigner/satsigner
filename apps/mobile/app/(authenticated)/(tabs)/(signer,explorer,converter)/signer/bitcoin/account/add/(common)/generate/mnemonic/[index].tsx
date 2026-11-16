@@ -20,7 +20,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
-import { type GenerateMnemonicSearchParams } from '@/types/navigation/searchParams'
+import type { GenerateMnemonicSearchParams } from '@/types/navigation/searchParams'
 import { getDescriptorsFromKey } from '@/utils/bip32'
 import {
   getExtendedPublicKeyFromMnemonic,

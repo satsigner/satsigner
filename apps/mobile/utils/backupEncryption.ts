@@ -1,9 +1,8 @@
 import {
   BackupJsonSchema,
-  type BackupV1,
-  type BackupV2,
   BackupVersionJsonSchema
 } from '@/types/models/Backup'
+import type { BackupV1, BackupV2 } from '@/types/models/Backup'
 import {
   aesDecrypt,
   aesGcmDecrypt,
@@ -15,10 +14,10 @@ import {
   derivePinDigest,
   parseKdf,
   PBKDF2_CONFIG,
-  type PinKdfConfig,
   SCRYPT_CONFIG,
   serializeKdf
 } from '@/utils/pinKdf'
+import type { PinKdfConfig } from '@/utils/pinKdf'
 
 const BACKUP_VERSION = 2
 

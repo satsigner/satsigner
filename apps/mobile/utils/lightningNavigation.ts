@@ -1,4 +1,4 @@
-import { type Href } from 'expo-router'
+import type { Href } from 'expo-router'
 
 export function lightningChannelHref(chanId: string): Href {
   return {

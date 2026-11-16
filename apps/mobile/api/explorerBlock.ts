@@ -1,4 +1,4 @@
-import { type MempoolOracle } from '@/api/blockchain'
+import type { MempoolOracle } from '@/api/blockchain'
 import ElectrumClient from '@/api/electrum'
 import Esplora from '@/api/esplora'
 import BitcoinRpc from '@/api/rpc'

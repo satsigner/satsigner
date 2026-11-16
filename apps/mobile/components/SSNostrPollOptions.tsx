@@ -6,7 +6,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
-import { type NostrPollInfo } from '@/types/models/Nostr'
+import type { NostrPollInfo } from '@/types/models/Nostr'
 import { buildPollOptionButtonLabel } from '@/utils/nostrPoll'
 
 type SSNostrPollOptionsProps = {

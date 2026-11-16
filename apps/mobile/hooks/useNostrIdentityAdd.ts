@@ -1,7 +1,7 @@
 import { useState } from 'react'
 
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
-import { type NostrIdentity } from '@/types/models/Nostr'
+import type { NostrIdentity } from '@/types/models/Nostr'
 
 /**
  * Adding an identity triggers a kind 0 fetch from relays (indexer relays when

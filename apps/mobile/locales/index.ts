@@ -1,4 +1,5 @@
-import { I18n, type TranslateOptions } from 'i18n-js'
+import { I18n } from 'i18n-js'
+import type { TranslateOptions } from 'i18n-js'
 
 import { isRecord } from '@/utils/object'
 

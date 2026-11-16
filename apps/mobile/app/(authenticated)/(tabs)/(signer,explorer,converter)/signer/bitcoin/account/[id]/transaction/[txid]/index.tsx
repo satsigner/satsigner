@@ -30,9 +30,9 @@ import { useChartSettingStore } from '@/store/chartSettings'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors, Sizes } from '@/styles'
-import { type FeeReplacementKind } from '@/types/models/FeeReplacement'
-import { type Transaction } from '@/types/models/Transaction'
-import { type TxSearchParams } from '@/types/navigation/searchParams'
+import type { FeeReplacementKind } from '@/types/models/FeeReplacement'
+import type { Transaction } from '@/types/models/Transaction'
+import type { TxSearchParams } from '@/types/navigation/searchParams'
 import { getAccountAddressSets } from '@/utils/address'
 import {
   getConfirmations,

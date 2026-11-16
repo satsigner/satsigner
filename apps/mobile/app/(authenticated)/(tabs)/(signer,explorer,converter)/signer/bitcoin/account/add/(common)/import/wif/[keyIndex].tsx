@@ -16,16 +16,15 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
-import { type ScriptVersionType } from '@/types/models/Script'
-import { type ImportWifSearchParams } from '@/types/navigation/searchParams'
+import type { ScriptVersionType } from '@/types/models/Script'
+import type { ImportWifSearchParams } from '@/types/navigation/searchParams'
 import {
   decodeWif,
   scriptVersionForWifImport,
-  type WifDecodeResult,
-  type WifScriptLimitReason,
   wifImportSecret,
   wifScriptLimits
 } from '@/utils/wif'
+import type { WifDecodeResult, WifScriptLimitReason } from '@/utils/wif'
 
 function wifFieldError(text: string, result: WifDecodeResult) {
   if (!text.trim() || result.ok) {

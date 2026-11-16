@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { type StyleProp, StyleSheet, View, type ViewStyle } from 'react-native'
+import { StyleSheet, View } from 'react-native'
+import type { StyleProp, ViewStyle } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors, Layout, Sizes, Typography } from '@/styles'
-import { type Transaction } from '@/types/models/Transaction'
+import type { Transaction } from '@/types/models/Transaction'
 import type { DisplayPreferences } from '@/types/ui/displayPreferences'
 import {
   getConfirmations,

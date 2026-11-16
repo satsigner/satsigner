@@ -1,4 +1,4 @@
-import { type TextFontSize } from '@/styles/sizes'
+import type { TextFontSize } from '@/styles/sizes'
 
 const LABEL_TEXT_SIZE_SM_THRESHOLD = 48
 const LABEL_TEXT_SIZE_MD_THRESHOLD = 32

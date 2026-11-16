@@ -8,8 +8,8 @@ import {
 } from '@/services/accountReceiveAddress'
 import { useAccountsStore } from '@/store/accounts'
 import { useWalletsStore } from '@/store/wallets'
-import { type Account } from '@/types/models/Account'
-import { type Transaction } from '@/types/models/Transaction'
+import type { Account } from '@/types/models/Account'
+import type { Transaction } from '@/types/models/Transaction'
 
 function loadRangedWallet(accountId: string) {
   const wallet = new BdkWallet('', undefined, Network.Signet, '')

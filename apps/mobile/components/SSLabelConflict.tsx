@@ -4,7 +4,7 @@ import { StyleSheet } from 'react-native'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn } from '@/locales'
 import { Colors } from '@/styles'
-import { type Label } from '@/types/bips/329'
+import type { Label } from '@/types/bips/329'
 
 import SSButton from './SSButton'
 import SSCheckbox from './SSCheckbox'
@@ -43,12 +43,8 @@ export function detectConflcits(
   currentLabels: Label[],
   incomingLabels: Label[]
 ) {
-  const currentLabelsDict = currentLabels.reduce<Record<Label['ref'], Label>>(
-    (dict, label) => {
-      dict[label.ref] = label
-      return dict
-    },
-    {}
+  const currentLabelsDict = Object.fromEntries(
+    currentLabels.map((label) => [label.ref, label])
   )
 
   const conflicts: Conflict[] = []

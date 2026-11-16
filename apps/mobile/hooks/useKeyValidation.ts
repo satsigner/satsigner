@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 
-import { type Key } from '@/types/models/Account'
+import type { Key } from '@/types/models/Account'
 import { hasStoredMnemonic } from '@/utils/account'
 
 type UseKeyValidationParams = {

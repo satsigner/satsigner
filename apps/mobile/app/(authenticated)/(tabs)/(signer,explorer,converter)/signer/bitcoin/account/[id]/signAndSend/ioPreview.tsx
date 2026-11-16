@@ -12,12 +12,8 @@ import {
   useRef,
   useState
 } from 'react'
-import {
-  type LayoutChangeEvent,
-  StyleSheet,
-  type TextInputInstance,
-  View
-} from 'react-native'
+import { StyleSheet, View } from 'react-native'
+import type { LayoutChangeEvent, TextInputInstance } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
@@ -31,9 +27,8 @@ import SSCameraModal from '@/components/SSCameraModal'
 import SSCurrentTransactionChart from '@/components/SSCurrentTransactionChart'
 import SSDustWarningBanner from '@/components/SSDustWarningBanner'
 import SSFeeInput from '@/components/SSFeeInput'
-import SSFeeRateChart, {
-  type SSFeeRateChartProps
-} from '@/components/SSFeeRateChart'
+import SSFeeRateChart from '@/components/SSFeeRateChart'
+import type { SSFeeRateChartProps } from '@/components/SSFeeRateChart'
 import SSFeeReplacementFlags from '@/components/SSFeeReplacementFlags'
 import SSModal from '@/components/SSModal'
 import SSMultipleSankeyDiagram from '@/components/SSMultipleSankeyDiagram'
@@ -68,13 +63,13 @@ import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { Colors, Layout, Typography } from '@/styles'
 import { warning } from '@/styles/colors'
-import {
-  type AutoSelectUtxosAlgorithm,
-  type LoadingAutoSelectUtxosAlgorithm
+import type {
+  AutoSelectUtxosAlgorithm,
+  LoadingAutoSelectUtxosAlgorithm
 } from '@/types/models/AutoSelectUtxos'
-import { type MempoolStatistics } from '@/types/models/Blockchain'
-import { type Utxo } from '@/types/models/Utxo'
-import { type IoPreviewSearchParams } from '@/types/navigation/searchParams'
+import type { MempoolStatistics } from '@/types/models/Blockchain'
+import type { Utxo } from '@/types/models/Utxo'
+import type { IoPreviewSearchParams } from '@/types/navigation/searchParams'
 import { checkWalletNeedsSync } from '@/utils/account'
 import {
   autoSelectUtxosDescriptionKey,
@@ -86,10 +81,8 @@ import {
   shouldAutoSelectUtxosFromParsedAmount
 } from '@/utils/autoSelectUtxos'
 import { parseBitcoinPaymentUri } from '@/utils/bip321'
-import {
-  detectContentByContext,
-  type DetectedContent
-} from '@/utils/contentDetector'
+import { detectContentByContext } from '@/utils/contentDetector'
+import type { DetectedContent } from '@/utils/contentDetector'
 import { processContentForOutput } from '@/utils/contentProcessor'
 import { spendsUnconfirmedParent } from '@/utils/feeReplacement'
 import {
@@ -103,10 +96,10 @@ import { satsToFiat } from '@/utils/fiat'
 import { formatNumber, formatTxId } from '@/utils/format'
 import {
   ensureBitcoinPrefix,
-  type ParsedUriParams,
   parseUriParameters,
   stripBitcoinPrefix
 } from '@/utils/parse'
+import type { ParsedUriParams } from '@/utils/parse'
 import { hasPayjoinParam } from '@/utils/payjoinUri'
 import {
   buildOutpointLabelsByRef,
@@ -138,7 +131,8 @@ import {
   getUtxoOutpoint,
   selectEfficientUtxos,
   selectStonewallUtxos,
-  splitStonewallOutputValues
+  splitStonewallOutputValues,
+  sumUtxoValues
 } from '@/utils/utxo'
 import { applyUtxoDenylist } from '@/utils/utxoList'
 
@@ -491,14 +485,11 @@ export default function IOPreview() {
     toast.success(t('common.copiedToClipboard'))
   }
 
-  const utxosValue = (utxos: Utxo[]): number =>
-    utxos.reduce((acc, utxo) => acc + utxo.value, 0)
-
   const utxosTotalValue = useMemo(
-    () => utxosValue(account.utxos),
+    () => sumUtxoValues(account.utxos),
     [account.utxos]
   )
-  const utxosSelectedValue = utxosValue([...inputs.values()])
+  const utxosSelectedValue = sumUtxoValues([...inputs.values()])
 
   const baseTransactionSize = useMemo(() => {
     const { size, vsize } = estimateTransactionSize(

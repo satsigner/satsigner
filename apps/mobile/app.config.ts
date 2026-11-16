@@ -1,4 +1,4 @@
-import { type ConfigContext, type ExpoConfig } from 'expo/config'
+import type { ConfigContext, ExpoConfig } from 'expo/config'
 
 import { ANDROID_BLOCKED_PERMISSIONS } from './constants/androidPermissions.cjs'
 import {

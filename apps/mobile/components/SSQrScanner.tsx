@@ -1,12 +1,14 @@
-import {
-  type AvailableLenses,
-  type BarcodeScanningResult,
-  type BarcodeSettings,
-  CameraView
+import { CameraView } from 'expo-camera'
+import type {
+  AvailableLenses,
+  BarcodeScanningResult,
+  BarcodeSettings
 } from 'expo-camera'
-import { Platform, type StyleProp, type ViewStyle } from 'react-native'
+import { Platform } from 'react-native'
+import type { StyleProp, ViewStyle } from 'react-native'
 
-import { type CodeScannedEvent, SsQrScannerView } from '@/modules/ss-qr-scanner'
+import { SsQrScannerView } from '@/modules/ss-qr-scanner'
+import type { CodeScannedEvent } from '@/modules/ss-qr-scanner'
 import { scannedPayload } from '@/utils/qrScan'
 
 const QR_ONLY: BarcodeSettings = { barcodeTypes: ['qr'] }

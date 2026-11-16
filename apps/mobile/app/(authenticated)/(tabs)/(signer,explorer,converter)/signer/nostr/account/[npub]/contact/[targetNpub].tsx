@@ -33,8 +33,8 @@ import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useZapFlowStore } from '@/store/zapFlow'
 import { Colors, Layout } from '@/styles'
-import { type ZapReceiptInfo } from '@/types/models/Nostr'
-import { type PaymentMethod } from '@/types/models/PaymentMethod'
+import type { ZapReceiptInfo } from '@/types/models/Nostr'
+import type { PaymentMethod } from '@/types/models/PaymentMethod'
 import { getPubKeyHexFromNpub, validateNip05 } from '@/utils/nostr'
 import {
   buildContactIdentity,

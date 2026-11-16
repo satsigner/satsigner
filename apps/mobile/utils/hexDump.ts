@@ -5,7 +5,7 @@ function normalizeHex(hex: string): string {
 }
 
 function byteAscii(byte: number): string {
-  return byte >= 32 && byte <= 126 ? String.fromCharCode(byte) : '.'
+  return byte >= 32 && byte <= 126 ? String.fromCodePoint(byte) : '.'
 }
 
 /**

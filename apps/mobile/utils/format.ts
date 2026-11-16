@@ -46,14 +46,10 @@ import {
   SECONDS_PER_MINUTE
 } from '@/constants/time'
 import { i18n, t } from '@/locales'
-import { type Transaction } from '@/types/models/Transaction'
-import { type Utxo } from '@/types/models/Utxo'
-import { type PageParams } from '@/types/navigation/page'
-import {
-  type AddressSize,
-  type NpubSize,
-  type TxIdSize
-} from '@/types/ui/format'
+import type { Transaction } from '@/types/models/Transaction'
+import type { Utxo } from '@/types/models/Utxo'
+import type { PageParams } from '@/types/navigation/page'
+import type { AddressSize, NpubSize, TxIdSize } from '@/types/ui/format'
 
 const TIME_FORMATTER = new Intl.DateTimeFormat('en-US', {
   hour: 'numeric',

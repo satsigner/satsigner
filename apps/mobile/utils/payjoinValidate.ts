@@ -1,9 +1,6 @@
 import * as bitcoinjs from 'bitcoinjs-lib'
 
-import {
-  type PayjoinBip78Error,
-  type PayjoinBip78ErrorCode
-} from '@/types/payjoin'
+import type { PayjoinBip78Error, PayjoinBip78ErrorCode } from '@/types/payjoin'
 import { bytesEqual } from '@/utils/byteArray'
 import { isRecord } from '@/utils/object'
 
@@ -50,11 +47,9 @@ function checkPaymentOutputs(params: {
   if (paymentIndices.length === 0) {
     // No known payee script to anchor (self-transfer or un-plumbed caller):
     // fall back to requiring the non-owned total to cover the requested amount.
-    const paidToNonOwned = params.proposal.txOutputs.reduce(
-      (sum, output) =>
-        params.isScriptOwned(scriptHexOf(output)) ? sum : sum + output.value,
-      0n
-    )
+    const paidToNonOwned = params.proposal.txOutputs
+      .filter((output) => !params.isScriptOwned(scriptHexOf(output)))
+      .reduce((sum, output) => sum + output.value, 0n)
     if (paidToNonOwned > 0n && paidToNonOwned < params.paymentAmountSats) {
       return { ok: false, reason: 'receiver payment amount reduced' }
     }
@@ -82,13 +77,15 @@ function sumNewInputValues(
   proposal: bitcoinjs.Psbt,
   originalOutpoints: Set<string>
 ): bigint {
-  return proposal.txInputs.reduce((sum, input, index) => {
-    const key = outpointKey(txidFromPsbtInputHash(input.hash), input.index)
-    if (originalOutpoints.has(key)) {
-      return sum
-    }
-    return sum + (proposal.data.inputs[index]?.witnessUtxo?.value ?? 0n)
-  }, 0n)
+  return proposal.txInputs
+    .map((input, index) => {
+      const key = outpointKey(txidFromPsbtInputHash(input.hash), input.index)
+      if (originalOutpoints.has(key)) {
+        return 0n
+      }
+      return proposal.data.inputs[index]?.witnessUtxo?.value ?? 0n
+    })
+    .reduce((sum, value) => sum + value, 0n)
 }
 
 /**
@@ -107,11 +104,9 @@ function checkSenderChange(params: {
     params.proposal,
     params.originalOutpoints
   )
-  const newOutputSats = params.proposal.txOutputs.reduce(
-    (sum, output) =>
-      originalScripts.has(scriptHexOf(output)) ? sum : sum + output.value,
-    0n
-  )
+  const newOutputSats = params.proposal.txOutputs
+    .filter((output) => !originalScripts.has(scriptHexOf(output)))
+    .reduce((sum, output) => sum + output.value, 0n)
   const receiverNetContribution = newInputSats - newOutputSats
   const maxChangeDecrease =
     receiverNetContribution > 0n ? receiverNetContribution : 0n

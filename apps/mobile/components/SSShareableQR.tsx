@@ -1,10 +1,7 @@
-import { type ReactNode, type RefObject, useRef } from 'react'
-import {
-  type StyleProp,
-  View,
-  type ViewStyle,
-  type ViewInstance
-} from 'react-native'
+import { useRef } from 'react'
+import type { ReactNode, RefObject } from 'react'
+import { View } from 'react-native'
+import type { StyleProp, ViewStyle, ViewInstance } from 'react-native'
 
 import SSQRCode from './SSQRCode'
 import SSShareButton from './SSShareButton'

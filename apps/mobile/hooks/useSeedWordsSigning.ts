@@ -1,8 +1,8 @@
 import { useState } from 'react'
 
 import { LONG_MNEMONIC_WORD_COUNT } from '@/constants/bip39'
-import { type MnemonicWordCount } from '@/types/bips/39'
-import { type Notice } from '@/types/ui/notice'
+import type { MnemonicWordCount } from '@/types/bips/39'
+import type { Notice } from '@/types/ui/notice'
 
 type UseSeedWordsSigningParams = {
   selectedCosignerIndex: number | null

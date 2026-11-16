@@ -118,4 +118,6 @@ const QuickCrypto = {
   scryptSync: jest.fn().mockImplementation(scryptImpl)
 }
 
+export { Buffer } from 'node:buffer'
+
 export default QuickCrypto

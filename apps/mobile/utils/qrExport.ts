@@ -18,8 +18,8 @@ import {
   UR_FRAGMENT_BASE_SIZE,
   UR_FRAGMENT_MIN_SIZE
 } from '@/constants/qr'
-import { type PsbtQrChunks } from '@/types/models/Psbt'
-import { type Message } from '@/types/ui/notice'
+import type { PsbtQrChunks } from '@/types/models/Psbt'
+import type { Message } from '@/types/ui/notice'
 import { BBQRFileTypes, createBBQRChunks, isBBQRFragment } from '@/utils/bbqr'
 import { getURFragmentsFromPSBT } from '@/utils/ur'
 

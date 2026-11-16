@@ -6,7 +6,7 @@ import { syncWithCoreWallet } from '@/api/coreWalletSync'
 import useSyncAccountWithWallet from '@/hooks/useSyncAccountWithWallet'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
-import { type Account } from '@/types/models/Account'
+import type { Account } from '@/types/models/Account'
 import { cancelAllAccountSyncs } from '@/utils/accountSyncRuns'
 
 jest.mock<typeof import('@/api/coreWalletSync')>(

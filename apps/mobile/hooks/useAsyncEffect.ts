@@ -1,4 +1,5 @@
-import { type DependencyList, useEffect } from 'react'
+import { useEffect } from 'react'
+import type { DependencyList } from 'react'
 
 // oxlint-disable-next-line typescript/no-invalid-void-type
 type CleanupOptional = void | (() => void)

@@ -1,6 +1,6 @@
 import { useAccountsStore } from '@/store/accounts'
-import { type Account } from '@/types/models/Account'
-import { type Transaction } from '@/types/models/Transaction'
+import type { Account } from '@/types/models/Account'
+import type { Transaction } from '@/types/models/Transaction'
 import { formatTxOutputToUtxo } from '@/utils/format'
 
 function useGetAccountTransactionOutput(

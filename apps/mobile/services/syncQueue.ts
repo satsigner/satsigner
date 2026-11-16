@@ -51,6 +51,14 @@ type Job<T> = {
   timeoutMs: EnqueueOptions['timeoutMs']
 }
 
+async function runSyncJob<T>(job: Job<T>, controls: SyncTaskControls) {
+  try {
+    job.settle({ value: await job.task(controls) })
+  } catch (error) {
+    job.settle({ error })
+  }
+}
+
 /**
  * One queue for every account sync in the app. Background syncs share a fixed
  * number of slots so one long history over Tor no longer holds up every
@@ -108,7 +116,7 @@ export function createSyncQueue<T>(concurrency: number) {
 
     signal.addEventListener('abort', () => clearTimeout(timer.id))
 
-    void runTask(job, {
+    void runSyncJob(job, {
       finishScan,
       get isPriority() {
         return job.isPriority
@@ -116,14 +124,6 @@ export function createSyncQueue<T>(concurrency: number) {
       reportProgress,
       signal
     })
-  }
-
-  async function runTask(job: Job<T>, controls: SyncTaskControls) {
-    try {
-      job.settle({ value: await job.task(controls) })
-    } catch (error) {
-      job.settle({ error })
-    }
   }
 
   function createJob(

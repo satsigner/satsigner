@@ -1,7 +1,7 @@
 import { DUST_LIMIT } from '@/constants/btc'
 import { t } from '@/locales'
 import * as bip321 from '@/utils/bip321'
-import { type DetectedContent } from '@/utils/contentDetector'
+import type { DetectedContent } from '@/utils/contentDetector'
 import {
   getBitcoinContentHref,
   getContentHref,

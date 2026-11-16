@@ -16,8 +16,8 @@ import type { TxNode } from '@/hooks/useNodesAndLinks'
 import { useTransactionOutspends } from '@/hooks/useTransactionOutspends'
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
-import { type Transaction } from '@/types/models/Transaction'
-import { type Node } from '@/types/ui/sankey'
+import type { Transaction } from '@/types/models/Transaction'
+import type { Node } from '@/types/ui/sankey'
 import { isChangeOutputAddress, normalizeAddressSet } from '@/utils/address'
 import {
   equalizeSankeyColumnsByDepthH,
@@ -30,10 +30,8 @@ import { resolveSankeyInputLabel } from '@/utils/sankeyInputLabel'
 import { isOwnedOutpoint } from '@/utils/sankeyInputOwnership'
 import { layoutSankeyGraph } from '@/utils/sankeyLayout'
 import { getSankeyLinkEndId } from '@/utils/sankeyLinkEnd'
-import {
-  resolveChartOutputSpendStatus,
-  type ChartOutputSpendStatus
-} from '@/utils/sankeyOutputLabel'
+import { resolveChartOutputSpendStatus } from '@/utils/sankeyOutputLabel'
+import type { ChartOutputSpendStatus } from '@/utils/sankeyOutputLabel'
 import {
   classifySpecialOutput,
   specialOutputLayoutValue,

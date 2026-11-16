@@ -6,7 +6,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
-import { type ArkBalanceRow, type ArkBalanceRowKey } from '@/utils/ark'
+import type { ArkBalanceRow, ArkBalanceRowKey } from '@/utils/ark'
 import { formatNumber } from '@/utils/format'
 
 const ROW_LABEL_KEYS: Record<ArkBalanceRowKey, string> = {

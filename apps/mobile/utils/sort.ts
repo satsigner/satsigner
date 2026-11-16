@@ -1,6 +1,6 @@
-import { type Direction } from '@/types/logic/sort'
-import { type Address } from '@/types/models/Address'
-import { type Transaction } from '@/types/models/Transaction'
+import type { Direction } from '@/types/logic/sort'
+import type { Address } from '@/types/models/Address'
+import type { Transaction } from '@/types/models/Transaction'
 
 type TransactionSortField = 'date' | 'amount' | 'label'
 

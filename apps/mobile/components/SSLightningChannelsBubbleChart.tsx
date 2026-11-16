@@ -15,10 +15,8 @@ import {
 import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { formatMaskedNumber } from '@/utils/format'
-import {
-  type LightningBubbleChannelRow,
-  buildLightningChannelsBubbleLayout
-} from '@/utils/lightningChannelsBubbleLayout'
+import { buildLightningChannelsBubbleLayout } from '@/utils/lightningChannelsBubbleLayout'
+import type { LightningBubbleChannelRow } from '@/utils/lightningChannelsBubbleLayout'
 
 type SSLightningChannelsBubbleChartProps = {
   height: number

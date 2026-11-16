@@ -23,7 +23,7 @@ import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
-import { type NostrChatProtocol } from '@/types/models/Nostr'
+import type { NostrChatProtocol } from '@/types/models/Nostr'
 import { nostrChatThreadHref } from '@/utils/nostrNavigation'
 import { isNonEmptyString } from '@/utils/string'
 

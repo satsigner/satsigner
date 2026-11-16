@@ -1,6 +1,6 @@
 import { useBlockchainStore } from '@/store/blockchain'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
-import { type Account } from '@/types/models/Account'
+import type { Account } from '@/types/models/Account'
 import { autoSelectUtxos } from '@/utils/contentProcessor'
 
 type PrefillSendFromAccountParams = {

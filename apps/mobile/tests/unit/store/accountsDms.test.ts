@@ -1,8 +1,8 @@
 import { insertDms, replaceDm, updateDmStatus } from '@/db/mutations/nostr'
 import { useAccountsStore } from '@/store/accounts'
 import { useNostrStore } from '@/store/nostr'
-import { type Account } from '@/types/models/Account'
-import { type NostrDM } from '@/types/models/Nostr'
+import type { Account } from '@/types/models/Account'
+import type { NostrDM } from '@/types/models/Nostr'
 
 jest.mock<typeof import('@/db/mutations/nostr')>(
   '@/db/mutations/nostr',

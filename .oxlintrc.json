@@ -29,37 +29,48 @@
       }
     ],
     "typescript/consistent-type-definitions": ["allow", "type"],
+    "class-methods-use-this": ["error", { "ignoreOverrideMethods": true }],
+    // Typed jest.mock factories need `typeof import('…')`
+    "typescript/consistent-type-imports": [
+      "error",
+      { "disallowTypeAnnotations": false }
+    ],
+    // Skia paint style is a string ("fill" | "stroke")
+    "react/style-prop-object": [
+      "error",
+      { "allow": ["Circle", "Line", "Paint", "Path", "Rect"] }
+    ],
     "no-negated-condition": "allow",
     "no-inline-comments": "allow", // Remove it later
     "no-warning-comments": "allow", // Remove it later
     "no-shadow": "allow", // Remove it later
     "unicorn/filename-case": "allow",
     "promise/avoid-new": "allow",
+    // React Compiler memoizes inline handlers
+    "react-perf/jsx-no-new-function-as-prop": "allow",
+    // React Native asset and lazy requires, jest module isolation, CommonJS configs
+    "unicorn/prefer-module": "allow",
+    "node/global-require": "allow",
+    // oxfmt lowercases hex digits and this rule has no option for lowercase
+    "unicorn/number-literal-case": "allow",
+    // Positional lists (seed word grids, PIN slots, byte chunks) have no stable id
+    "react/no-array-index-key": "allow",
+    // Fixes drop typed arguments and end in implicit returns or empty catches
+    "unicorn/no-useless-undefined": "allow",
+    // Handlers come straight from hooks and libraries (query.refetch, picker.open)
+    "react/jsx-handler-names": "allow",
+    // Immer drafts of persisted Record state
+    "typescript/no-dynamic-delete": "allow",
+    // Callers and test fakes use the Node EventEmitter API
+    "unicorn/prefer-event-target": "allow",
+    // Bitcoin encodings and crypto
+    "no-bitwise": "allow",
+    // Error class modules and library mocks
+    "max-classes-per-file": "allow",
 
     // Rules with remaining errors - fix over time
-    "react-perf/jsx-no-new-function-as-prop": "allow",
-    "import/consistent-type-specifier-style": "allow",
-    "typescript/no-import-type-side-effects": "allow",
     "typescript/no-non-null-assertion": "allow",
-    "unicorn/prefer-module": "allow",
     "unicorn/no-nested-ternary": "allow",
-    "node/global-require": "allow",
-    "unicorn/number-literal-case": "allow",
-    "react/no-array-index-key": "allow",
-    "unicorn/consistent-function-scoping": "allow",
-    "unicorn/no-useless-undefined": "allow",
-    "typescript/consistent-type-imports": "allow",
-    "react/jsx-handler-names": "allow",
-    "import/no-named-as-default": "allow",
-    "typescript/no-dynamic-delete": "allow",
-    "unicorn/no-array-reduce": "allow",
-    "react/style-prop-object": "allow",
-    "unicorn/prefer-code-point": "allow",
-    "import/no-named-as-default-member": "allow",
-    "unicorn/prefer-event-target": "allow",
-    "no-bitwise": "allow",
-    "class-methods-use-this": "allow",
-    "max-classes-per-file": "allow",
     "no-nested-ternary": "allow",
     "complexity": "allow",
 
@@ -67,6 +78,13 @@
     "nextjs/no-head-element": "allow"
   },
   "overrides": [
+    {
+      "files": ["**/__mocks__/**"],
+      "rules": {
+        // Mocks mirror the instance APIs of the libraries they replace
+        "class-methods-use-this": "off"
+      }
+    },
     {
       "files": [
         "**/*.{test,spec}.{ts,tsx,js,jsx}",

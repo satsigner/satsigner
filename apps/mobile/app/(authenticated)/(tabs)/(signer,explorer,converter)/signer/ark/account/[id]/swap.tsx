@@ -33,10 +33,10 @@ import { useAccountsStore } from '@/store/accounts'
 import { useArkStore } from '@/store/ark'
 import { useArkSwapsStore } from '@/store/arkSwaps'
 import { Colors, Typography } from '@/styles'
-import {
-  type ArkSwapEndpointKind,
-  type ArkSwapRoute,
-  type ArkSwapStartResult
+import type {
+  ArkSwapEndpointKind,
+  ArkSwapRoute,
+  ArkSwapStartResult
 } from '@/types/models/ArkSwap'
 import {
   getAccountKindLabel,

@@ -1,6 +1,6 @@
 import { useEffect, useEffectEvent, useRef, useState } from 'react'
 
-import { type AutoSelectUtxosAlgorithm } from '@/types/models/AutoSelectUtxos'
+import type { AutoSelectUtxosAlgorithm } from '@/types/models/AutoSelectUtxos'
 import {
   isAutoSelectFromUriSearchParam,
   shouldApplyDefaultAutoSelectFromUri

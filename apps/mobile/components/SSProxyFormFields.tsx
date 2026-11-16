@@ -3,7 +3,7 @@ import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { type ProxyConfig } from '@/types/settings/blockchain'
+import type { ProxyConfig } from '@/types/settings/blockchain'
 
 type SSProxyFormFieldsProps = {
   proxy: ProxyConfig

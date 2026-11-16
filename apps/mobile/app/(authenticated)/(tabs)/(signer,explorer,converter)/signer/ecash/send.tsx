@@ -1,12 +1,8 @@
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useEffectEvent, useRef, useState } from 'react'
-import {
-  Pressable,
-  StyleSheet,
-  useWindowDimensions,
-  type ViewInstance
-} from 'react-native'
+import { Pressable, StyleSheet, useWindowDimensions } from 'react-native'
+import type { ViewInstance } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSAmountInput from '@/components/SSAmountInput'
@@ -29,7 +25,7 @@ import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors, Sizes, Typography } from '@/styles'
-import { type DetectedContent } from '@/utils/contentDetector'
+import type { DetectedContent } from '@/utils/contentDetector'
 import { describeTokenRoute } from '@/utils/ecashMintRoute'
 
 export default function EcashSendPage() {

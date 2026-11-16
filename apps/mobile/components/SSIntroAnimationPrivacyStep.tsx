@@ -3,7 +3,6 @@ import { StyleSheet, View } from 'react-native'
 import Animated, {
   cancelAnimation,
   Easing,
-  type SharedValue,
   useAnimatedStyle,
   useSharedValue,
   withDelay,
@@ -11,6 +10,7 @@ import Animated, {
   withSequence,
   withTiming
 } from 'react-native-reanimated'
+import type { SharedValue } from 'react-native-reanimated'
 import { scheduleOnRN } from 'react-native-worklets'
 
 import { Colors } from '@/styles'

@@ -15,7 +15,7 @@ import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
-import { type Account } from '@/types/models/Account'
+import type { Account } from '@/types/models/Account'
 import { getNextDisplayIndex } from '@/utils/account'
 
 export default function Add() {

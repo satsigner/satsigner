@@ -1,5 +1,5 @@
 import { hex } from '@scure/base'
-import z from 'zod'
+import { z } from 'zod'
 
 import {
   ESPLORA_ERROR_MESSAGES,
@@ -7,11 +7,11 @@ import {
 } from '@/constants/esplora'
 import { BlockSchema, BlockStatusSchema } from '@/types/models/Blockchain'
 import {
-  type EsploraTx,
   EsploraTxOutspendsSchema,
   EsploraTxSchema,
   EsploraUtxoSchema
 } from '@/types/models/Esplora'
+import type { EsploraTx } from '@/types/models/Esplora'
 
 const parseBlocks = z.array(BlockSchema).parse
 const parseTxs = z.array(EsploraTxSchema).parse

@@ -1,4 +1,4 @@
-import { type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 import { StyleSheet } from 'react-native'
 
 import SSBackendSourceLabel from '@/components/SSBackendSourceLabel'

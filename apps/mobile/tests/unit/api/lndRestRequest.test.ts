@@ -1,4 +1,5 @@
-import { type LndRestFetchResult, lndRestFetch } from '@/api/lndRest'
+import { lndRestFetch } from '@/api/lndRest'
+import type { LndRestFetchResult } from '@/api/lndRest'
 import {
   closeLndChannel,
   fetchLndNodeInfo,

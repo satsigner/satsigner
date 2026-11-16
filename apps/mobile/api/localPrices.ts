@@ -1,7 +1,8 @@
-import z from 'zod'
+import { z } from 'zod'
 
 import { MS_PER_SECOND } from '@/constants/time'
-import { type Currency, CurrencySchema } from '@/types/models/Blockchain'
+import { CurrencySchema } from '@/types/models/Blockchain'
+import type { Currency } from '@/types/models/Blockchain'
 
 const FIAT_CURRENCIES: Currency[] = [
   'AUD',

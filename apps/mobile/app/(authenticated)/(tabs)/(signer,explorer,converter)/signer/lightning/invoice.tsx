@@ -30,15 +30,15 @@ import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { Colors } from '@/styles'
 import type { LNURLWithdrawDetails } from '@/types/models/Lightning'
-import { type DetectedContent } from '@/utils/contentDetector'
+import type { DetectedContent } from '@/utils/contentDetector'
 import { fiatToSats, satsToFiat } from '@/utils/fiat'
 import { formatNumber } from '@/utils/format'
 import { getLndErrorMessage } from '@/utils/lndHttpError'
 import {
   lndInvoiceLookupPath,
-  parseLndInvoiceUiStatus,
-  type LndInvoiceUiStatus
+  parseLndInvoiceUiStatus
 } from '@/utils/lndInvoiceStatus'
+import type { LndInvoiceUiStatus } from '@/utils/lndInvoiceStatus'
 import {
   decodeLNURL,
   fetchLNURLWithdrawDetails,
