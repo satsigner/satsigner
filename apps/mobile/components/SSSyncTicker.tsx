@@ -1,43 +1,78 @@
-import { StyleSheet, View } from 'react-native'
+import { type LayoutChangeEvent, StyleSheet, View } from 'react-native'
 import Animated, {
   Easing,
-  SlideInRight,
-  SlideOutLeft
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming
 } from 'react-native-reanimated'
-
-import useSyncLabelTicker from '@/hooks/useSyncLabelTicker'
 
 import SSText from './SSText'
 
-const TICKER_TRANSITION_MS = 450
+const MARQUEE_SPEED_PX_PER_SEC = 25
+// The scroll distance grows for this long before restarting; the visible
+// offset wraps every loop width, so the restart is invisible.
+const MARQUEE_RUN_MS = 60 * 60_000
+const MARQUEE_RUN_PX = (MARQUEE_RUN_MS / 1000) * MARQUEE_SPEED_PX_PER_SEC
+const MARQUEE_SEPARATOR = '   ·   '
 // Fixed so the loader beside the ticker stays put as labels change length.
-const TICKER_WIDTH = 160
-
-const entering = SlideInRight.duration(TICKER_TRANSITION_MS).easing(
-  Easing.out(Easing.cubic)
-)
-const exiting = SlideOutLeft.duration(TICKER_TRANSITION_MS).easing(
-  Easing.in(Easing.cubic)
-)
+const TICKER_WIDTH = 120
+const TICKER_HEIGHT = 18
 
 type SSSyncTickerProps = {
   labels: string[]
 }
 
 function SSSyncTicker({ labels }: SSSyncTickerProps) {
-  const index = useSyncLabelTicker(labels.length)
-  const label = labels[index] ?? ''
+  const distance = useSharedValue(0)
+  const loopWidth = useSharedValue(0)
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      {
+        translateX:
+          loopWidth.value > 0 ? -(distance.value % loopWidth.value) : 0
+      }
+    ]
+  }))
+
+  if (labels.length < 2) {
+    return (
+      <View style={styles.window}>
+        <SSText color="muted" size="xs" center numberOfLines={1}>
+          {labels[0] ?? ''}
+        </SSText>
+      </View>
+    )
+  }
+
+  const loopText = labels.join(MARQUEE_SEPARATOR) + MARQUEE_SEPARATOR
+
+  // One copy of the text is one loop; the second copy fills the gap so the
+  // wrap back to the start is invisible. Progress updates change the width,
+  // so the scroll keeps running and only the wrap point moves.
+  function handleLoopLayout(event: LayoutChangeEvent) {
+    loopWidth.value = event.nativeEvent.layout.width
+    if (distance.value > 0) {
+      return
+    }
+    distance.value = withRepeat(
+      withTiming(MARQUEE_RUN_PX, {
+        duration: MARQUEE_RUN_MS,
+        easing: Easing.linear
+      }),
+      -1
+    )
+  }
 
   return (
     <View style={styles.window}>
-      <Animated.View
-        key={index}
-        entering={entering}
-        exiting={exiting}
-        style={styles.label}
-      >
-        <SSText color="muted" size="xs" center numberOfLines={1}>
-          {label}
+      <Animated.View style={[styles.track, animatedStyle]}>
+        <SSText color="muted" size="xs" onLayout={handleLoopLayout}>
+          {loopText}
+        </SSText>
+        <SSText color="muted" size="xs">
+          {loopText}
         </SSText>
       </Animated.View>
     </View>
@@ -45,16 +80,13 @@ function SSSyncTicker({ labels }: SSSyncTickerProps) {
 }
 
 const styles = StyleSheet.create({
-  label: {
-    bottom: 0,
-    justifyContent: 'center',
-    left: 0,
-    position: 'absolute',
-    right: 0,
-    top: 0
+  track: {
+    flexDirection: 'row',
+    position: 'absolute'
   },
   window: {
-    height: 18,
+    height: TICKER_HEIGHT,
+    justifyContent: 'center',
     overflow: 'hidden',
     width: TICKER_WIDTH
   }
