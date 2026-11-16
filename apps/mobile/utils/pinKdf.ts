@@ -452,7 +452,8 @@ export function safeEqualHex(a: string, b: string): boolean {
   }
   let diff = 0
   for (let i = 0; i < a.length; i += 1) {
-    diff |= (a.codePointAt(i) ?? 0) ^ (b.codePointAt(i) ?? 0)
+    // oxlint-disable-next-line unicorn/prefer-code-point -- compares UTF-16 code units
+    diff |= a.charCodeAt(i) ^ b.charCodeAt(i)
   }
   return diff === 0
 }
