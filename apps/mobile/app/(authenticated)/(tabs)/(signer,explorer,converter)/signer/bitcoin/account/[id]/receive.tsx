@@ -61,7 +61,7 @@ import {
   resolveReceiveAddressSelection
 } from '@/utils/externalAddress'
 import { fiatToSats, satsToFiat } from '@/utils/fiat'
-import { formatDate } from '@/utils/format'
+import { formatDate, formatNumber } from '@/utils/format'
 import { formatPayjoinExpiringLabel } from '@/utils/payjoinExpiry'
 import { isPayjoinSuccess } from '@/utils/payjoinSessionStatus'
 import { preparePayjoinPsbtForWalletSign } from '@/utils/payjoinSign'
@@ -1039,7 +1039,9 @@ export default function Receive() {
                   {priceDate ? (
                     <SSText color="muted" size="xs" center>
                       {t('receive.priceDate.rateOn', {
-                        date: formatDate(priceDate)
+                        currency: fiatCurrency,
+                        date: formatDate(priceDate),
+                        price: formatNumber(conversionPrice)
                       })}
                     </SSText>
                   ) : null}

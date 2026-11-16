@@ -3117,7 +3117,7 @@
     "priceDate.loading": "Looking up the price…",
     "priceDate.openSettings": "Open price settings",
     "priceDate.rate": "1 BTC = %{price} %{currency}",
-    "priceDate.rateOn": "Converted at the price on %{date}",
+    "priceDate.rateOn": "Converted at the price on %{date} (1 BTC = %{price} %{currency})",
     "priceDate.setDate": "Set date",
     "priceDate.title": "Price date",
     "priceDate.unavailable": "No price for this date",
