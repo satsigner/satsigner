@@ -1,6 +1,6 @@
 import { PAYJOIN_MIN_CONTRIBUTE_SATS } from '@/constants/payjoin'
-import { type Transaction } from '@/types/models/Transaction'
-import { type Utxo } from '@/types/models/Utxo'
+import type { Transaction } from '@/types/models/Transaction'
+import type { Utxo } from '@/types/models/Utxo'
 
 function isConfirmedUtxo(
   utxo: Utxo,

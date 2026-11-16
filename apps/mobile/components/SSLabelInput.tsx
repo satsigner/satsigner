@@ -10,7 +10,8 @@ import { getLabelTextSize } from '@/utils/label'
 import { parseLabel, parseLabelTags } from '@/utils/parse'
 
 import SSButton from './SSButton'
-import SSTagInput, { type SSTagInputHandle } from './SSTagInput'
+import SSTagInput from './SSTagInput'
+import type { SSTagInputHandle } from './SSTagInput'
 import SSText from './SSText'
 import SSTextInput from './SSTextInput'
 

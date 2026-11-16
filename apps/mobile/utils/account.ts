@@ -1,11 +1,7 @@
 import { INITIAL_DISPLAY_INDEX } from '@/constants/account'
 import { getKeySecret, storeKeySecret } from '@/storage/encrypted'
-import {
-  type Account,
-  type Key,
-  type Secret,
-  SecretSchema
-} from '@/types/models/Account'
+import { SecretSchema } from '@/types/models/Account'
+import type { Account, Key, Secret } from '@/types/models/Account'
 import { aesDecrypt, aesEncrypt } from '@/utils/crypto'
 import { decryptKeySecret } from '@/utils/decryption'
 import { getPin } from '@/utils/pin'

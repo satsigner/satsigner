@@ -1,5 +1,5 @@
-import { type Transaction } from '@/types/models/Transaction'
-import { type Utxo } from '@/types/models/Utxo'
+import type { Transaction } from '@/types/models/Transaction'
+import type { Utxo } from '@/types/models/Utxo'
 import {
   filterPayjoinContributeUtxos,
   isConfirmedUtxo,

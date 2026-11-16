@@ -1,6 +1,7 @@
-import Svg, { G, Path, type SvgProps } from 'react-native-svg'
+import Svg, { G, Path } from 'react-native-svg'
+import type { SvgProps } from 'react-native-svg'
 
-import { type NavMenuItemIconProps } from '@/types/navigation/navMenu'
+import type { NavMenuItemIconProps } from '@/types/navigation/navMenu'
 
 type IconProps = Pick<SvgProps, 'width' | 'height' | 'color'> & {
   strokeWidth?: number

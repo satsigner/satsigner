@@ -1,5 +1,5 @@
 import { useAccountsStore } from '@/store/accounts'
-import { type Account } from '@/types/models/Account'
+import type { Account } from '@/types/models/Account'
 import { BITCOIN_CHECKS } from '@/utils/diagnostics/checks/bitcoin'
 
 jest.mock<typeof import('@/store/accounts')>('@/store/accounts', () => {

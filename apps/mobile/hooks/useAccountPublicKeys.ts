@@ -1,8 +1,8 @@
 import { skipToken, useQuery } from '@tanstack/react-query'
 
 import { MISSING_PUBKEY_PLACEHOLDER } from '@/constants/account'
-import { type Account } from '@/types/models/Account'
-import { type Network } from '@/types/settings/blockchain'
+import type { Account } from '@/types/models/Account'
+import type { Network } from '@/types/settings/blockchain'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { getAccountWithDecryptedKeys } from '@/utils/decryption'
 import { getKeyExtendedPublicKey } from '@/utils/key'

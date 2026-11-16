@@ -9,11 +9,8 @@ import {
   storeRpcCredentialsSecret
 } from '@/storage/encrypted'
 import type { LNDConfig } from '@/types/models/Lightning'
-import {
-  type Network,
-  type RpcCredentials,
-  RpcCredentialsSchema
-} from '@/types/settings/blockchain'
+import { RpcCredentialsSchema } from '@/types/settings/blockchain'
+import type { Network, RpcCredentials } from '@/types/settings/blockchain'
 import { aesDecrypt, aesEncrypt, randomIv } from '@/utils/crypto'
 import { getPin } from '@/utils/pin'
 import { withFallback } from '@/utils/schema'

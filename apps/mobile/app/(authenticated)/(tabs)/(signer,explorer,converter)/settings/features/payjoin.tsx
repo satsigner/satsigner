@@ -15,7 +15,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useSettingsStore } from '@/store/settings'
-import { type PayjoinCoordinationMode } from '@/types/payjoin'
+import type { PayjoinCoordinationMode } from '@/types/payjoin'
 import { PAYJOIN_COORDINATION_MODES } from '@/utils/payjoinMode'
 
 const TTL_LABEL_KEYS: Record<number, string> = {

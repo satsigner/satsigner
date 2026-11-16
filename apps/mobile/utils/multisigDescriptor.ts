@@ -1,4 +1,4 @@
-import { type ScriptVersionType } from '@/types/models/Script'
+import type { ScriptVersionType } from '@/types/models/Script'
 import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
 import { getXpubFingerprint, removeChecksum } from '@/utils/descriptor'
 

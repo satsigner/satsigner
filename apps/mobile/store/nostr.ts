@@ -7,10 +7,10 @@ import {
 } from '@/db/nostrProcessedEvents'
 import { mmkvStorage } from '@/storage/mmkv'
 import { gray } from '@/styles/colors'
-import { type NostrErrorCode } from '@/types/models/Nostr'
+import type { NostrErrorCode } from '@/types/models/Nostr'
 import { generateColorFromNpub } from '@/utils/nostr'
 import { isRecord, omitKey } from '@/utils/object'
-import { type TransactionData } from '@/utils/psbt'
+import type { TransactionData } from '@/utils/psbt'
 
 type Member = {
   npub: string

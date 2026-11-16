@@ -1,6 +1,7 @@
-import Svg, { G, Mask, Path, type SvgProps } from 'react-native-svg'
+import Svg, { G, Mask, Path } from 'react-native-svg'
+import type { SvgProps } from 'react-native-svg'
 
-import { type NavMenuItemIconProps } from '@/types/navigation/navMenu'
+import type { NavMenuItemIconProps } from '@/types/navigation/navMenu'
 
 const BOLT_PATH =
   'M9.80782 8.35964L10.0424 0L0 11.6933H6.04126L5.80933 20L15.7566 8.35964H9.80782Z'

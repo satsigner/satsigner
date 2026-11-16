@@ -1,9 +1,6 @@
 import * as bitcoinjs from 'bitcoinjs-lib'
 
-import {
-  type PayjoinBip78Error,
-  type PayjoinBip78ErrorCode
-} from '@/types/payjoin'
+import type { PayjoinBip78Error, PayjoinBip78ErrorCode } from '@/types/payjoin'
 import { bytesEqual } from '@/utils/byteArray'
 import { isRecord } from '@/utils/object'
 

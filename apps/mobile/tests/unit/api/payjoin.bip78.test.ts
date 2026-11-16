@@ -2,13 +2,10 @@
 import * as bitcoinjs from 'bitcoinjs-lib'
 import { __resetPayjoinMock } from 'react-native-payjoin'
 
-import {
-  postBip78OriginalPsbt,
-  sendPayjoin,
-  type FetchLike
-} from '@/api/payjoin'
+import { postBip78OriginalPsbt, sendPayjoin } from '@/api/payjoin'
+import type { FetchLike } from '@/api/payjoin'
 import { getPayjoinDeps } from '@/store/payjoinSessions'
-import { type PayjoinWalletCallbacks } from '@/types/payjoin'
+import type { PayjoinWalletCallbacks } from '@/types/payjoin'
 
 function buildPsbt(params: {
   inputs: { txid: string; vout: number }[]

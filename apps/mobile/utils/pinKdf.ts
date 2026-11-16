@@ -10,7 +10,7 @@ import {
   SALT_KEY_DURESS
 } from '@/config/auth'
 import { deleteItem, getItem, setItem } from '@/storage/encrypted'
-import { type EncryptedKeySecret } from '@/types/models/Account'
+import type { EncryptedKeySecret } from '@/types/models/Account'
 import { generateSalt } from '@/utils/crypto'
 import { pinDigestOpensSecret } from '@/utils/decryption'
 import { setSessionPinDigest } from '@/utils/pinSession'

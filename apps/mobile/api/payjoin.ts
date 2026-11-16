@@ -32,15 +32,15 @@ import {
   PAYJOIN_RESUME_POLL_INTERVAL_MS
 } from '@/constants/payjoin'
 import { MS_PER_SECOND } from '@/constants/time'
-import {
-  type PayjoinBoardDestination,
-  type PayjoinDeps,
-  type PayjoinSendResult,
-  type PayjoinSession,
-  type PayjoinSessionStore,
-  type PayjoinWalletCallbacks
+import type {
+  PayjoinBoardDestination,
+  PayjoinDeps,
+  PayjoinSendResult,
+  PayjoinSession,
+  PayjoinSessionStore,
+  PayjoinWalletCallbacks
 } from '@/types/payjoin'
-import { type Network as AppNetwork } from '@/types/settings/blockchain'
+import type { Network as AppNetwork } from '@/types/settings/blockchain'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { isSuccessfulHttpStatus } from '@/utils/http'
 import {

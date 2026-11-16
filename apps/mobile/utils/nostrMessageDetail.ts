@@ -2,7 +2,7 @@ import * as nostrKinds from 'nostr-tools/kinds'
 import { z } from 'zod'
 
 import { t } from '@/locales'
-import { type NostrChatProtocol, type NostrDM } from '@/types/models/Nostr'
+import type { NostrChatProtocol, NostrDM } from '@/types/models/Nostr'
 import { formatDateShort } from '@/utils/date'
 import { formatNpub, truncate } from '@/utils/format'
 import { safeNpubEncode } from '@/utils/nostr'

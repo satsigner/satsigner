@@ -22,11 +22,11 @@ import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import {
-  type ConnectionTestResult,
-  type ConnectionTestSuccess
+import type {
+  ConnectionTestResult,
+  ConnectionTestSuccess
 } from '@/types/models/ConnectionTest'
-import { type Network, type Server } from '@/types/settings/blockchain'
+import type { Network, Server } from '@/types/settings/blockchain'
 import {
   formatBannerForToast,
   successProbeDescription,

@@ -1,5 +1,5 @@
 import { t } from '@/locales'
-import { type Message } from '@/types/ui/notice'
+import type { Message } from '@/types/ui/notice'
 
 /** Text to display for a message reported by a hook. */
 export function formatMessage(message: Message) {

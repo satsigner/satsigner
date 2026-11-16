@@ -1,14 +1,8 @@
 import { LinearGradient } from 'expo-linear-gradient'
 import { useRouter } from 'expo-router'
 import { useState } from 'react'
-import {
-  Image,
-  Pressable,
-  type StyleProp,
-  StyleSheet,
-  View,
-  type ViewStyle
-} from 'react-native'
+import { Image, Pressable, StyleSheet, View } from 'react-native'
+import type { StyleProp, ViewStyle } from 'react-native'
 
 import SSIconCheckCircleThin from '@/components/icons/SSIconCheckCircleThin'
 import SSIconCircleXThin from '@/components/icons/SSIconCircleXThin'
@@ -22,9 +16,9 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
-import {
-  type NostrIdentity,
-  type NostrRelayConnectionInfo
+import type {
+  NostrIdentity,
+  NostrRelayConnectionInfo
 } from '@/types/models/Nostr'
 import { formatNpub } from '@/utils/format'
 import { generateColorFromNpub } from '@/utils/nostr'

@@ -1,12 +1,12 @@
 import * as bitcoinjs from 'bitcoinjs-lib'
 
-import { type ArkExitClaimDraft } from '@/types/models/Ark'
+import type { ArkExitClaimDraft } from '@/types/models/Ark'
 import {
   matchesApprovedArkExitClaim,
-  type VerifiedArkExitClaim,
   verifyArkExitClaimDraft,
   verifyArkExitClaimSignedTx
 } from '@/utils/arkExitClaim'
+import type { VerifiedArkExitClaim } from '@/utils/arkExitClaim'
 
 const NETWORK = bitcoinjs.networks.testnet
 // Taproot output keyed to the secp256k1 generator, a valid curve point.

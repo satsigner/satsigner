@@ -11,10 +11,10 @@ import {
 } from '@/constants/nostr'
 import { MS_PER_SECOND } from '@/constants/time'
 import { identityChatKey, useNostrChatReplyStore } from '@/store/nostrChatReply'
-import {
-  type NostrChatConversationItem,
-  type NostrChatProtocol,
-  type NostrChatThreadItem
+import type {
+  NostrChatConversationItem,
+  NostrChatProtocol,
+  NostrChatThreadItem
 } from '@/types/models/Nostr'
 import {
   acquireChatPipeline,

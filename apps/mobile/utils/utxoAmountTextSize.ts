@@ -1,4 +1,4 @@
-import { type TextFontSize } from '@/styles/sizes'
+import type { TextFontSize } from '@/styles/sizes'
 
 function utxoAmountTextSize(value: number): TextFontSize {
   const digits = String(Math.trunc(Math.abs(value))).length

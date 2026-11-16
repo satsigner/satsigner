@@ -10,7 +10,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn } from '@/locales'
 import { usePriceStore } from '@/store/price'
-import { type Currency } from '@/types/models/Blockchain'
+import type { Currency } from '@/types/models/Blockchain'
 
 const tl = tn('settings.fiat')
 

@@ -1,4 +1,4 @@
-import { type Account, type Key } from '@/types/models/Account'
+import type { Account, Key } from '@/types/models/Account'
 import { getKeyFingerprint } from '@/utils/account'
 import {
   buildPubkeyToCosignerIndex,

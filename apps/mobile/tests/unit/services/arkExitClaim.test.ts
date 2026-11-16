@@ -22,8 +22,8 @@ import { mmkvStorage } from '@/storage/mmkv'
 import { useAccountsStore } from '@/store/accounts'
 import { useArkStore } from '@/store/ark'
 import { useArkExitClaimsStore } from '@/store/arkExitClaims'
-import { type Account } from '@/types/models/Account'
-import { type ArkExit } from '@/types/models/Ark'
+import type { Account } from '@/types/models/Account'
+import type { ArkExit } from '@/types/models/Ark'
 
 jest.mock<typeof import('@/api/ark')>('@/api/ark', () => ({
   buildArkExitClaim: jest.fn(),

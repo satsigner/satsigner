@@ -1,4 +1,4 @@
-import { type PayjoinSession } from '@/types/payjoin'
+import type { PayjoinSession } from '@/types/payjoin'
 import { isPayjoinTerminal } from '@/utils/payjoinSessionStatus'
 
 export type ReceiverPollMode =

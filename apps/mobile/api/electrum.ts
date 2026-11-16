@@ -12,10 +12,8 @@ import {
   ELECTRUM_TX_CACHE_MAX_ENTRIES
 } from '@/constants/electrum'
 import { MS_PER_SECOND } from '@/constants/time'
-import {
-  ElectrumClientSchema,
-  type ElectrumClientInterface
-} from '@/types/models/Electrum'
+import { ElectrumClientSchema } from '@/types/models/Electrum'
+import type { ElectrumClientInterface } from '@/types/models/Electrum'
 import type { Transaction } from '@/types/models/Transaction'
 import type { Utxo } from '@/types/models/Utxo'
 import type { Network } from '@/types/settings/blockchain'

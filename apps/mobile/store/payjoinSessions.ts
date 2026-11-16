@@ -3,10 +3,10 @@ import { createJSONStorage, persist } from 'zustand/middleware'
 
 import { mmkvStorage } from '@/storage/mmkv'
 import { getPayjoinSettings } from '@/store/settings'
-import {
-  type PayjoinDeps,
-  type PayjoinSession,
-  type PayjoinSessionStore
+import type {
+  PayjoinDeps,
+  PayjoinSession,
+  PayjoinSessionStore
 } from '@/types/payjoin'
 import { isPayjoinTerminal } from '@/utils/payjoinSessionStatus'
 

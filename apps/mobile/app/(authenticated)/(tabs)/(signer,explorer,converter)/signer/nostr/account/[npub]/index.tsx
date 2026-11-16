@@ -34,9 +34,9 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { Colors, Layout } from '@/styles'
-import {
-  type NostrRelayConnectionInfo,
-  type ZapReceiptInfo
+import type {
+  NostrRelayConnectionInfo,
+  ZapReceiptInfo
 } from '@/types/models/Nostr'
 import { canNostrIdentitySignRemotely } from '@/utils/nip46'
 import { getPubKeyHexFromNpub, validateNip05 } from '@/utils/nostr'

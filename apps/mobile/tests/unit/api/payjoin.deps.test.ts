@@ -9,18 +9,18 @@ import {
   clearReceiverSessionsForAccount,
   createReceivePayjoinSession,
   finalizeReceiverPayjoin,
-  type FetchLike,
   pollBip77Send,
   startBip77Send
 } from '@/api/payjoin'
+import type { FetchLike } from '@/api/payjoin'
 import * as payjoinNative from '@/api/payjoinNative'
 import { PAYJOIN_DIRECTORY_URL } from '@/constants/payjoin'
 import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
-import {
-  type PayjoinDeps,
-  type PayjoinSession,
-  type PayjoinSessionStore,
-  type PayjoinWalletCallbacks
+import type {
+  PayjoinDeps,
+  PayjoinSession,
+  PayjoinSessionStore,
+  PayjoinWalletCallbacks
 } from '@/types/payjoin'
 import { parsePayjoinUri } from '@/utils/payjoinUri'
 

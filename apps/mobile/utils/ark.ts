@@ -1,10 +1,10 @@
 import { ARK_SERVERS, ARK_SUPPORTED_NETWORKS } from '@/constants/ark'
 import { t } from '@/locales'
-import {
-  type ArkBalance,
-  type ArkDestinationDraft,
-  type ArkFeeRequest,
-  type ArkOnchainBalance,
+import type {
+  ArkBalance,
+  ArkDestinationDraft,
+  ArkFeeRequest,
+  ArkOnchainBalance,
   ArkServer
 } from '@/types/models/Ark'
 import type { Network } from '@/types/settings/blockchain'

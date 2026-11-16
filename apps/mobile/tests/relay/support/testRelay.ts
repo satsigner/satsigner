@@ -2,7 +2,8 @@ import { once } from 'node:events'
 
 import type { Event, Filter } from 'nostr-tools'
 import { verifyEvent } from 'nostr-tools/pure'
-import { type WebSocket, WebSocketServer } from 'ws'
+import { WebSocketServer } from 'ws'
+import type { WebSocket } from 'ws'
 
 const RELAY_HOST = '127.0.0.1'
 const RANDOM_PORT = 0

@@ -13,7 +13,7 @@ import { MS_PER_SECOND } from '@/constants/time'
 import { useAsyncEffect } from '@/hooks/useAsyncEffect'
 import { queryClient } from '@/lib/queryClient'
 import { useBlockchainStore } from '@/store/blockchain'
-import { type Config, type Server } from '@/types/settings/blockchain'
+import type { Config, Server } from '@/types/settings/blockchain'
 import {
   isConnectionPollSuppressed,
   subscribeToConnectionPollSuppression

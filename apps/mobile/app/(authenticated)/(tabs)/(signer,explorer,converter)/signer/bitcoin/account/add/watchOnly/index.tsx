@@ -2,7 +2,7 @@ import * as Clipboard from 'expo-clipboard'
 import { router, Stack, useLocalSearchParams } from 'expo-router'
 import { useEffect, useEffectEvent, useState } from 'react'
 import { Keyboard, StyleSheet } from 'react-native'
-import { type BdkWallet } from 'react-native-bdk-sdk'
+import type { BdkWallet } from 'react-native-bdk-sdk'
 import Animated, {
   cancelAnimation,
   interpolate,
@@ -41,11 +41,11 @@ import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import { type Account, type CreationType } from '@/types/models/Account'
-import { type NFCReadResult } from '@/types/models/Nfc'
-import { type WatchOnlySearchParams } from '@/types/navigation/searchParams'
+import type { Account, CreationType } from '@/types/models/Account'
+import type { NFCReadResult } from '@/types/models/Nfc'
+import type { WatchOnlySearchParams } from '@/types/navigation/searchParams'
 import { bitcoinjsNetwork, convertKeyFormat } from '@/utils/bitcoin'
-import { type DetectedContent } from '@/utils/contentDetector'
+import type { DetectedContent } from '@/utils/contentDetector'
 import {
   descriptorHasPrivateKeyMaterial,
   getFingerprint,

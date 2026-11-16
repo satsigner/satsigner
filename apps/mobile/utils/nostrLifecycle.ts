@@ -1,12 +1,7 @@
-import {
-  addEventListener as addNetInfoListener,
-  type NetInfoState
-} from '@react-native-community/netinfo'
-import {
-  AppState,
-  type AppStateStatus,
-  type NativeEventSubscription
-} from 'react-native'
+import { addEventListener as addNetInfoListener } from '@react-native-community/netinfo'
+import type { NetInfoState } from '@react-native-community/netinfo'
+import { AppState } from 'react-native'
+import type { AppStateStatus, NativeEventSubscription } from 'react-native'
 
 import { reconnectNdkForRelays } from '@/api/nostr'
 import { queryClient } from '@/lib/queryClient'

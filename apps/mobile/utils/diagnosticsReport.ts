@@ -9,11 +9,8 @@ import {
   NOSTR_SECURITY_REPORT_NPUB
 } from '@/constants/nostr'
 import { randomKey } from '@/utils/crypto'
-import {
-  type DiagnosticResult,
-  type DiagnosticStatus,
-  resolveLiveRoundtripRelays
-} from '@/utils/diagnostics'
+import { resolveLiveRoundtripRelays } from '@/utils/diagnostics'
+import type { DiagnosticResult, DiagnosticStatus } from '@/utils/diagnostics'
 
 export const DIAGNOSTICS_REPORT_VERSION = 2
 

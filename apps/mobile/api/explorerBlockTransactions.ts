@@ -1,4 +1,4 @@
-import { MempoolOracle } from '@/api/blockchain'
+import type { MempoolOracle } from '@/api/blockchain'
 import Esplora from '@/api/esplora'
 import BitcoinRpc from '@/api/rpc'
 import type { Backend, RpcCredentials } from '@/types/settings/blockchain'

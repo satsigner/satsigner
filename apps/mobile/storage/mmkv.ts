@@ -1,5 +1,5 @@
 import { createMMKV } from 'react-native-mmkv'
-import { type StateStorage } from 'zustand/middleware'
+import type { StateStorage } from 'zustand/middleware'
 
 import { isStringArray } from '@/utils/array'
 

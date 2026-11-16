@@ -9,12 +9,12 @@ import { deflate, inflate } from 'pako'
 import { PSBT_MAGIC_BASE64 } from '@/constants/btc'
 import { NOSTR_FALLBACK_NPUB_COLOR } from '@/constants/nostr'
 import { t } from '@/locales'
-import { type NostrKind0Profile } from '@/types/models/Nostr'
+import type { NostrKind0Profile } from '@/types/models/Nostr'
 import { base85Decode, base85Encode } from '@/utils/base58'
 import { sha256 } from '@/utils/crypto'
 import { isRecord } from '@/utils/object'
 import { parseDescriptor } from '@/utils/parse'
-import { type TransactionData } from '@/utils/psbt'
+import type { TransactionData } from '@/utils/psbt'
 
 bitcoinjs.initEccLib(ecc)
 

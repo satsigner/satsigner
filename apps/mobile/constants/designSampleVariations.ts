@@ -7,9 +7,9 @@ import {
   DESIGN_SAMPLE_SANKEY_OUTPUTS,
   DESIGN_SAMPLE_TAGS,
   DESIGN_SAMPLE_TRANSACTIONS,
-  DESIGN_SAMPLE_UTXOS,
-  type DesignFeatureId
+  DESIGN_SAMPLE_UTXOS
 } from '@/constants/designSystem'
+import type { DesignFeatureId } from '@/constants/designSystem'
 import type { DevConsoleEntry } from '@/types/models/DevConsole'
 import type { Transaction } from '@/types/models/Transaction'
 import type { Utxo } from '@/types/models/Utxo'
@@ -20,10 +20,12 @@ import {
   buildSampleTags,
   buildSampleUtxos,
   buildSampleWallet,
-  type SampleChartTransaction,
-  type SampleSankey,
-  type SampleWallet,
   toSampleSankey
+} from '@/utils/designSamples'
+import type {
+  SampleChartTransaction,
+  SampleSankey,
+  SampleWallet
 } from '@/utils/designSamples'
 import type { LightningBubbleChannelRow } from '@/utils/lightningChannelsBubbleLayout'
 import { getTransactionRunningBalances } from '@/utils/walletOwnership'

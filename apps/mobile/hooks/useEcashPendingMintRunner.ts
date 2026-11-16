@@ -3,14 +3,10 @@ import { toast } from 'sonner-native'
 
 import { ECASH_PENDING_MELT_POLL_INTERVAL_MS } from '@/constants/ecash'
 import { t } from '@/locales'
-import {
-  type PendingMeltResult,
-  settlePendingMelts
-} from '@/services/ecash/pendingMelts'
-import {
-  type PendingMintResult,
-  settlePendingMints
-} from '@/services/ecash/pendingMints'
+import { settlePendingMelts } from '@/services/ecash/pendingMelts'
+import type { PendingMeltResult } from '@/services/ecash/pendingMelts'
+import { settlePendingMints } from '@/services/ecash/pendingMints'
+import type { PendingMintResult } from '@/services/ecash/pendingMints'
 import { useEcashStore } from '@/store/ecash'
 import { hasPendingMelts } from '@/utils/ecashMelt'
 import {

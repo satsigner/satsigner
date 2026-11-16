@@ -21,20 +21,22 @@ import { useAccountsStore } from '@/store/accounts'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { useUtxoListControlsStore } from '@/store/utxoListControls'
 import { Colors, Layout } from '@/styles'
-import { type Utxo } from '@/types/models/Utxo'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import type { Utxo } from '@/types/models/Utxo'
+import type { AccountSearchParams } from '@/types/navigation/searchParams'
 import { satsToFiat } from '@/utils/fiat'
 import { formatNumber } from '@/utils/format'
 import { getUtxoOutpoint, sumUtxoValues } from '@/utils/utxo'
 import {
   applyUtxoDenylist,
   DEFAULT_UTXO_LIST_FILTER,
-  filterUtxos,
-  type UtxoKeychainFilter,
-  type UtxoLabelFilter,
-  type UtxoListFilter,
-  type UtxoScriptFilter,
-  type UtxoTagFilter
+  filterUtxos
+} from '@/utils/utxoList'
+import type {
+  UtxoKeychainFilter,
+  UtxoLabelFilter,
+  UtxoListFilter,
+  UtxoScriptFilter,
+  UtxoTagFilter
 } from '@/utils/utxoList'
 
 function SelectUtxoBubbles() {

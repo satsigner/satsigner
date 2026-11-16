@@ -58,14 +58,14 @@ import {
   DESIGN_SAMPLE_TXID,
   DESIGN_SAMPLE_UTXOS
 } from '@/constants/designSystem'
-import { type ConnectionVerifyStatus } from '@/hooks/useVerifyConnection'
+import type { ConnectionVerifyStatus } from '@/hooks/useVerifyConnection'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
 import { Colors } from '@/styles'
-import { type ServerPrivacy } from '@/utils/serverPrivacy'
+import type { ServerPrivacy } from '@/utils/serverPrivacy'
 
 const tn = _tn('settings.developer.designSystem.components')
 

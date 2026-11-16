@@ -1,10 +1,7 @@
 import { LinearGradient } from 'expo-linear-gradient'
 import { useRouter } from 'expo-router'
-import {
-  type DrawerContentComponentProps,
-  DrawerContentScrollView,
-  useDrawerStatus
-} from 'expo-router/drawer'
+import { DrawerContentScrollView, useDrawerStatus } from 'expo-router/drawer'
+import type { DrawerContentComponentProps } from 'expo-router/drawer'
 import { Platform, StyleSheet, View } from 'react-native'
 
 import { SSIconAbout, SSIconSettings } from '@/components/icons'
@@ -14,7 +11,8 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
-import { type NavMenuGroup, PLATFORM } from '@/types/navigation/navMenu'
+import { PLATFORM } from '@/types/navigation/navMenu'
+import type { NavMenuGroup } from '@/types/navigation/navMenu'
 
 import SSNavMenuGroup from './SSNavMenuGroup'
 import SSPressable from './SSPressable'

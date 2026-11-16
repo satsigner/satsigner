@@ -1,5 +1,6 @@
 import { fetch as fetchNetInfo } from '@react-native-community/netinfo'
-import { type Event, getPublicKey, nip17, nip19, nip59 } from 'nostr-tools'
+import { getPublicKey, nip17, nip19, nip59 } from 'nostr-tools'
+import type { Event } from 'nostr-tools'
 import * as nostrKinds from 'nostr-tools/kinds'
 
 import { NostrAPI } from '@/api/nostr'

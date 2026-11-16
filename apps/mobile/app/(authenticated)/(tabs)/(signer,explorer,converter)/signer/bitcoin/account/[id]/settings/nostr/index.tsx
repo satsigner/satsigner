@@ -47,11 +47,8 @@ import {
   getNostrErrorMessageForCode
 } from '@/utils/nostrErrorMessage'
 import { generateDeviceNostrKeysFromSeed } from '@/utils/nostrIdentity'
-import {
-  checkRelayStatuses,
-  countDisconnected,
-  type NostrRelayCheckStatus
-} from '@/utils/nostrRelayStatus'
+import { checkRelayStatuses, countDisconnected } from '@/utils/nostrRelayStatus'
+import type { NostrRelayCheckStatus } from '@/utils/nostrRelayStatus'
 import { nostrSyncService } from '@/utils/nostrSyncService'
 
 const SYNCING_MESSAGE_KEYS = [

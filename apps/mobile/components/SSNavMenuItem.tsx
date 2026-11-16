@@ -4,7 +4,7 @@ import { useCallback, useMemo } from 'react'
 import { StyleSheet, View } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
-import { type NavMenuItem } from '@/types/navigation/navMenu'
+import type { NavMenuItem } from '@/types/navigation/navMenu'
 
 import SSPressable from './SSPressable'
 import SSText from './SSText'

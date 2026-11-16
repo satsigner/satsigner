@@ -1,7 +1,4 @@
-import {
-  type LNDGetInfoChain,
-  type LNDNodeInfo
-} from '@/types/models/Lightning'
+import type { LNDGetInfoChain, LNDNodeInfo } from '@/types/models/Lightning'
 import { isRecord } from '@/utils/object'
 
 function parseLndChains(value: unknown): LNDGetInfoChain[] {

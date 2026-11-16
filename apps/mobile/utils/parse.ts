@@ -3,7 +3,7 @@ import { EXTENDED_PUBKEY_PATTERN } from '@/constants/descriptor'
 import { t } from '@/locales'
 import type { Account, Key } from '@/types/models/Account'
 import type { Address } from '@/types/models/Address'
-import { type Output } from '@/types/models/Output'
+import type { Output } from '@/types/models/Output'
 
 import { getUtxoOutpoint } from './outpoint'
 

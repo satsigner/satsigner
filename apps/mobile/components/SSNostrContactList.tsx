@@ -6,7 +6,7 @@ import {
   NOSTR_LIST_ITEM_GAP,
   NOSTR_LIST_PADDING_VERTICAL
 } from '@/constants/nostr'
-import { type NostrContactItem } from '@/types/models/Nostr'
+import type { NostrContactItem } from '@/types/models/Nostr'
 import { contactToIdentity } from '@/utils/nostrContacts'
 
 type SSNostrContactListProps = {

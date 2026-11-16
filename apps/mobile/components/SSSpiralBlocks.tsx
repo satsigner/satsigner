@@ -10,13 +10,8 @@ import {
   TextAlign
 } from '@shopify/react-native-skia'
 import { memo, useCallback, useMemo } from 'react'
-import {
-  Dimensions,
-  Platform,
-  StyleSheet,
-  View,
-  type ViewStyle
-} from 'react-native'
+import { Dimensions, Platform, StyleSheet, View } from 'react-native'
+import type { ViewStyle } from 'react-native'
 import { GestureDetector } from 'react-native-gesture-handler'
 import Animated from 'react-native-reanimated'
 
@@ -25,7 +20,7 @@ import { useGeistFonts } from '@/hooks/useGeistFonts'
 import { useGestures } from '@/hooks/useGestures'
 import { useLayout } from '@/hooks/useLayout'
 import { Colors, Typography } from '@/styles'
-import { type BlockDifficulty } from '@/types/models/Blockchain'
+import type { BlockDifficulty } from '@/types/models/Blockchain'
 
 import SSPressable from './SSPressable'
 

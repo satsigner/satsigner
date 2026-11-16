@@ -1,5 +1,6 @@
 import { forwardRef, useImperativeHandle, useRef, useState } from 'react'
-import { StyleSheet, View, type TextInputInstance } from 'react-native'
+import { StyleSheet, View } from 'react-native'
+import type { TextInputInstance } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
 import { t } from '@/locales'

@@ -1,5 +1,5 @@
-import { type Address } from '@/types/models/Address'
-import { type Transaction } from '@/types/models/Transaction'
+import type { Address } from '@/types/models/Address'
+import type { Transaction } from '@/types/models/Transaction'
 import {
   compareAmount,
   compareTimestamp,

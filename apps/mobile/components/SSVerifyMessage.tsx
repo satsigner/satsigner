@@ -9,7 +9,7 @@ import SSTextInput from '@/components/SSTextInput'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
-import { type Network } from '@/types/settings/blockchain'
+import type { Network } from '@/types/settings/blockchain'
 import { verifyAddressMessage } from '@/utils/message'
 
 type SSVerifyMessageProps = {

@@ -1,5 +1,6 @@
 import * as SecureStore from 'expo-secure-store'
-import { createMMKV, type MMKV } from 'react-native-mmkv'
+import { createMMKV } from 'react-native-mmkv'
+import type { MMKV } from 'react-native-mmkv'
 import QuickCrypto from 'react-native-quick-crypto'
 
 import { DEV_CONSOLE_PERSISTED_SLOTS } from '@/constants/devConsole'

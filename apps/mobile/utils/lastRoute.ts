@@ -1,4 +1,4 @@
-import { type Href } from 'expo-router'
+import type { Href } from 'expo-router'
 import { z } from 'zod'
 
 import {

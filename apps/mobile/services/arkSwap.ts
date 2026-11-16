@@ -31,23 +31,21 @@ import { ensureArkWalletOpen } from '@/services/arkWallet'
 import { useAccountsStore } from '@/store/accounts'
 import { getArkAccountOrThrow, useArkStore } from '@/store/ark'
 import { getArkSwapJob, useArkSwapsStore } from '@/store/arkSwaps'
-import { type Account } from '@/types/models/Account'
-import { type ArkAccount } from '@/types/models/Ark'
-import {
-  type ArkLightningToOnchainJob,
-  type ArkOnchainToLightningJob,
-  type ArkSwapJob,
-  type ArkSwapQuote,
-  type ArkSwapRequest,
-  type ArkSwapStartResult
+import type { Account } from '@/types/models/Account'
+import type { ArkAccount } from '@/types/models/Ark'
+import type {
+  ArkLightningToOnchainJob,
+  ArkOnchainToLightningJob,
+  ArkSwapJob,
+  ArkSwapQuote,
+  ArkSwapRequest,
+  ArkSwapStartResult
 } from '@/types/models/ArkSwap'
 import { getArkMinBoardAmount } from '@/utils/arkBoard'
 import { canAccountFundArkBoard } from '@/utils/arkBoardFunding'
 import { ArkOperationBusyError } from '@/utils/arkError'
 import { canAccountReceiveArkSweep } from '@/utils/arkOnchainSweep'
 import {
-  type ArkSwapInvoice,
-  type ArkSwapJobFailures,
   canSubmitArkSwapInvoice,
   computeArkSwapPayout,
   computeMaxInvoiceSats,
@@ -66,6 +64,7 @@ import {
   parseArkSwapInvoice,
   willInvoiceOutlastBoard
 } from '@/utils/arkSwap'
+import type { ArkSwapInvoice, ArkSwapJobFailures } from '@/utils/arkSwap'
 
 const MS_PER_SECOND = 1000
 

@@ -4,7 +4,7 @@ import {
   maxCoreKeychainIndex,
   revealKnownAddresses
 } from '@/api/bdkWalletMappers'
-import { type Account } from '@/types/models/Account'
+import type { Account } from '@/types/models/Account'
 
 const STOP_GAP = 20
 

@@ -4,7 +4,7 @@ import { nip19 } from 'nostr-tools'
 import { NostrAPI } from '@/api/nostr'
 import { NOSTR_PROFILE_CACHE_TTL_SECS } from '@/constants/nostr'
 import { MS_PER_SECOND } from '@/constants/time'
-import { type AuthorProfile } from '@/utils/nostrAuthorDisplay'
+import type { AuthorProfile } from '@/utils/nostrAuthorDisplay'
 
 async function fetchAuthorProfiles(
   relays: string[],

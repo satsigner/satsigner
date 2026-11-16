@@ -1,23 +1,20 @@
 import { Canvas, Group } from '@shopify/react-native-skia'
-import { hierarchy, type HierarchyCircularNode, pack } from 'd3-hierarchy'
+import { hierarchy, pack } from 'd3-hierarchy'
+import type { HierarchyCircularNode } from 'd3-hierarchy'
 import { useMemo } from 'react'
-import {
-  type GestureResponderEvent,
-  Platform,
-  type StyleProp,
-  View,
-  type ViewStyle
-} from 'react-native'
+import { Platform, View } from 'react-native'
+import type { GestureResponderEvent, StyleProp, ViewStyle } from 'react-native'
 import { GestureDetector } from 'react-native-gesture-handler'
 import Animated from 'react-native-reanimated'
 
 import { useGeistFonts } from '@/hooks/useGeistFonts'
 import { useGestures } from '@/hooks/useGestures'
 import { useLayout } from '@/hooks/useLayout'
-import { type Utxo } from '@/types/models/Utxo'
-import { type BubblePackNode, buildBubblePackRoot } from '@/utils/bubblePack'
+import type { Utxo } from '@/types/models/Utxo'
+import { buildBubblePackRoot } from '@/utils/bubblePack'
+import type { BubblePackNode } from '@/utils/bubblePack'
 import { getUtxoOutpoint } from '@/utils/utxo'
-import { type UtxoGroupMode } from '@/utils/utxoList'
+import type { UtxoGroupMode } from '@/utils/utxoList'
 
 import SSBubble from './SSBubble'
 import SSBubbleGroup from './SSBubbleGroup'

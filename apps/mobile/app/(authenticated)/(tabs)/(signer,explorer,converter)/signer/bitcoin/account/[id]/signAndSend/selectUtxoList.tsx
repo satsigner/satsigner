@@ -22,9 +22,9 @@ import { useAccountsStore } from '@/store/accounts'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { useUtxoListControlsStore } from '@/store/utxoListControls'
 import { Colors, Layout, Typography } from '@/styles'
-import { type Direction } from '@/types/logic/sort'
-import { type Utxo } from '@/types/models/Utxo'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import type { Direction } from '@/types/logic/sort'
+import type { Utxo } from '@/types/models/Utxo'
+import type { AccountSearchParams } from '@/types/navigation/searchParams'
 import { toggleUtxoExcluded } from '@/utils/excludeUtxo'
 import { satsToFiat } from '@/utils/fiat'
 import { formatNumber } from '@/utils/format'
@@ -32,13 +32,15 @@ import { getUtxoOutpoint, sumUtxoValues } from '@/utils/utxo'
 import {
   DEFAULT_UTXO_LIST_FILTER,
   isUtxoExcluded,
-  prepareUtxoList,
-  type UtxoKeychainFilter,
-  type UtxoLabelFilter,
-  type UtxoListFilter,
-  type UtxoScriptFilter,
-  type UtxoSortField,
-  type UtxoTagFilter
+  prepareUtxoList
+} from '@/utils/utxoList'
+import type {
+  UtxoKeychainFilter,
+  UtxoLabelFilter,
+  UtxoListFilter,
+  UtxoScriptFilter,
+  UtxoSortField,
+  UtxoTagFilter
 } from '@/utils/utxoList'
 import {
   groupDisplayTitle,

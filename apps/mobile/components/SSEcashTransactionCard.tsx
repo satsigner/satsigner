@@ -11,7 +11,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors, Typography } from '@/styles'
-import { type EcashTransaction } from '@/types/models/Ecash'
+import type { EcashTransaction } from '@/types/models/Ecash'
 import type { DisplayPreferences } from '@/types/ui/displayPreferences'
 import { formatFiatPrice } from '@/utils/format'
 

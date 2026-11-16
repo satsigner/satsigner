@@ -1,8 +1,9 @@
 import { createElement } from 'react'
-import { act, create, type ReactTestRenderer } from 'react-test-renderer'
+import { act, create } from 'react-test-renderer'
+import type { ReactTestRenderer } from 'react-test-renderer'
 
 import { useDecryptedKeys } from '@/hooks/useDecryptedKeys'
-import { type Account, type Key } from '@/types/models/Account'
+import type { Account, Key } from '@/types/models/Account'
 import { decryptAccountKeysOrFallback } from '@/utils/decryption'
 
 jest.mock<Partial<typeof import('@/utils/decryption')>>(

@@ -1,7 +1,7 @@
 import * as Clipboard from 'expo-clipboard'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { StyleProp, TextInputInstance, ViewStyle } from 'react-native'
-import { type Network } from 'react-native-bdk-sdk'
+import type { Network } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 
 import SSButton from '@/components/SSButton'
@@ -26,7 +26,7 @@ import {
   mnemonicToSeedElectrum,
   validateMnemonic
 } from '@/utils/bip39'
-import { type DetectedContent } from '@/utils/contentDetector'
+import type { DetectedContent } from '@/utils/contentDetector'
 import { estimatePassphraseStrength } from '@/utils/passphraseStrength'
 
 type SeedWordInfo = {

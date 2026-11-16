@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
-import { NostrAPI } from '@/api/nostr'
-import { type Account } from '@/types/models/Account'
+import type { NostrAPI } from '@/api/nostr'
+import type { Account } from '@/types/models/Account'
 
 // ─── Schemas ────────────────────────────────────────────────────────────────
 

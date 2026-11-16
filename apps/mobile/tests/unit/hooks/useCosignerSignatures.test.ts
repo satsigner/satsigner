@@ -1,11 +1,12 @@
 import * as ecc from '@bitcoinerlab/secp256k1'
 import * as bitcoinjs from 'bitcoinjs-lib'
 import { createElement } from 'react'
-import { act, create, type ReactTestRenderer } from 'react-test-renderer'
+import { act, create } from 'react-test-renderer'
+import type { ReactTestRenderer } from 'react-test-renderer'
 
 import { useCosignerSignatures } from '@/hooks/useCosignerSignatures'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
-import { type Account } from '@/types/models/Account'
+import type { Account } from '@/types/models/Account'
 import { createMockPsbt } from '@/utils/psbt'
 
 // The pubkeys are G and 2G, so private keys 1 and 2 sign for them.

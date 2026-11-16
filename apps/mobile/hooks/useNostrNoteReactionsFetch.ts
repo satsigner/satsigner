@@ -9,7 +9,7 @@ import {
 import { nostrKeys } from '@/db/keys'
 import { requestWindowProfiles } from '@/hooks/useNostrVisibleItemsTrack'
 import { pickNostrProfiles, useNostrProfilesStore } from '@/store/nostrProfiles'
-import { type NostrReactionsPage } from '@/types/models/Nostr'
+import type { NostrReactionsPage } from '@/types/models/Nostr'
 import { getNostrContactsRelaysKey } from '@/utils/nostrContacts'
 import {
   getNextReactionsUntil,

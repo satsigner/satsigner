@@ -1,16 +1,16 @@
-import { type Href } from 'expo-router'
+import type { Href } from 'expo-router'
 
 import { ARK_VTXO_EXPIRY_WARNING_BLOCKS } from '@/constants/ark'
 import { DUST_LIMIT } from '@/constants/btc'
-import { type Account } from '@/types/models/Account'
-import {
-  type ArkExit,
-  type ArkExitClaimRecord,
-  type ArkExitStatus,
-  type ArkOnchainFeeRates,
-  type ArkVtxo
+import type { Account } from '@/types/models/Account'
+import type {
+  ArkExit,
+  ArkExitClaimRecord,
+  ArkExitStatus,
+  ArkOnchainFeeRates,
+  ArkVtxo
 } from '@/types/models/Ark'
-import { type Network } from '@/types/settings/blockchain'
+import type { Network } from '@/types/settings/blockchain'
 import { getAccountTotalBalance } from '@/utils/account'
 import { canAccountReceiveArkSweep } from '@/utils/arkOnchainSweep'
 

@@ -5,15 +5,15 @@ import { __resetPayjoinMock } from 'react-native-payjoin'
 import {
   createReceivePayjoinSession,
   finalizeReceiverPayjoin,
-  sendPayjoin,
-  type FetchLike
+  sendPayjoin
 } from '@/api/payjoin'
+import type { FetchLike } from '@/api/payjoin'
 import * as payjoinNative from '@/api/payjoinNative'
 import {
   getPayjoinDeps,
   usePayjoinSessionsStore
 } from '@/store/payjoinSessions'
-import { type PayjoinWalletCallbacks } from '@/types/payjoin'
+import type { PayjoinWalletCallbacks } from '@/types/payjoin'
 import { validatePayjoinProposal } from '@/utils/payjoinValidate'
 
 function buildPsbt(params: {

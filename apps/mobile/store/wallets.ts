@@ -1,8 +1,8 @@
-import { type BdkWallet } from 'react-native-bdk-sdk'
+import type { BdkWallet } from 'react-native-bdk-sdk'
 import { create } from 'zustand'
 import { immer } from 'zustand/middleware/immer'
 
-import { type Account } from '@/types/models/Account'
+import type { Account } from '@/types/models/Account'
 
 type WalletsState = {
   wallets: Record<Account['id'], BdkWallet | undefined>

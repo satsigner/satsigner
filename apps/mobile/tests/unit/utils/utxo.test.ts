@@ -1,4 +1,4 @@
-import { type Utxo } from '@/types/models/Utxo'
+import type { Utxo } from '@/types/models/Utxo'
 import { shuffleWithJavaRandom } from '@/utils/array'
 import { javaSeededRandom } from '@/utils/crypto'
 import {

@@ -1,9 +1,6 @@
 import { t } from '@/locales'
-import {
-  DEFAULT_TAB_SEGMENT,
-  TAB_SEGMENTS,
-  type TabSegment
-} from '@/types/navigation/tabs'
+import { DEFAULT_TAB_SEGMENT, TAB_SEGMENTS } from '@/types/navigation/tabs'
+import type { TabSegment } from '@/types/navigation/tabs'
 
 /**
  * Whether a route segment is one of the bottom tabs. Pass it to

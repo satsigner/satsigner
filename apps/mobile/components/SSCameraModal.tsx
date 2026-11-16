@@ -1,5 +1,6 @@
 import { Slider } from '@miblanchard/react-native-slider'
-import { type AvailableLenses, useCameraPermissions } from 'expo-camera'
+import { useCameraPermissions } from 'expo-camera'
+import type { AvailableLenses } from 'expo-camera'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { View } from 'react-native'
 import { toast } from 'sonner-native'
@@ -15,19 +16,18 @@ import { t } from '@/locales'
 import { Colors } from '@/styles'
 import { isBBQRFragment } from '@/utils/bbqr'
 import {
-  type ContentContext,
   detectContentByContext,
-  type DetectedContent,
   prepareEcashTokenInput
 } from '@/utils/contentDetector'
+import type { ContentContext, DetectedContent } from '@/utils/contentDetector'
 import { readEcashToken } from '@/utils/ecashToken'
 import { detectAndDecodeSeedQR } from '@/utils/seedqr'
 import {
   createURStreamDecoder,
   decodeURGeneric,
-  decodeURToPSBT,
-  type URStreamDecoder
+  decodeURToPSBT
 } from '@/utils/ur'
+import type { URStreamDecoder } from '@/utils/ur'
 import {
   decodeBBQRWalletPayload,
   interpretAssembledBitcoinPayload

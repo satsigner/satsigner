@@ -1,14 +1,13 @@
 import { LinearGradient } from 'expo-linear-gradient'
 import React, { useEffect, useEffectEvent, useRef, useState } from 'react'
 import {
-  type DimensionValue,
   ScrollView,
   StyleSheet,
   Text,
   useWindowDimensions,
-  View,
-  type ScrollViewInstance
+  View
 } from 'react-native'
+import type { DimensionValue, ScrollViewInstance } from 'react-native'
 
 import { useMountEffect } from '@/hooks/useMountEffect'
 import { t } from '@/locales'

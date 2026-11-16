@@ -1,19 +1,17 @@
-import NDK, {
-  NDKEvent,
-  type NostrEvent as NDKNostrEvent
-} from '@nostr-dev-kit/ndk'
+import NDK, { NDKEvent } from '@nostr-dev-kit/ndk'
+import type { NostrEvent as NDKNostrEvent } from '@nostr-dev-kit/ndk'
 import { getPublicKey } from 'nostr-tools'
 import * as nostrKinds from 'nostr-tools/kinds'
 import { z } from 'zod'
 
 import { NostrAPI } from '@/api/nostr'
 import {
-  type NostrRumor,
   createChatRumor,
   createDerivedGiftWrap,
   createDerivedWrapDeletion,
   toNdkEvent
 } from '@/api/nostrGiftWrap'
+import type { NostrRumor } from '@/api/nostrGiftWrap'
 import {
   NOSTR_CHAT_CATCH_UP_LIMIT,
   NOSTR_CHAT_HISTORY_PAGE_LIMIT,
@@ -57,23 +55,23 @@ import {
   listChatReplies,
   listChatThread
 } from '@/db/queries/nostrChat'
-import { type AuthorDisplayInfo } from '@/hooks/useNostrMessage'
+import type { AuthorDisplayInfo } from '@/hooks/useNostrMessage'
 import { queryClient } from '@/lib/queryClient'
 import { getNostrFollowCache } from '@/storage/mmkv'
 import { useNostrStore } from '@/store/nostr'
 import { useNostrChatSettingsStore } from '@/store/nostrChatSettings'
 import { Colors } from '@/styles'
-import {
-  type NostrChatConversationItem,
-  type NostrChatEventRef,
-  type NostrChatGiftWrap,
-  type NostrChatMessage,
-  type NostrChatPipelineStatus,
-  type NostrChatProtocol,
-  type NostrChatThreadItem,
-  type NostrDM,
-  type NostrKind4ChatEvent,
-  type NostrSubscriptionWindow
+import type {
+  NostrChatConversationItem,
+  NostrChatEventRef,
+  NostrChatGiftWrap,
+  NostrChatMessage,
+  NostrChatPipelineStatus,
+  NostrChatProtocol,
+  NostrChatThreadItem,
+  NostrDM,
+  NostrKind4ChatEvent,
+  NostrSubscriptionWindow
 } from '@/types/models/Nostr'
 import { NostrPublishError } from '@/utils/errors'
 import { formatNpub } from '@/utils/format'

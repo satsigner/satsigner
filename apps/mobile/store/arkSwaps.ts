@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 
 import { mmkvStorage } from '@/storage/mmkv'
-import { type ArkSwapJob } from '@/types/models/ArkSwap'
+import type { ArkSwapJob } from '@/types/models/ArkSwap'
 
 type ArkSwapsState = {
   jobs: ArkSwapJob[]

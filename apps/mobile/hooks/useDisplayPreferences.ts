@@ -2,7 +2,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
-import { type DisplayPreferences } from '@/types/ui/displayPreferences'
+import type { DisplayPreferences } from '@/types/ui/displayPreferences'
 
 /**
  * Amount display settings and the current bitcoin price, for screens to pass

@@ -26,14 +26,12 @@ import SSText from '@/components/SSText'
 import { BYTES_PER_KIB } from '@/constants/format'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import {
-  type SelectedImageMeta,
-  useImageActionsStore
-} from '@/store/imageActions'
+import { useImageActionsStore } from '@/store/imageActions'
+import type { SelectedImageMeta } from '@/store/imageActions'
 import { Colors, Layout } from '@/styles'
 import { setClipboard } from '@/utils/clipboard'
 import { formatBytes } from '@/utils/format'
-import { type ImageExifData } from '@/utils/imageExif'
+import type { ImageExifData } from '@/utils/imageExif'
 
 import SSPressable from './SSPressable'
 

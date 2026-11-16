@@ -10,11 +10,8 @@ import {
   summarizeWalletTxs,
   toSinglePathDescriptors
 } from '@/api/coreWalletSync'
-import {
-  BitcoinCoreWallet,
-  type CoreWalletInfo,
-  type CoreWalletListTx
-} from '@/api/rpc'
+import { BitcoinCoreWallet } from '@/api/rpc'
+import type { CoreWalletInfo, CoreWalletListTx } from '@/api/rpc'
 import { BDK_RESCAN_START_RACE_TIMEOUT_MS } from '@/constants/bdk'
 import { SYNC_CANCELLED_ERROR } from '@/constants/sync'
 import { RpcError } from '@/utils/errors'

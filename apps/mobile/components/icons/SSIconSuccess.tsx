@@ -14,9 +14,9 @@ import Svg, {
   G,
   Path,
   RadialGradient,
-  Stop,
-  type SvgProps
+  Stop
 } from 'react-native-svg'
+import type { SvgProps } from 'react-native-svg'
 
 import { Colors } from '@/styles'
 

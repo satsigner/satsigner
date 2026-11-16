@@ -1,5 +1,6 @@
-import { type RefObject } from 'react'
-import { Share, type View, type ViewInstance } from 'react-native'
+import type { RefObject } from 'react'
+import { Share } from 'react-native'
+import type { View, ViewInstance } from 'react-native'
 import { captureRef } from 'react-native-view-shot'
 
 import { shareExistingFile } from '@/utils/filesystem'

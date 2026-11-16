@@ -2,9 +2,9 @@ import {
   useIsMutating,
   useMutation,
   useQuery,
-  useQueryClient,
-  type QueryClient
+  useQueryClient
 } from '@tanstack/react-query'
+import type { QueryClient } from '@tanstack/react-query'
 import { useEffect, useRef } from 'react'
 
 import {
@@ -23,11 +23,8 @@ import type {
   ArkPendingBoard,
   ArkServerInfo
 } from '@/types/models/Ark'
-import {
-  getArkAutoBoardStatus,
-  getArkMinBoardAmount,
-  type ArkAutoBoardStatus
-} from '@/utils/arkBoard'
+import { getArkAutoBoardStatus, getArkMinBoardAmount } from '@/utils/arkBoard'
+import type { ArkAutoBoardStatus } from '@/utils/arkBoard'
 import { ArkOperationBusyError } from '@/utils/arkError'
 import { syncArkAccountAndInvalidate } from '@/utils/arkSync'
 

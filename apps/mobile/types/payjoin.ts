@@ -1,4 +1,4 @@
-import { type ArkServerId } from '@/types/models/Ark'
+import type { ArkServerId } from '@/types/models/Ark'
 
 type PayjoinProtocolVersion = 'v1' | 'v2'
 

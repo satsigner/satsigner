@@ -1,9 +1,9 @@
-import {
-  type NitroSQLiteConnection,
-  type SQLiteValue
+import type {
+  NitroSQLiteConnection,
+  SQLiteValue
 } from 'react-native-nitro-sqlite'
 
-import { Label } from '@/types/bips/329'
+import type { Label } from '@/types/bips/329'
 
 import { bulkInsert } from '../bulkInsert'
 import { runTransaction } from '../connection'

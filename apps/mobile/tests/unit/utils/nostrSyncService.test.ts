@@ -4,7 +4,7 @@ import {
 } from '@/constants/nostr'
 import { processNostrEventBatch } from '@/hooks/useNostrMessageProcessor'
 import { useNostrStore } from '@/store/nostr'
-import { type Account } from '@/types/models/Account'
+import type { Account } from '@/types/models/Account'
 import { NostrNoRelaysError } from '@/utils/errors'
 import {
   computeEoseCursor,

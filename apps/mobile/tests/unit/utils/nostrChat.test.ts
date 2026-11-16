@@ -111,7 +111,8 @@ jest.mock<
   registerNostrLifecycleHandler: jest.fn(() => jest.fn())
 }))
 
-import NDK, { type NDKEvent } from '@nostr-dev-kit/ndk'
+import NDK from '@nostr-dev-kit/ndk'
+import type { NDKEvent } from '@nostr-dev-kit/ndk'
 import { getPublicKey, nip19, nip44, nip59 } from 'nostr-tools'
 import { decrypt as nip04Decrypt } from 'nostr-tools/nip04'
 
@@ -128,7 +129,7 @@ import {
 } from '@/db/mutations/nostrChat'
 import { clearNostrFollowCache, setNostrFollowCache } from '@/storage/mmkv'
 import { useNostrChatSettingsStore } from '@/store/nostrChatSettings'
-import { type NostrChatGiftWrap } from '@/types/models/Nostr'
+import type { NostrChatGiftWrap } from '@/types/models/Nostr'
 import { NostrNoRelaysError } from '@/utils/errors'
 import {
   acquireChatPipeline,

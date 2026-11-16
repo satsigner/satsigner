@@ -27,15 +27,17 @@ import SSVStack from '@/layouts/SSVStack'
 import { tn as _tn } from '@/locales'
 import { useEnergyStore } from '@/store/energy'
 import { Colors, Typography } from '@/styles'
-import { type BlockTemplateTransaction } from '@/types/models/Rpc'
+import type { BlockTemplateTransaction } from '@/types/models/Rpc'
 import { blocksUntilDifficultyAdjustment } from '@/utils/bitcoin/consensus'
 import {
-  type EnergyBlockchainInfo,
-  type EnergyBlockTemplate,
   formatNetworkHashRate,
   parseBlockchainInfoResponse,
   parseBlockTemplateResponse,
   parseChainInfoResponse
+} from '@/utils/energyRpc'
+import type {
+  EnergyBlockchainInfo,
+  EnergyBlockTemplate
 } from '@/utils/energyRpc'
 
 const tn = _tn('converter.energy')

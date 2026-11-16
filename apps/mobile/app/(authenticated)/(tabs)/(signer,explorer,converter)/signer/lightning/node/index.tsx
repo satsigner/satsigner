@@ -10,7 +10,8 @@ import {
   useWindowDimensions,
   View
 } from 'react-native'
-import { type SceneRendererProps, TabView } from 'react-native-tab-view'
+import { TabView } from 'react-native-tab-view'
+import type { SceneRendererProps } from 'react-native-tab-view'
 import { toast } from 'sonner-native'
 
 import {
@@ -53,10 +54,10 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors, Sizes, Typography } from '@/styles'
-import { type LNDCombinedTransaction } from '@/types/models/Lightning'
+import type { LNDCombinedTransaction } from '@/types/models/Lightning'
 import { satsToFiat } from '@/utils/fiat'
 import { formatNumber, truncate } from '@/utils/format'
-import { type LightningBubbleChannelRow } from '@/utils/lightningChannelsBubbleLayout'
+import type { LightningBubbleChannelRow } from '@/utils/lightningChannelsBubbleLayout'
 import {
   lightningChannelHref,
   lightningOpenChannelHref
@@ -74,9 +75,9 @@ import {
   getTxDisplayInfo,
   getTxLightningSendFeeSatString,
   getTxStatusBadge,
-  txDateOptions,
-  type TxStatusBadge
+  txDateOptions
 } from '@/utils/lndTransactionDisplay'
+import type { TxStatusBadge } from '@/utils/lndTransactionDisplay'
 
 const DASHBOARD_OVERLAY_LOADER_SIZE = 48
 

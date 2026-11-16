@@ -1,7 +1,5 @@
-import {
-  buildPackedBubbleLayout,
-  type PackedBubbleDatum
-} from '@/utils/packedBubbleLayout'
+import { buildPackedBubbleLayout } from '@/utils/packedBubbleLayout'
+import type { PackedBubbleDatum } from '@/utils/packedBubbleLayout'
 
 const data: PackedBubbleDatum[] = [
   { id: 'a', label: '3000', value: 3000 },

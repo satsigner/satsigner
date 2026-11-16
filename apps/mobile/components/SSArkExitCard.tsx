@@ -5,13 +5,13 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
-import { type ArkExit, type ArkExitStatus } from '@/types/models/Ark'
+import type { ArkExit, ArkExitStatus } from '@/types/models/Ark'
 import {
-  type ArkExitTone,
   getArkExitBlocksUntilClaimable,
   getArkExitConfirmationRatio,
   getArkExitTone
 } from '@/utils/arkExit'
+import type { ArkExitTone } from '@/utils/arkExit'
 import { getArkVtxoEta } from '@/utils/arkVtxoDetail'
 import { formatMaskedSats, formatNumber, formatTxId } from '@/utils/format'
 

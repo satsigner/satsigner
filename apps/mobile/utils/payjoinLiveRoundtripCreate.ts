@@ -12,7 +12,7 @@ import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useWalletsStore } from '@/store/wallets'
 import { MnemonicWordCountSchema } from '@/types/bips/39'
-import { type Account, type Key, type Secret } from '@/types/models/Account'
+import type { Account, Key, Secret } from '@/types/models/Account'
 import { getNextDisplayIndex, isZeroFingerprint } from '@/utils/account'
 import {
   getExtendedPublicKeyFromMnemonic,

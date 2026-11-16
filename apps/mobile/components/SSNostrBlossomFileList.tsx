@@ -1,7 +1,7 @@
 import { FlashList } from '@shopify/flash-list'
 import { Pressable, StyleSheet, View } from 'react-native'
 
-import { type BlobDescriptor } from '@/api/blossom'
+import type { BlobDescriptor } from '@/api/blossom'
 import SSText from '@/components/SSText'
 import { NOSTR_LIST_PADDING_VERTICAL } from '@/constants/nostr'
 import SSVStack from '@/layouts/SSVStack'

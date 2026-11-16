@@ -8,8 +8,8 @@ import {
   storeNostrAccountSecret,
   storeNostrIdentitySecret
 } from '@/storage/encrypted'
-import { type Account } from '@/types/models/Account'
-import { type NostrAccount, type NostrIdentity } from '@/types/models/Nostr'
+import type { Account } from '@/types/models/Account'
+import type { NostrAccount, NostrIdentity } from '@/types/models/Nostr'
 import { aesDecrypt, aesEncrypt, randomIv } from '@/utils/crypto'
 import { getPin } from '@/utils/pin'
 

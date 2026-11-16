@@ -4,7 +4,7 @@ import { deleteWalletDb, getWalletData } from '@/api/bdk'
 import { openServerChainReader } from '@/api/serverChain'
 import { useWalletsStore } from '@/store/wallets'
 import type { Account } from '@/types/models/Account'
-import { type Server } from '@/types/settings/blockchain'
+import type { Server } from '@/types/settings/blockchain'
 import {
   loadAccountWallets,
   walletForServerChain

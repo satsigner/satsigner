@@ -1,9 +1,9 @@
 import { getTokenMetadata } from '@cashu/cashu-ts'
 
-import {
-  type EcashToken,
-  type EcashTokenValidation,
-  type EcashTransaction
+import type {
+  EcashToken,
+  EcashTokenValidation,
+  EcashTransaction
 } from '@/types/models/Ecash'
 
 /**

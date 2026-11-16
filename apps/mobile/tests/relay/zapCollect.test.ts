@@ -8,7 +8,8 @@ import { fetchZapsByPubkey, fetchZapsSentByPubkey } from '@/utils/nostrZap'
 
 import { zapInvoice } from './support/bolt11'
 import { BASE_CREATED_AT, fixturePubkey } from './support/fixtures'
-import { startTestRelay, type TestRelay } from './support/testRelay'
+import { startTestRelay } from './support/testRelay'
+import type { TestRelay } from './support/testRelay'
 
 const ANSWERED_WELL_BEFORE_TIMEOUT_MS = NOSTR_COLLECT_TIMEOUT_MS / 3
 const PROFILE_PUBKEY = fixturePubkey(42)

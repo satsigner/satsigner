@@ -1,4 +1,4 @@
-import { type Key, type Secret } from '@/types/models/Account'
+import type { Key, Secret } from '@/types/models/Account'
 import { isPrivateKeyHex, wifImportSecret } from '@/utils/wif'
 
 type BackupKeySecret = {

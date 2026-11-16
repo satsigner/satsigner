@@ -6,7 +6,8 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors, Layout } from '@/styles'
 
-import SSButton, { type SSButtonProps } from './SSButton'
+import SSButton from './SSButton'
+import type { SSButtonProps } from './SSButton'
 import SSText from './SSText'
 
 const TOAST_LAYER_Z_INDEX = 999_999

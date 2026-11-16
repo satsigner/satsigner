@@ -4,7 +4,6 @@ import Animated, {
   createAnimatedComponent,
   Easing,
   interpolateColor,
-  type SharedValue,
   useAnimatedProps,
   useAnimatedStyle,
   useSharedValue,
@@ -12,6 +11,7 @@ import Animated, {
   withRepeat,
   withTiming
 } from 'react-native-reanimated'
+import type { SharedValue } from 'react-native-reanimated'
 import Svg, { Circle, Defs, LinearGradient, Path, Stop } from 'react-native-svg'
 
 import { Colors } from '@/styles'

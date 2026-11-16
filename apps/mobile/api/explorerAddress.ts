@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { type MempoolOracle } from '@/api/blockchain'
+import type { MempoolOracle } from '@/api/blockchain'
 import ElectrumClient from '@/api/electrum'
 import Esplora from '@/api/esplora'
 import { ESPLORA_ADDRESS_TXS_PER_REQUEST } from '@/constants/esplora'

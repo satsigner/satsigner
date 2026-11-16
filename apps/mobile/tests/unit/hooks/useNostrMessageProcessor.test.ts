@@ -7,8 +7,8 @@ import {
   processNostrEventBatch,
   resetHandlerFailures
 } from '@/hooks/useNostrMessageProcessor'
-import { type Account } from '@/types/models/Account'
-import { type NostrUnwrappedEvent } from '@/types/models/Nostr'
+import type { Account } from '@/types/models/Account'
+import type { NostrUnwrappedEvent } from '@/types/models/Nostr'
 import { compressMessage } from '@/utils/nostr'
 
 const mockProcessedIds = new Set<string>()

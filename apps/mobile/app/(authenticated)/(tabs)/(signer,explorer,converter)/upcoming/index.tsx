@@ -4,11 +4,11 @@ import { Image, StyleSheet, useWindowDimensions, View } from 'react-native'
 import Animated, {
   interpolate,
   interpolateColor,
-  type SharedValue,
   useAnimatedScrollHandler,
   useAnimatedStyle,
   useSharedValue
 } from 'react-native-reanimated'
+import type { SharedValue } from 'react-native-reanimated'
 
 import SSText from '@/components/SSText'
 import { slides } from '@/constants/slides'

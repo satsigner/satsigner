@@ -1,5 +1,6 @@
-import { type OP_CODE, OP_CODE_WORD } from '@/types/logic/opcode'
-import { ScriptVersionType } from '@/types/models/Script'
+import { OP_CODE_WORD } from '@/types/logic/opcode'
+import type { OP_CODE } from '@/types/logic/opcode'
+import type { ScriptVersionType } from '@/types/models/Script'
 
 function isOpPush(word: string) {
   return word.match(/^\d{1,2}$/)

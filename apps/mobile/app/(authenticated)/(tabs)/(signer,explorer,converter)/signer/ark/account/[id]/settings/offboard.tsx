@@ -24,7 +24,7 @@ import { usePriceStore } from '@/store/price'
 import { Colors } from '@/styles'
 import { sumArkVtxoSats } from '@/utils/arkVtxo'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
-import { type DetectedContent } from '@/utils/contentDetector'
+import type { DetectedContent } from '@/utils/contentDetector'
 import { formatFiatPrice, formatNumber, truncate } from '@/utils/format'
 import { validateAddress } from '@/utils/validation'
 

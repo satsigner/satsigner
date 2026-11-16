@@ -3,7 +3,8 @@ import { Buffer } from 'buffer'
 import NDK, { NDKEvent, NDKPrivateKeySigner } from '@nostr-dev-kit/ndk'
 import type { NDKFilter, NDKSubscription } from '@nostr-dev-kit/ndk'
 import { fetch as fetchNetInfo } from '@react-native-community/netinfo'
-import { type Event, nip17, nip19, nip44, verifyEvent } from 'nostr-tools'
+import { nip17, nip19, nip44, verifyEvent } from 'nostr-tools'
+import type { Event } from 'nostr-tools'
 import * as nostrKinds from 'nostr-tools/kinds'
 import {
   decrypt as nip04Decrypt,
@@ -97,9 +98,9 @@ import {
   buildReactionTags,
   buildRepost,
   dropDeletedEngagement,
-  type EngagementTarget,
   toEngagementEvent
 } from '@/utils/nostrEngagement'
+import type { EngagementTarget } from '@/utils/nostrEngagement'
 import { getNostrErrorCode } from '@/utils/nostrErrorMessage'
 import {
   getNostrTagValue,

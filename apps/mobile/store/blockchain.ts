@@ -3,7 +3,6 @@ import { createJSONStorage, persist } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
 
 import {
-  type BlockchainConfig,
   DEFAULT_CONNECTION_TEST_INTERVAL_SECONDS,
   DEFAULT_RETRIES,
   DEFAULT_STOP_GAP,
@@ -14,14 +13,15 @@ import {
   MEMPOOL_SIGNET_URL,
   MEMPOOL_TESTNET_URL
 } from '@/config/servers'
+import type { BlockchainConfig } from '@/config/servers'
 import { MempoolServers } from '@/constants/servers'
 import { mmkvStorage } from '@/storage/mmkv'
-import {
-  type Backend,
-  type Config,
-  type Network,
-  NetworkSchema,
-  type Server
+import { NetworkSchema } from '@/types/settings/blockchain'
+import type {
+  Backend,
+  Config,
+  Network,
+  Server
 } from '@/types/settings/blockchain'
 import { persistRpcCredentialsSafe } from '@/utils/serviceSecrets'
 

@@ -1,6 +1,6 @@
 import { DUST_LIMIT } from '@/constants/btc'
-import { type CreationType } from '@/types/models/Account'
-import { type Network } from '@/types/settings/blockchain'
+import type { CreationType } from '@/types/models/Account'
+import type { Network } from '@/types/settings/blockchain'
 import {
   canAccountReceiveArkSweep,
   computeArkOnchainSweep,

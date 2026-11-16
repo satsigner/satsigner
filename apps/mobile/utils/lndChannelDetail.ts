@@ -1,4 +1,4 @@
-import { type LNDChannel } from '@/types/models/Lightning'
+import type { LNDChannel } from '@/types/models/Lightning'
 import { isRecord } from '@/utils/object'
 
 /**

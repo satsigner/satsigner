@@ -30,6 +30,11 @@
     ],
     "typescript/consistent-type-definitions": ["allow", "type"],
     "class-methods-use-this": ["error", { "ignoreOverrideMethods": true }],
+    // Typed jest.mock factories need `typeof import('…')`
+    "typescript/consistent-type-imports": [
+      "error",
+      { "disallowTypeAnnotations": false }
+    ],
     // Skia paint style is a string ("fill" | "stroke")
     "react/style-prop-object": [
       "error",
@@ -44,8 +49,6 @@
 
     // Rules with remaining errors - fix over time
     "react-perf/jsx-no-new-function-as-prop": "allow",
-    "import/consistent-type-specifier-style": "allow",
-    "typescript/no-import-type-side-effects": "allow",
     "typescript/no-non-null-assertion": "allow",
     "unicorn/prefer-module": "allow",
     "unicorn/no-nested-ternary": "allow",
@@ -53,7 +56,6 @@
     "unicorn/number-literal-case": "allow",
     "react/no-array-index-key": "allow",
     "unicorn/no-useless-undefined": "allow",
-    "typescript/consistent-type-imports": "allow",
     "react/jsx-handler-names": "allow",
     "typescript/no-dynamic-delete": "allow",
     "unicorn/prefer-event-target": "allow",

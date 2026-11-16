@@ -1,9 +1,7 @@
 import { SCRIPT_DIAGRAMS } from '@/constants/scriptDiagrams'
 import { t } from '@/locales'
-import {
-  ScriptVersionTypeSchema,
-  type ScriptVersionType
-} from '@/types/models/Script'
+import { ScriptVersionTypeSchema } from '@/types/models/Script'
+import type { ScriptVersionType } from '@/types/models/Script'
 
 const MULTISIG_WITNESS_SCRIPTS: ScriptVersionType[] = ['P2WSH', 'P2SH-P2WSH']
 

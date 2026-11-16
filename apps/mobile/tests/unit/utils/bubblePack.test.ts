@@ -1,4 +1,4 @@
-import { type Utxo } from '@/types/models/Utxo'
+import type { Utxo } from '@/types/models/Utxo'
 import { buildBubblePackRoot } from '@/utils/bubblePack'
 
 function makeUtxo(

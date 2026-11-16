@@ -1,6 +1,6 @@
 import { AUTO_SELECT_FROM_URI_SEARCH_PARAM } from '@/constants/autoSelectUtxos'
 import { DUST_LIMIT, SATS_PER_BITCOIN } from '@/constants/btc'
-import { type AutoSelectUtxosAlgorithm } from '@/types/models/AutoSelectUtxos'
+import type { AutoSelectUtxosAlgorithm } from '@/types/models/AutoSelectUtxos'
 import { parseBitcoinUri } from '@/utils/bip321'
 import { ensureBitcoinPrefix } from '@/utils/parse'
 
