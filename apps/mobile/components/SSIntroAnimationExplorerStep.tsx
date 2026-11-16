@@ -2,12 +2,12 @@ import { useEffect } from 'react'
 import { StyleSheet, View } from 'react-native'
 import Animated, {
   Easing,
-  type SharedValue,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
   withTiming
 } from 'react-native-reanimated'
+import type { SharedValue } from 'react-native-reanimated'
 
 import { Colors } from '@/styles'
 

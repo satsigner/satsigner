@@ -3,9 +3,8 @@ import { Stack, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 
-import SSAccountCard, {
-  type SSAccountCardStat
-} from '@/components/SSAccountCard'
+import SSAccountCard from '@/components/SSAccountCard'
+import type { SSAccountCardStat } from '@/components/SSAccountCard'
 import SSActionButton from '@/components/SSActionButton'
 import SSButton from '@/components/SSButton'
 import SSSeparator from '@/components/SSSeparator'

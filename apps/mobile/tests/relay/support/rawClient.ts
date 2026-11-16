@@ -1,7 +1,7 @@
 import { once } from 'node:events'
 
 import type { Filter } from 'nostr-tools'
-import WebSocket from 'ws'
+import { WebSocket } from 'ws'
 
 const EVENT_PAYLOAD_INDEX = 2
 

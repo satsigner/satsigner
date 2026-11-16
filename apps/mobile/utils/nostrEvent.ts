@@ -1,8 +1,8 @@
-import { type NostrEvent as NDKNostrEvent } from '@nostr-dev-kit/ndk'
-import { type EventTemplate, type NostrEvent } from 'nostr-tools'
+import type { NostrEvent as NDKNostrEvent } from '@nostr-dev-kit/ndk'
+import type { EventTemplate, NostrEvent } from 'nostr-tools'
 import { z } from 'zod'
 
-import { type NostrUnwrappedKind1059Event } from '@/types/models/Nostr'
+import type { NostrUnwrappedKind1059Event } from '@/types/models/Nostr'
 
 const NostrTagsSchema = z.array(z.array(z.string()))
 

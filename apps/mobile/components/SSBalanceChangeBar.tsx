@@ -1,7 +1,8 @@
-import { type StyleProp, StyleSheet, View, type ViewStyle } from 'react-native'
+import { StyleSheet, View } from 'react-native'
+import type { StyleProp, ViewStyle } from 'react-native'
 
 import { Colors } from '@/styles'
-import { type Transaction } from '@/types/models/Transaction'
+import type { Transaction } from '@/types/models/Transaction'
 
 type SSBalanceChangeBarProps = {
   balance?: number

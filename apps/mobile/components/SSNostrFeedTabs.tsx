@@ -1,5 +1,6 @@
 import { FlashList } from '@shopify/flash-list'
-import { type ReactElement, useState } from 'react'
+import { useState } from 'react'
+import type { ReactElement } from 'react'
 import { StyleSheet, View } from 'react-native'
 
 import SSActionButton from '@/components/SSActionButton'
@@ -10,10 +11,11 @@ import {
   SSNostrReplyFilterChip,
   ssnostrKindFilterRowStyle
 } from '@/components/SSNostrKindFilter'
-import SSNostrNoteList, {
-  type NoteListZap,
-  type NostrNotePressPayload,
-  type OwnAuthorFallback
+import SSNostrNoteList from '@/components/SSNostrNoteList'
+import type {
+  NoteListZap,
+  NostrNotePressPayload,
+  OwnAuthorFallback
 } from '@/components/SSNostrNoteList'
 import SSNostrSourceBanner from '@/components/SSNostrSourceBanner'
 import SSNostrZapList from '@/components/SSNostrZapList'
@@ -44,11 +46,8 @@ import type {
 import type { DisplayPreferences } from '@/types/ui/displayPreferences'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
 import { filterFeedReplies } from '@/utils/nostrFeed'
-import {
-  applyZapSort,
-  getNextZapSort,
-  type ZapSortState
-} from '@/utils/nostrZap'
+import { applyZapSort, getNextZapSort } from '@/utils/nostrZap'
+import type { ZapSortState } from '@/utils/nostrZap'
 
 import SSPressable from './SSPressable'
 

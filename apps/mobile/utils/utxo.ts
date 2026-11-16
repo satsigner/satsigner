@@ -1,8 +1,8 @@
 import { DUST_LIMIT } from '@/constants/btc'
-import { type Address } from '@/types/models/Address'
-import { type Output } from '@/types/models/Output'
-import { type ScriptVersionType } from '@/types/models/Script'
-import { type Utxo } from '@/types/models/Utxo'
+import type { Address } from '@/types/models/Address'
+import type { Output } from '@/types/models/Output'
+import type { ScriptVersionType } from '@/types/models/Script'
+import type { Utxo } from '@/types/models/Utxo'
 import { getScriptVersionType } from '@/utils/address'
 import { shuffle, shuffleWithJavaRandom } from '@/utils/array'
 import { javaSeededRandom, randomNum, seededRandom } from '@/utils/crypto'
@@ -90,6 +90,10 @@ function filterUtxosByExcludedOutpoints(
 ) {
   const excluded = new Set(excludedOutpoints)
   return utxos.filter((utxo) => !excluded.has(getUtxoOutpoint(utxo)))
+}
+
+function sumUtxoValues(utxos: readonly Utxo[]): number {
+  return utxos.reduce((sum, utxo) => sum + utxo.value, 0)
 }
 
 function sumValue(groups: OutputGroup[]) {
@@ -958,5 +962,6 @@ export {
   selectStonewallUtxos,
   selectUtxos,
   sortUtxosForSparrowSelection,
-  splitStonewallOutputValues
+  splitStonewallOutputValues,
+  sumUtxoValues
 }

@@ -1,4 +1,4 @@
-import NetInfo from '@react-native-community/netinfo'
+import { fetch as fetchNetInfo } from '@react-native-community/netinfo'
 import Constants from 'expo-constants'
 import { Platform } from 'react-native'
 
@@ -28,7 +28,7 @@ const connectivityCheck: DiagnosticCheck = {
   category: 'app',
   id: 'connectivity',
   async run() {
-    const state = await NetInfo.fetch()
+    const state = await fetchNetInfo()
     const lines = [
       `type ${state.type}`,
       `connected ${String(state.isConnected)}`,

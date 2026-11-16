@@ -8,11 +8,11 @@ import SSModal from '@/components/SSModal'
 import SSPressable from '@/components/SSPressable'
 import SSText from '@/components/SSText'
 import {
-  type CacheCategory,
   clearAllCache,
   clearCacheCategory,
   getCacheCounts
 } from '@/db/nostrCache'
+import type { CacheCategory } from '@/db/nostrCache'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'

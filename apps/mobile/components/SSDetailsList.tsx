@@ -1,6 +1,8 @@
-import { type DimensionValue, View } from 'react-native'
+import { View } from 'react-native'
+import type { DimensionValue } from 'react-native'
 
-import SSText, { type SSTextProps } from '@/components/SSText'
+import SSText from '@/components/SSText'
+import type { SSTextProps } from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 

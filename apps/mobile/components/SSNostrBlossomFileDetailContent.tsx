@@ -1,7 +1,7 @@
 import { Image } from 'expo-image'
 import { StyleSheet, View } from 'react-native'
 
-import { type BlobDescriptor } from '@/api/blossom'
+import type { BlobDescriptor } from '@/api/blossom'
 import SSDetailsList from '@/components/SSDetailsList'
 import SSText from '@/components/SSText'
 import { NOSTR_BLOSSOM_FILE_PREVIEW_HEIGHT } from '@/constants/nostr'

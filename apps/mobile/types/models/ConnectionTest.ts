@@ -1,7 +1,7 @@
-import {
-  type Backend,
-  type Network,
-  type RpcCredentials
+import type {
+  Backend,
+  Network,
+  RpcCredentials
 } from '@/types/settings/blockchain'
 
 export type ConnectionTestSuccess = {

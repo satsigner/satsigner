@@ -1,5 +1,6 @@
 import { forwardRef, useImperativeHandle, useRef, useState } from 'react'
-import { StyleSheet, View, type TextInputInstance } from 'react-native'
+import { StyleSheet, View } from 'react-native'
+import type { TextInputInstance } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
 import { t } from '@/locales'
@@ -21,6 +22,10 @@ type SSTagInputProps = {
 
 type SSTagInputHandle = {
   focus: () => void
+}
+
+function search(a: string, b: string) {
+  return a.toLowerCase().includes(b.toLowerCase())
 }
 
 const SSTagInput = forwardRef<SSTagInputHandle, SSTagInputProps>(
@@ -60,10 +65,6 @@ const SSTagInput = forwardRef<SSTagInputHandle, SSTagInputProps>(
       } else if (onSelect) {
         onSelect(selectedTags.filter((t) => t !== tag))
       }
-    }
-
-    function search(a: string, b: string) {
-      return a.toLowerCase().includes(b.toLowerCase())
     }
 
     const suggestedTags = tags.filter(

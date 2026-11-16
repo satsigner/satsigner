@@ -32,16 +32,20 @@ function expandDescriptorSymbols(descriptor: string): number[] {
   return symbols
 }
 
+function descriptorPolymodStep(checksum: bigint, value: number): bigint {
+  const top = checksum >> 35n
+  const shifted = ((checksum & 0x7_ff_ff_ff_ffn) << 5n) ^ BigInt(value)
+  return DESCRIPTOR_CHECKSUM_GENERATOR.filter(
+    (_generator, index) => (top >> BigInt(index)) & 1n
+  ).reduce((result, generator) => result ^ generator, shifted)
+}
+
 function descriptorPolymod(symbols: number[]): bigint {
-  return symbols.reduce((checksum, value) => {
-    const top = checksum >> 35n
-    const shifted = ((checksum & 0x7_ff_ff_ff_ffn) << 5n) ^ BigInt(value)
-    return DESCRIPTOR_CHECKSUM_GENERATOR.reduce(
-      (result, generator, index) =>
-        (top >> BigInt(index)) & 1n ? result ^ generator : result,
-      shifted
-    )
-  }, 1n)
+  let checksum = 1n
+  for (const value of symbols) {
+    checksum = descriptorPolymodStep(checksum, value)
+  }
+  return checksum
 }
 
 /** BIP-380 checksum of a descriptor without its `#checksum` suffix. */

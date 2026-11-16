@@ -1,5 +1,6 @@
-import { type ReactNode } from 'react'
-import { StyleSheet, View, type ViewStyle } from 'react-native'
+import type { ReactNode } from 'react'
+import { StyleSheet, View } from 'react-native'
+import type { ViewStyle } from 'react-native'
 
 import SSPressable from './SSPressable'
 

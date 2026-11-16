@@ -1,5 +1,5 @@
 import { MS_PER_SECOND } from '@/constants/time'
-import { type PayjoinCoordinationMode } from '@/types/payjoin'
+import type { PayjoinCoordinationMode } from '@/types/payjoin'
 
 /** Default BIP77 Payjoin Directory (Bull Bitcoin / Payjoin Foundation ecosystem). */
 const PAYJOIN_DIRECTORY_URL = 'https://payjo.in'

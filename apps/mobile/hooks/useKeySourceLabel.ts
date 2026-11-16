@@ -1,9 +1,9 @@
 import { useMemo } from 'react'
 
 import { t } from '@/locales'
-import { type Key } from '@/types/models/Account'
-import { type ScriptVersionType } from '@/types/models/Script'
-import { type Network } from '@/types/settings/blockchain'
+import type { Key } from '@/types/models/Account'
+import type { ScriptVersionType } from '@/types/models/Script'
+import type { Network } from '@/types/settings/blockchain'
 import { getKeyFormatForScriptVersion } from '@/utils/bitcoin'
 
 type UseKeySourceLabelParams = {

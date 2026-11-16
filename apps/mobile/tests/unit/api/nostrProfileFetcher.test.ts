@@ -2,7 +2,7 @@
  * Tests for the batched kind-0 profile loader. Relay access is mocked at
  * the ndkRegistry seam (the module the loader uses for both tiers).
  */
-import { type NDKFilter } from '@nostr-dev-kit/ndk'
+import type { NDKFilter } from '@nostr-dev-kit/ndk'
 
 jest.mock<typeof import('@/api/ndkRegistry')>('@/api/ndkRegistry', () => ({
   clearNdkRegistry: jest.fn(),

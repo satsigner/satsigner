@@ -3,7 +3,7 @@ import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn } from '@/locales'
-import { type WatchedAddress } from '@/types/models/Address'
+import type { WatchedAddress } from '@/types/models/Address'
 import type { DisplayPreferences } from '@/types/ui/displayPreferences'
 import { formatMaskedNumber, formatNumber } from '@/utils/format'
 

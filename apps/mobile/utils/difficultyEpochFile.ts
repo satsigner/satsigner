@@ -1,4 +1,4 @@
-import z from 'zod'
+import { z } from 'zod'
 
 /**
  * One block row of a pvxg.net difficulty epoch file: single-key objects in a

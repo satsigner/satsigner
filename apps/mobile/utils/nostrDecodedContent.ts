@@ -1,4 +1,4 @@
-import { type NostrDecodedContent } from '@/types/models/Nostr'
+import type { NostrDecodedContent } from '@/types/models/Nostr'
 import { isStringArray } from '@/utils/array'
 
 function isString(value: unknown): value is string {

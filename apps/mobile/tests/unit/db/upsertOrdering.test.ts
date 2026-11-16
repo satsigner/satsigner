@@ -1,7 +1,7 @@
-import { type NitroSQLiteConnection } from 'react-native-nitro-sqlite'
+import type { NitroSQLiteConnection } from 'react-native-nitro-sqlite'
 
 import { upsertTransactions } from '@/db/mutations/transactions'
-import { type Transaction } from '@/types/models/Transaction'
+import type { Transaction } from '@/types/models/Transaction'
 
 type Call = { sql: string; params: unknown[] }
 

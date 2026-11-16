@@ -2,17 +2,17 @@ import { hex } from '@scure/base'
 import * as bitcoinjs from 'bitcoinjs-lib'
 
 import { SEQUENCE_LOCKTIME_NO_RBF, SEQUENCE_RBF } from '@/constants/btc'
-import { type Account } from '@/types/models/Account'
-import { type Output } from '@/types/models/Output'
-import { type Utxo } from '@/types/models/Utxo'
+import type { Account } from '@/types/models/Account'
+import type { Output } from '@/types/models/Output'
+import type { Utxo } from '@/types/models/Utxo'
 import {
   addSentTransactionToAccount,
   buildSentTransactionLabels,
   getSentOutputVouts,
   getSentTransactionLabel,
-  matchOutputVouts,
-  type SentTransaction
+  matchOutputVouts
 } from '@/utils/sentTransaction'
+import type { SentTransaction } from '@/utils/sentTransaction'
 
 const TXID = 'b'.repeat(64)
 const SPENT_TXID = 'a'.repeat(64)

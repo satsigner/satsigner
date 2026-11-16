@@ -19,7 +19,7 @@ const HEX_RADIX = 16
 const NON_WORD_CHARACTERS = /[^\da-z]+/
 
 function decodeByte(_match: string, hex: string) {
-  return String.fromCharCode(Number.parseInt(hex, HEX_RADIX))
+  return String.fromCodePoint(Number.parseInt(hex, HEX_RADIX))
 }
 
 function decodeLayer(link: string): string {

@@ -7,10 +7,10 @@ import {
   commitPinMaterial,
   discardPendingPinKdfCommit,
   getPendingPinKdfCommitDigest,
-  type PinMaterial,
   pinMatchesDuressDigest,
   preparePinMaterial
 } from '@/utils/pinKdf'
+import type { PinMaterial } from '@/utils/pinKdf'
 import { applyPendingPinRekey, clearPinRekeyJournalFor } from '@/utils/pinRekey'
 import { setSessionPinDigest } from '@/utils/pinSession'
 import { isCurrentPinRequired } from '@/utils/pinSetup'

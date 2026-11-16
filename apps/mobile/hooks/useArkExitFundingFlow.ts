@@ -2,7 +2,7 @@ import { useState } from 'react'
 
 import { useAccountsStore } from '@/store/accounts'
 import { useArkStore } from '@/store/ark'
-import { type ArkExit } from '@/types/models/Ark'
+import type { ArkExit } from '@/types/models/Ark'
 import {
   getArkExitFundingAmount,
   getArkExitFundingSources,

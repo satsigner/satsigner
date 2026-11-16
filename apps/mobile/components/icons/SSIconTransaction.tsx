@@ -1,6 +1,7 @@
-import Svg, { Circle, Line, Polygon, type SvgProps } from 'react-native-svg'
+import Svg, { Circle, Line, Polygon } from 'react-native-svg'
+import type { SvgProps } from 'react-native-svg'
 
-import { type NavMenuItemIconProps } from '@/types/navigation/navMenu'
+import type { NavMenuItemIconProps } from '@/types/navigation/navMenu'
 
 type SSIconTransactionProps = Pick<SvgProps, 'width' | 'height' | 'color'>
 

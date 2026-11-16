@@ -1,9 +1,9 @@
-import {
-  type NitroSQLiteConnection,
-  type SQLiteValue
+import type {
+  NitroSQLiteConnection,
+  SQLiteValue
 } from 'react-native-nitro-sqlite'
 
-import { type Address } from '@/types/models/Address'
+import type { Address } from '@/types/models/Address'
 
 import { bulkInsert } from '../bulkInsert'
 

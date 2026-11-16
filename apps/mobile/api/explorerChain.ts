@@ -1,4 +1,4 @@
-import * as bitcoinjs from 'bitcoinjs-lib'
+import type * as bitcoinjs from 'bitcoinjs-lib'
 
 import ElectrumClient, { closeElectrumClientQuietly } from '@/api/electrum'
 import Esplora from '@/api/esplora'

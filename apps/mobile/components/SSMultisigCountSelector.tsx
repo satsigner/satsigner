@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
-import { type LayoutChangeEvent, View } from 'react-native'
+import { View } from 'react-native'
+import type { LayoutChangeEvent } from 'react-native'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
 import Svg, { Circle, G, Rect, Text as SvgText } from 'react-native-svg'
 

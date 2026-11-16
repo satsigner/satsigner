@@ -2,7 +2,7 @@
  * Zap receipt fetchers: per-pubkey `since`, and cached receipts survive a
  * relay failure (flagged with source 'cache').
  */
-import { type NDKFilter } from '@nostr-dev-kit/ndk'
+import type { NDKFilter } from '@nostr-dev-kit/ndk'
 
 jest.mock<typeof import('@/api/ndkRegistry')>('@/api/ndkRegistry', () => ({
   clearNdkRegistry: jest.fn(),
@@ -36,12 +36,12 @@ import { createEphemeralNdk } from '@/api/ndkRegistry'
 import { connectToFirstRelay } from '@/api/nostrRelayHealth'
 import { NOSTR_ZAP_RECEIPT_FETCH_LIMIT } from '@/constants/nostr'
 import {
-  type CachedEvent,
   cacheEvents,
   getCachedZapReceipts,
   getCachedZapsByPubkey,
   getNewestCachedZapTimestamp
 } from '@/db/nostrCache'
+import type { CachedEvent } from '@/db/nostrCache'
 import { NostrNoRelaysError } from '@/utils/errors'
 import { fetchZapReceipts, fetchZapsByPubkey } from '@/utils/nostrZap'
 

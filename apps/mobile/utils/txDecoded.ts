@@ -57,8 +57,8 @@ export class TxDecoded extends bitcoinjs.Transaction {
     if (this.hasWitnesses()) {
       return [
         this.getVersion(),
-        this.getMarker(),
-        this.getFlag(),
+        TxDecoded.getMarker(),
+        TxDecoded.getFlag(),
         ...this.getInputs(),
         ...this.getOutputs(),
         ...this.getWitnesses(),
@@ -81,14 +81,14 @@ export class TxDecoded extends bitcoinjs.Transaction {
     return { field, hex, value }
   }
 
-  getMarker(): TxDecodedField {
+  static getMarker(): TxDecodedField {
     const value = TxDecoded.ADVANCED_TRANSACTION_MARKER
     const hex = toUInt8(value)
     const field = TxField.Marker
     return { field, hex, value }
   }
 
-  getFlag(): TxDecodedField {
+  static getFlag(): TxDecodedField {
     const value = TxDecoded.ADVANCED_TRANSACTION_FLAG
     const hex = toUInt8(value)
     const field = TxField.Flag
@@ -234,7 +234,7 @@ export class TxDecoded extends bitcoinjs.Transaction {
   getWitnessItem(index: number, witnessIndex: number): TxDecodedField {
     const witnessItem = this.ins[index].witness[witnessIndex]
     const witnessHex = hex.encode(witnessItem)
-    const { field, value } = this.identifyWitnessItem(witnessItem)
+    const { field, value } = identifyWitnessItem(witnessItem)
     const placeholders = { input: index, witness: witnessIndex }
     return { field, hex: witnessHex, placeholders, value }
   }
@@ -258,37 +258,37 @@ export class TxDecoded extends bitcoinjs.Transaction {
       return ''
     }
   }
+}
 
-  // identifyWitnessItem takes a witness item and returns a description of the item and a decoded value
-  identifyWitnessItem(witnessItem: Buffer | Uint8Array) {
-    const bytes = Buffer.from(witnessItem)
-    const itemHex = hex.encode(bytes)
-    if (itemHex === '') {
-      return { field: TxField.WitnessItemEmpty, value: '' }
-    }
-
-    if (bitcoinjs.script.isCanonicalPubKey(bytes)) {
-      return { field: TxField.WitnessItemPubkey, value: itemHex }
-    }
-
-    if (bitcoinjs.script.isCanonicalScriptSignature(bytes)) {
-      return { field: TxField.WitnessItemSignature, value: itemHex }
-    }
-
-    // if the witness item is a script, decode it
-    try {
-      const decodedScript = bitcoinjs.script.toASM(bytes)
-      return {
-        field: TxField.WitnessItemScript,
-        value: decodedScript
-      }
-    } catch {
-      // not a script
-    }
-
-    // TODO: identify taproot witness items
-    return { field: TxField.WitnessItem, value: itemHex }
+// identifyWitnessItem takes a witness item and returns a description of the item and a decoded value
+function identifyWitnessItem(witnessItem: Buffer | Uint8Array) {
+  const bytes = Buffer.from(witnessItem)
+  const itemHex = hex.encode(bytes)
+  if (itemHex === '') {
+    return { field: TxField.WitnessItemEmpty, value: '' }
   }
+
+  if (bitcoinjs.script.isCanonicalPubKey(bytes)) {
+    return { field: TxField.WitnessItemPubkey, value: itemHex }
+  }
+
+  if (bitcoinjs.script.isCanonicalScriptSignature(bytes)) {
+    return { field: TxField.WitnessItemSignature, value: itemHex }
+  }
+
+  // if the witness item is a script, decode it
+  try {
+    const decodedScript = bitcoinjs.script.toASM(bytes)
+    return {
+      field: TxField.WitnessItemScript,
+      value: decodedScript
+    }
+  } catch {
+    // not a script
+  }
+
+  // TODO: identify taproot witness items
+  return { field: TxField.WitnessItem, value: itemHex }
 }
 
 function toVarInt(value: number) {

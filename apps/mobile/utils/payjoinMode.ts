@@ -2,7 +2,7 @@ import {
   PAYJOIN_DEFAULT_COORDINATION_MODE,
   PAYJOIN_DIRECTORY_URL
 } from '@/constants/payjoin'
-import { type PayjoinCoordinationMode } from '@/types/payjoin'
+import type { PayjoinCoordinationMode } from '@/types/payjoin'
 
 const PAYJOIN_COORDINATION_MODES: readonly PayjoinCoordinationMode[] = [
   'directory',

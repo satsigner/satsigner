@@ -5,10 +5,7 @@ import { toast } from 'sonner-native'
 import { NostrAPI } from '@/api/nostr'
 import { nostrKeys } from '@/db/keys'
 import { t } from '@/locales'
-import {
-  type NostrPollInfo,
-  type NostrPollResponse
-} from '@/types/models/Nostr'
+import type { NostrPollInfo, NostrPollResponse } from '@/types/models/Nostr'
 import { getNostrContactsRelaysKey } from '@/utils/nostrContacts'
 import { getNostrErrorMessage } from '@/utils/nostrErrorMessage'
 import { getUserPollVoteOptionIds, tallyPollVotes } from '@/utils/nostrPoll'

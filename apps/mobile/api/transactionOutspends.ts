@@ -1,7 +1,7 @@
 import ElectrumClient from '@/api/electrum'
 import Esplora from '@/api/esplora'
 import BitcoinRpc from '@/api/rpc'
-import { type Server } from '@/types/settings/blockchain'
+import type { Server } from '@/types/settings/blockchain'
 
 export type TransactionOutspend = {
   spent: boolean

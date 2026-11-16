@@ -1,7 +1,7 @@
-import {
-  type NostrChatConversation,
-  type NostrChatMessage,
-  type NostrChatProtocol
+import type {
+  NostrChatConversation,
+  NostrChatMessage,
+  NostrChatProtocol
 } from '@/types/models/Nostr'
 
 import { getDb } from '../connection'

@@ -39,17 +39,17 @@ import type {
   LNDDecodedInvoice,
   LNURLPayResponse
 } from '@/types/models/Lightning'
-import { type DetectedContent } from '@/utils/contentDetector'
+import type { DetectedContent } from '@/utils/contentDetector'
 import { HttpStatusError } from '@/utils/errors'
 import { satsToFiat } from '@/utils/fiat'
 import { isAmountlessBolt11Invoice } from '@/utils/lightningInvoiceDecoder'
 import { getLndErrorMessage } from '@/utils/lndHttpError'
 import {
-  type LndOnchainSendValidationReason,
   buildSendCoinsBody,
   parseBitcoinUriAddress,
   validateLndOnchainSend
 } from '@/utils/lndOnchainWallet'
+import type { LndOnchainSendValidationReason } from '@/utils/lndOnchainWallet'
 import { parsePositiveSats } from '@/utils/lndPayInvoice'
 import {
   isLndPayOutcomeUnknown,

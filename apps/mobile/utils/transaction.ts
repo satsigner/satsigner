@@ -20,12 +20,12 @@ import {
 } from '@/constants/transaction'
 import type { ExtendedTransaction } from '@/hooks/useInputTransactions'
 import type { Output } from '@/types/models/Output'
-import { type PsbtBuildStatus } from '@/types/models/Psbt'
-import { ScriptVersionType } from '@/types/models/Script'
+import type { PsbtBuildStatus } from '@/types/models/Psbt'
+import type { ScriptVersionType } from '@/types/models/Script'
 import type { Transaction } from '@/types/models/Transaction'
 import type { Utxo } from '@/types/models/Utxo'
-import { type Network as AppNetwork } from '@/types/settings/blockchain'
-import { type Message, type Notice } from '@/types/ui/notice'
+import type { Network as AppNetwork } from '@/types/settings/blockchain'
+import type { Message, Notice } from '@/types/ui/notice'
 import { getScriptVersionType } from '@/utils/address'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { getUnsignedTransactionHexFromPSBT } from '@/utils/psbt'
@@ -178,10 +178,12 @@ export function estimateTransactionSize(
     })
   }
 
-  const outputSize = allOutputs.reduce((sum, o) => {
-    const type: ScriptVersionType = getScriptVersionType(o.to) || 'P2PKH'
-    return sum + OUTPUT_SIZES[type]
-  }, 0)
+  const outputSize = allOutputs
+    .map((o) => {
+      const type: ScriptVersionType = getScriptVersionType(o.to) || 'P2PKH'
+      return OUTPUT_SIZES[type]
+    })
+    .reduce((sum, size) => sum + size, 0)
 
   const baseSize = BASE_SIZE + inputBase + outputSize
 

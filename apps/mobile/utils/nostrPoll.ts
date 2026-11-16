@@ -1,9 +1,9 @@
 import { MS_PER_SECOND } from '@/constants/time'
-import {
-  type NostrPollInfo,
-  type NostrPollOption,
-  type NostrPollResponse,
-  type NostrPollType
+import type {
+  NostrPollInfo,
+  NostrPollOption,
+  NostrPollResponse,
+  NostrPollType
 } from '@/types/models/Nostr'
 
 export type { NostrPollInfo, NostrPollResponse, NostrPollType }

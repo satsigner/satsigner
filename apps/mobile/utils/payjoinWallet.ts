@@ -1,10 +1,10 @@
 import { hex } from '@scure/base'
 import * as bitcoinjs from 'bitcoinjs-lib'
 
-import { type Output } from '@/types/models/Output'
-import { type Transaction } from '@/types/models/Transaction'
-import { type Utxo } from '@/types/models/Utxo'
-import { type PayjoinWalletCallbacks } from '@/types/payjoin'
+import type { Output } from '@/types/models/Output'
+import type { Transaction } from '@/types/models/Transaction'
+import type { Utxo } from '@/types/models/Utxo'
+import type { PayjoinWalletCallbacks } from '@/types/payjoin'
 import { filterPayjoinContributeUtxos } from '@/utils/payjoinUtxos'
 
 function utxoScriptHex(utxo: Utxo): string {

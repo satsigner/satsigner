@@ -1,5 +1,5 @@
-import { type Account } from '@/types/models/Account'
-import { type Address } from '@/types/models/Address'
+import type { Account } from '@/types/models/Account'
+import type { Address } from '@/types/models/Address'
 import { signMessageBip137, verifyMessageBip137 } from '@/utils/bip137'
 import { getAddressDerivationPath } from '@/utils/bitcoin'
 import { getAddressKeyPair } from '@/utils/key'

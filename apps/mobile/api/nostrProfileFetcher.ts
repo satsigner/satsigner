@@ -1,5 +1,5 @@
 import type NDK from '@nostr-dev-kit/ndk'
-import { type NDKEvent, type NDKFilter } from '@nostr-dev-kit/ndk'
+import type { NDKEvent, NDKFilter } from '@nostr-dev-kit/ndk'
 import * as nostrKinds from 'nostr-tools/kinds'
 
 import {
@@ -22,11 +22,8 @@ import {
   NOSTR_TEMP_NDK_CONNECT_TIMEOUT_MS
 } from '@/constants/nostr'
 import { MS_PER_SECOND } from '@/constants/time'
-import {
-  type CachedProfile,
-  cacheProfile,
-  getCachedProfile
-} from '@/db/nostrCache'
+import { cacheProfile, getCachedProfile } from '@/db/nostrCache'
+import type { CachedProfile } from '@/db/nostrCache'
 import type {
   NostrErrorCode,
   NostrFetchResult,

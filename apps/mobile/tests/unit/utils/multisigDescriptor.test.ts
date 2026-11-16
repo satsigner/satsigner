@@ -1,4 +1,4 @@
-import { type ScriptVersionType } from '@/types/models/Script'
+import type { ScriptVersionType } from '@/types/models/Script'
 import {
   isUnsortedMultisigDescriptor,
   parseMultisigDescriptor

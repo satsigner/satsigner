@@ -1,12 +1,8 @@
 import { useMutation } from '@tanstack/react-query'
 import { useState } from 'react'
 
-import {
-  buildDiagnosticsContext,
-  type DiagnosticCheck,
-  type DiagnosticResult,
-  runDiagnostics
-} from '@/utils/diagnostics'
+import { buildDiagnosticsContext, runDiagnostics } from '@/utils/diagnostics'
+import type { DiagnosticCheck, DiagnosticResult } from '@/utils/diagnostics'
 
 function upsertResult(
   results: DiagnosticResult[],

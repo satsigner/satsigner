@@ -1,5 +1,5 @@
 import { Redirect } from 'expo-router'
-import { type ReactNode } from 'react'
+import type { ReactNode } from 'react'
 
 import { isDevConsoleAvailable } from '@/utils/devConsole'
 

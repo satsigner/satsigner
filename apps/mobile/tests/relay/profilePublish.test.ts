@@ -12,7 +12,8 @@ import { NostrAPI } from '@/api/nostr'
 import { resetRelayHealth } from '@/api/nostrRelayHealth'
 
 import { BASE_CREATED_AT } from './support/fixtures'
-import { startTestRelay, type TestRelay } from './support/testRelay'
+import { startTestRelay } from './support/testRelay'
+import type { TestRelay } from './support/testRelay'
 
 const FORGED_LATER_BY_SEC = 100
 const NEWER_BY_SEC = 10

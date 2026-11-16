@@ -3,12 +3,12 @@ import { nip19 } from 'nostr-tools'
 import { NostrAPI } from '@/api/nostr'
 import { getCachedProfile } from '@/db/nostrCache'
 import { getNostrFollowCache } from '@/storage/mmkv'
-import {
-  type NostrContactItem,
-  type NostrDataSource,
-  type NostrErrorCode,
-  type NostrIdentity,
-  type NostrKind0Profile
+import type {
+  NostrContactItem,
+  NostrDataSource,
+  NostrErrorCode,
+  NostrIdentity,
+  NostrKind0Profile
 } from '@/types/models/Nostr'
 
 export type NostrContactsQueryData = {

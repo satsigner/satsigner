@@ -29,10 +29,10 @@ import { useChartSettingStore } from '@/store/chartSettings'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { Colors, Typography } from '@/styles'
-import { type Transaction } from '@/types/models/Transaction'
-import { type Utxo } from '@/types/models/Utxo'
-import { type Rectangle } from '@/types/ui/geometry'
-import { type HistoryChartData } from '@/types/ui/historyChart'
+import type { Transaction } from '@/types/models/Transaction'
+import type { Utxo } from '@/types/models/Utxo'
+import type { Rectangle } from '@/types/ui/geometry'
+import type { HistoryChartData } from '@/types/ui/historyChart'
 import { isHistoricalFiatAvailable } from '@/utils/fiat'
 import {
   buildBalanceHistory,
@@ -46,6 +46,7 @@ import {
   buildUtxoRectangles,
   buildWalletAddresses,
   computeValidChartData,
+  earliestChartDate,
   fiatDomainMax,
   fiatPointsInWindow,
   fiatSeriesColor,
@@ -207,15 +208,11 @@ function SSHistoryChart({
     if (!showFiatLine || chartData.length === 0) {
       return []
     }
-    const earliest = chartData.reduce(
-      (min, point) => (point.date < min ? point.date : min),
-      chartData[0].date
-    )
     return buildFiatChartPoints({
       chartData,
       closes: getLocalPriceCloses(fiatCurrency),
       endDate: mountDate,
-      startDate: earliest
+      startDate: earliestChartDate(chartData)
     })
   }, [chartData, fiatCurrency, mountDate, showFiatLine])
   const fiatChartPoints = useMemo(

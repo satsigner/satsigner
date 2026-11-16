@@ -25,7 +25,7 @@ import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
-import { type ZapReceiptInfo } from '@/types/models/Nostr'
+import type { ZapReceiptInfo } from '@/types/models/Nostr'
 import { formatNostrCardDate, formatNpub } from '@/utils/format'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
 import {

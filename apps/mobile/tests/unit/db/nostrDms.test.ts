@@ -1,6 +1,6 @@
 import { getDb } from '@/db/connection'
 import { insertDms, replaceDm, updateDmStatus } from '@/db/mutations/nostr'
-import { type NostrDM } from '@/types/models/Nostr'
+import type { NostrDM } from '@/types/models/Nostr'
 
 import { mockQueryResult } from './queryResult'
 

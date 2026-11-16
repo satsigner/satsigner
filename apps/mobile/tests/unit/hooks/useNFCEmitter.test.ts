@@ -1,6 +1,7 @@
 import { createElement } from 'react'
 import { NfcError } from 'react-native-nfc-manager'
-import { act, create, type ReactTestRenderer } from 'react-test-renderer'
+import { act, create } from 'react-test-renderer'
+import type { ReactTestRenderer } from 'react-test-renderer'
 
 import { useNFCEmitter } from '@/hooks/useNFCEmitter'
 import { NfcCancelledError, NfcDisabledError } from '@/utils/nfcError'

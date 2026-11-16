@@ -1,7 +1,7 @@
 import { useAccountsStore } from '@/store/accounts'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
-import { type Transaction } from '@/types/models/Transaction'
+import type { Transaction } from '@/types/models/Transaction'
 import { backfillHistoricalPrices } from '@/utils/historicalPrices'
 import { resolveHistoricalPrices } from '@/utils/resolveHistoricalPrices'
 

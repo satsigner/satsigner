@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
-import { type MempoolOracle } from '@/api/blockchain'
+import type { MempoolOracle } from '@/api/blockchain'
 import ElectrumClient from '@/api/electrum'
 import Esplora from '@/api/esplora'
 import BitcoinRpc from '@/api/rpc'

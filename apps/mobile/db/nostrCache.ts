@@ -1,7 +1,7 @@
 import * as nostrKinds from 'nostr-tools/kinds'
-import {
-  type NitroSQLiteConnection,
-  type SQLiteValue
+import type {
+  NitroSQLiteConnection,
+  SQLiteValue
 } from 'react-native-nitro-sqlite'
 
 import {

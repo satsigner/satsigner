@@ -1,5 +1,5 @@
 import type { BottomSheetMethods } from '@gorhom/bottom-sheet/lib/typescript/types'
-import { type RefObject } from 'react'
+import type { RefObject } from 'react'
 import { StyleSheet, View } from 'react-native'
 
 import SSBottomSheet from '@/components/SSBottomSheet'
@@ -9,7 +9,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
-import { type PaymentMethod } from '@/types/models/PaymentMethod'
+import type { PaymentMethod } from '@/types/models/PaymentMethod'
 import { formatFiatPrice } from '@/utils/format'
 
 import SSPressable from './SSPressable'

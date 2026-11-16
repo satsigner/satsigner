@@ -1,7 +1,7 @@
 import { KeychainKind, Network as BdkNetwork } from 'react-native-bdk-sdk'
 
 import { WORDLIST_LIST } from '@/types/bips/39'
-import { ScriptVersionType } from '@/types/models/Script'
+import type { ScriptVersionType } from '@/types/models/Script'
 import { getFingerprintFromSeed } from '@/utils/bip32'
 import {
   detectElectrumSeed,

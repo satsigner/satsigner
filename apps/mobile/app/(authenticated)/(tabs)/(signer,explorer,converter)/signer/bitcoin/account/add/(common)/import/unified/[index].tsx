@@ -20,13 +20,13 @@ import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import { type CreationType } from '@/types/models/Account'
-import { type NFCReadResult } from '@/types/models/Nfc'
+import type { CreationType } from '@/types/models/Account'
+import type { NFCReadResult } from '@/types/models/Nfc'
 import {
   convertKeyFormat,
   getDerivationPathFromScriptVersion
 } from '@/utils/bitcoin'
-import { type DetectedContent } from '@/utils/contentDetector'
+import type { DetectedContent } from '@/utils/contentDetector'
 import {
   descriptorHasPrivateKeyMaterial,
   parseImportedDescriptorPayload,

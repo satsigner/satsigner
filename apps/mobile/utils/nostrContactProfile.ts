@@ -5,10 +5,10 @@ import {
   NOSTR_PRIVACY_MASK
 } from '@/constants/nostr'
 import { t } from '@/locales'
-import {
-  type NostrContactQrSlide,
-  type NostrIdentity,
-  type NostrKind0Profile
+import type {
+  NostrContactQrSlide,
+  NostrIdentity,
+  NostrKind0Profile
 } from '@/types/models/Nostr'
 
 type BuildContactQrSlidesOptions = {

@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { View } from 'react-native'
-import Animated, {
+import {
+  createAnimatedComponent,
   Easing,
   useAnimatedProps,
   useSharedValue,
@@ -19,7 +20,7 @@ const ORBIT_CENTER_Y = VIEWBOX_HEIGHT / 2
 const ORBIT_RADIUS = 22
 const DEPTH_SCALE = 0.85
 
-const AnimatedCircle = Animated.createAnimatedComponent(Circle)
+const AnimatedCircle = createAnimatedComponent(Circle)
 
 type SSLoaderProps = {
   size?: number

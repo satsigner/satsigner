@@ -7,15 +7,8 @@ import {
   useRouter
 } from 'expo-router'
 import { useFocusEffect } from 'expo-router/react-navigation'
-import {
-  type Dispatch,
-  type ReactNode,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState
-} from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { Dispatch, ReactNode } from 'react'
 import {
   RefreshControl,
   ScrollView,
@@ -29,7 +22,8 @@ import Animated, {
   useSharedValue,
   withTiming
 } from 'react-native-reanimated'
-import { type SceneRendererProps, TabView } from 'react-native-tab-view'
+import { TabView } from 'react-native-tab-view'
+import type { SceneRendererProps } from 'react-native-tab-view'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -113,23 +107,23 @@ import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { useUtxoListControlsStore } from '@/store/utxoListControls'
 import { Colors, Sizes, Typography } from '@/styles'
-import { type Direction } from '@/types/logic/sort'
-import { type Account } from '@/types/models/Account'
-import { type Address } from '@/types/models/Address'
-import { type Utxo } from '@/types/models/Utxo'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { type PayjoinSession } from '@/types/payjoin'
+import type { Direction } from '@/types/logic/sort'
+import type { Account } from '@/types/models/Account'
+import type { Address } from '@/types/models/Address'
+import type { Utxo } from '@/types/models/Utxo'
+import type { AccountSearchParams } from '@/types/navigation/searchParams'
+import type { PayjoinSession } from '@/types/payjoin'
 import { getAccountTotalBalance, isAutoSyncDue } from '@/utils/account'
 import { isTransactionHistoryLoading } from '@/utils/accountSync'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { formatRelativeTime } from '@/utils/date'
 import {
-  type DraftResumeStep,
   getDraftIoCounts,
   getDraftLabel,
   getDraftPaymentAmount,
   getDraftResumeStep
 } from '@/utils/draftSelection'
+import type { DraftResumeStep } from '@/utils/draftSelection'
 import { toggleUtxoExcluded } from '@/utils/excludeUtxo'
 import { satsToFiat } from '@/utils/fiat'
 import {
@@ -146,26 +140,25 @@ import { parsePayjoinUri } from '@/utils/payjoinUri'
 import {
   createScanThroughputTracker,
   formatBlocksPerSec,
-  formatScanDuration,
-  type ScanThroughput
+  formatScanDuration
 } from '@/utils/scanThroughput'
-import {
-  sortAddressesByIndex,
-  sortTransactions,
-  type TransactionSortField
-} from '@/utils/sort'
+import type { ScanThroughput } from '@/utils/scanThroughput'
+import { sortAddressesByIndex, sortTransactions } from '@/utils/sort'
+import type { TransactionSortField } from '@/utils/sort'
 import { syncTickerLabels } from '@/utils/syncLabels'
 import { getUtxoOutpoint } from '@/utils/utxo'
 import {
   DEFAULT_UTXO_LIST_FILTER,
   isUtxoExcluded,
-  prepareUtxoList,
-  type UtxoKeychainFilter,
-  type UtxoLabelFilter,
-  type UtxoListFilter,
-  type UtxoScriptFilter,
-  type UtxoSortField,
-  type UtxoTagFilter
+  prepareUtxoList
+} from '@/utils/utxoList'
+import type {
+  UtxoKeychainFilter,
+  UtxoLabelFilter,
+  UtxoListFilter,
+  UtxoScriptFilter,
+  UtxoSortField,
+  UtxoTagFilter
 } from '@/utils/utxoList'
 import {
   groupDisplayTitle,

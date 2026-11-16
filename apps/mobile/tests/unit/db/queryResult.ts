@@ -1,7 +1,4 @@
-import {
-  type QueryResult,
-  type QueryResultRow
-} from 'react-native-nitro-sqlite'
+import type { QueryResult, QueryResultRow } from 'react-native-nitro-sqlite'
 
 /**
  * Builds what nitro-sqlite's execute() returns for `results`, including the

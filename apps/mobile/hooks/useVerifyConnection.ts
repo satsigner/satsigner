@@ -1,4 +1,7 @@
-import NetInfo from '@react-native-community/netinfo'
+import {
+  addEventListener as addNetInfoListener,
+  fetch as fetchNetInfo
+} from '@react-native-community/netinfo'
 import { useQuery } from '@tanstack/react-query'
 import { useSyncExternalStore } from 'react'
 import { useShallow } from 'zustand/react/shallow'
@@ -10,7 +13,7 @@ import { MS_PER_SECOND } from '@/constants/time'
 import { useAsyncEffect } from '@/hooks/useAsyncEffect'
 import { queryClient } from '@/lib/queryClient'
 import { useBlockchainStore } from '@/store/blockchain'
-import { type Config, type Server } from '@/types/settings/blockchain'
+import type { Config, Server } from '@/types/settings/blockchain'
 import {
   isConnectionPollSuppressed,
   subscribeToConnectionPollSuppression
@@ -39,7 +42,7 @@ const deviceConnectivity: { isConnected: boolean | null } = {
 }
 
 async function readDeviceConnectivity() {
-  const state = await NetInfo.fetch()
+  const state = await fetchNetInfo()
   deviceConnectivity.isConnected = state.isConnected
 }
 
@@ -119,7 +122,7 @@ function useVerifyConnection() {
     await readDeviceConnectivity()
     refetch({ cancelRefetch: false })
 
-    return NetInfo.addEventListener((netInfoState) => {
+    return addNetInfoListener((netInfoState) => {
       const next = netInfoState.isConnected
       if (deviceConnectivity.isConnected === next) {
         return

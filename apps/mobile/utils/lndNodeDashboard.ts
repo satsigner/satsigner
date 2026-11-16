@@ -1,4 +1,4 @@
-import { type LNDCombinedTransaction } from '@/types/models/Lightning'
+import type { LNDCombinedTransaction } from '@/types/models/Lightning'
 
 export function mergeCombinedTransactions(
   txs: LNDCombinedTransaction[]

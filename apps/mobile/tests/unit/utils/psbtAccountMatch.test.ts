@@ -1,6 +1,6 @@
 import * as bitcoinjs from 'bitcoinjs-lib'
 
-import { type Account } from '@/types/models/Account'
+import type { Account } from '@/types/models/Account'
 import { findMatchingAccount } from '@/utils/psbt'
 
 const PUBKEY = Buffer.from(

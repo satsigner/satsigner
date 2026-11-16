@@ -1,4 +1,5 @@
-import { FlashList, type ListRenderItemInfo } from '@shopify/flash-list'
+import { FlashList } from '@shopify/flash-list'
+import type { ListRenderItemInfo } from '@shopify/flash-list'
 import {
   Redirect,
   router,
@@ -38,7 +39,8 @@ import { useLocalDayStart } from '@/hooks/useLocalDayStart'
 import { useNostrChatMessageActions } from '@/hooks/useNostrChatMessageActions'
 import { useNostrChatScroll } from '@/hooks/useNostrChatScroll'
 import { useNostrDeviceChatProfilesFetch } from '@/hooks/useNostrDeviceChatProfilesFetch'
-import { type AuthorDisplayInfo, getAuthorLabel } from '@/hooks/useNostrMessage'
+import { getAuthorLabel } from '@/hooks/useNostrMessage'
+import type { AuthorDisplayInfo } from '@/hooks/useNostrMessage'
 import { setActiveChatAccount } from '@/hooks/useNostrNotifyUtils'
 import useNostrPublish from '@/hooks/useNostrPublish'
 import { useNostrSignFlow } from '@/hooks/useNostrSignFlow'
@@ -51,9 +53,9 @@ import { useNostrStore } from '@/store/nostr'
 import { deviceChatKey, useNostrChatReplyStore } from '@/store/nostrChatReply'
 import { useNostrDeviceChatSendsStore } from '@/store/nostrDeviceChatSends'
 import { Colors } from '@/styles'
-import { type Account } from '@/types/models/Account'
-import { type NostrDM } from '@/types/models/Nostr'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import type { Account } from '@/types/models/Account'
+import type { NostrDM } from '@/types/models/Nostr'
+import type { AccountSearchParams } from '@/types/navigation/searchParams'
 import { parseNostrTransaction } from '@/utils/nostr'
 import {
   buildAuthorDisplayMap,
@@ -62,21 +64,18 @@ import {
 import {
   buildChatRows,
   buildReplyPreview,
-  type ChatRow,
   findRowIndex,
   formatChatDayLabel
 } from '@/utils/nostrChatRows'
+import type { ChatRow } from '@/utils/nostrChatRows'
 import {
-  type DeviceChatSendOutcome,
   retryDeviceChatMessage,
   sendDeviceChatMessage
 } from '@/utils/nostrDeviceChat'
+import type { DeviceChatSendOutcome } from '@/utils/nostrDeviceChat'
 import { getNostrErrorMessage } from '@/utils/nostrErrorMessage'
 import { deviceChatMessageHref } from '@/utils/nostrNavigation'
-import {
-  type KeyFingerprintsByAccount,
-  type TransactionData
-} from '@/utils/psbt'
+import type { KeyFingerprintsByAccount, TransactionData } from '@/utils/psbt'
 
 type VisibleComponents = Map<string, { sankey: boolean; status: boolean }>
 

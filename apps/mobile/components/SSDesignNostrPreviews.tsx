@@ -37,9 +37,10 @@ import { getAuthorLabel } from '@/hooks/useNostrMessage'
 import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
-import { type Account } from '@/types/models/Account'
-import { type NostrDM } from '@/types/models/Nostr'
-import { formatNostrKey, type NostrKeyFormat } from '@/utils/nostr'
+import type { Account } from '@/types/models/Account'
+import type { NostrDM } from '@/types/models/Nostr'
+import { formatNostrKey } from '@/utils/nostr'
+import type { NostrKeyFormat } from '@/utils/nostr'
 import {
   buildChatRows,
   buildReplyPreview,

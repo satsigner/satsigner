@@ -47,31 +47,27 @@ import {
   prepareArkMnemonics,
   releaseArkWalletsForRestore,
   restoreArkLabelsFromBackup,
-  restoreArkStoreFromBackup,
-  type ArkBackupSection
+  restoreArkStoreFromBackup
 } from '@/utils/arkBackup'
+import type { ArkBackupSection } from '@/utils/arkBackup'
 import { parseLabelRecord } from '@/utils/bip329'
 import {
   BLOCKCHAIN_BACKUP_NETWORKS,
-  restoreBlockchainFromBackup,
-  type BlockchainBackup
+  restoreBlockchainFromBackup
 } from '@/utils/blockchainBackup'
+import type { BlockchainBackup } from '@/utils/blockchainBackup'
 import { aesEncrypt, randomIv } from '@/utils/crypto'
-import {
-  type BackupKeySecret,
-  hasBackupKeySecret,
-  secretFromBackupKey
-} from '@/utils/keyBackup'
+import { hasBackupKeySecret, secretFromBackupKey } from '@/utils/keyBackup'
+import type { BackupKeySecret } from '@/utils/keyBackup'
 import { restoreLightningFromBackup } from '@/utils/lightningBackup'
 import { resetInstance as resetNostrSync } from '@/utils/nostrSyncService'
 import { isRecord } from '@/utils/object'
 import { getPin } from '@/utils/pin'
 import {
-  type PersistedSnapshot,
-  type RestoredIds,
   rollbackPersistedState,
   snapshotPersistedState
 } from '@/utils/restoreRollback'
+import type { PersistedSnapshot, RestoredIds } from '@/utils/restoreRollback'
 import { getRestoredPublicServer } from '@/utils/serverPrivacy'
 
 type BackupKey = Key & BackupKeySecret

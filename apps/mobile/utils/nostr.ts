@@ -4,17 +4,17 @@ import * as bitcoinjs from 'bitcoinjs-lib'
 import CBOR from 'cbor-js'
 import { getPublicKey, nip05 as nostrNip05, nip19 } from 'nostr-tools'
 import * as nostrKinds from 'nostr-tools/kinds'
-import pako from 'pako'
+import { deflate, inflate } from 'pako'
 
 import { PSBT_MAGIC_BASE64 } from '@/constants/btc'
 import { NOSTR_FALLBACK_NPUB_COLOR } from '@/constants/nostr'
 import { t } from '@/locales'
-import { type NostrKind0Profile } from '@/types/models/Nostr'
+import type { NostrKind0Profile } from '@/types/models/Nostr'
 import { base85Decode, base85Encode } from '@/utils/base58'
 import { sha256 } from '@/utils/crypto'
 import { isRecord } from '@/utils/object'
 import { parseDescriptor } from '@/utils/parse'
-import { type TransactionData } from '@/utils/psbt'
+import type { TransactionData } from '@/utils/psbt'
 
 bitcoinjs.initEccLib(ecc)
 
@@ -223,14 +223,14 @@ function parseNostrTransactionMessage(message: string): TransactionData | null {
 export function compressMessage(data: object): string {
   const cborData = CBOR.encode(data)
   const jsonUint8 = new Uint8Array(cborData)
-  const compressedData = pako.deflate(jsonUint8)
+  const compressedData = deflate(jsonUint8)
   const compressedBuffer = Buffer.from(compressedData)
   return base85Encode(compressedBuffer)
 }
 
 export function decompressMessage(compressedString: string): unknown {
   const compressedBytes = base85Decode(compressedString)
-  const cborBytes = pako.inflate(new Uint8Array(compressedBytes))
+  const cborBytes = inflate(new Uint8Array(compressedBytes))
   const bufferSlice = cborBytes.buffer.slice(
     cborBytes.byteOffset,
     cborBytes.byteOffset + cborBytes.byteLength

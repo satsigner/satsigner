@@ -1,9 +1,5 @@
-import {
-  finalizeEvent,
-  type NostrEvent,
-  type VerifiedEvent,
-  verifyEvent
-} from 'nostr-tools'
+import { finalizeEvent, verifyEvent } from 'nostr-tools'
+import type { NostrEvent, VerifiedEvent } from 'nostr-tools'
 import * as nostrKinds from 'nostr-tools/kinds'
 import {
   getConversationKey,
@@ -24,7 +20,7 @@ import {
   NOSTR_WS_CONNECT_TIMEOUT_MS
 } from '@/constants/nostr'
 import { MS_PER_SECOND } from '@/constants/time'
-import { Nip46IncomingRequest } from '@/types/models/Nostr'
+import type { Nip46IncomingRequest } from '@/types/models/Nostr'
 import { parseNip46Request } from '@/utils/nip46'
 import { parseNostrEvent } from '@/utils/nostrEvent'
 

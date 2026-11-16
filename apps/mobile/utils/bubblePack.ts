@@ -1,6 +1,7 @@
-import { type Utxo } from '@/types/models/Utxo'
+import type { Utxo } from '@/types/models/Utxo'
 import { getUtxoOutpoint } from '@/utils/outpoint'
-import { groupUtxos, type UtxoGroupMode } from '@/utils/utxoList'
+import { groupUtxos } from '@/utils/utxoList'
+import type { UtxoGroupMode } from '@/utils/utxoList'
 import { groupDisplayTitle } from '@/utils/utxoListUi'
 
 type BubblePackNode = {

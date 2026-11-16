@@ -1,12 +1,8 @@
-import { KeychainKind, type Network as BDKNetwork } from 'react-native-bdk-sdk'
+import { KeychainKind } from 'react-native-bdk-sdk'
+import type { Network as BDKNetwork } from 'react-native-bdk-sdk'
 
-import {
-  type Account,
-  type DecryptedKey,
-  type Key,
-  type Secret
-} from '@/types/models/Account'
-import { type Address, type AddressKeyPair } from '@/types/models/Address'
+import type { Account, DecryptedKey, Key, Secret } from '@/types/models/Account'
+import type { Address, AddressKeyPair } from '@/types/models/Address'
 import {
   getAddressKeyPairFromExtendedKey,
   getAddressKeyPairFromSeed,

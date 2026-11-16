@@ -1,24 +1,24 @@
 import { nip19 } from 'nostr-tools'
 import * as nostrKinds from 'nostr-tools/kinds'
 
-import {
-  type NostrEngagementDeletion,
-  type NostrKind0Profile,
-  type NostrReaction,
-  type NostrReactionEvent,
-  type NostrReactionItem,
-  type NostrReactionRow,
-  type NostrReactionsPage,
-  type NostrReactionSummaryEntry
+import type {
+  NostrEngagementDeletion,
+  NostrKind0Profile,
+  NostrReaction,
+  NostrReactionEvent,
+  NostrReactionItem,
+  NostrReactionRow,
+  NostrReactionsPage,
+  NostrReactionSummaryEntry
 } from '@/types/models/Nostr'
 import { formatNpub } from '@/utils/format'
 import {
   dropDeletedEngagement,
   getLatestReactionByPubkey,
   NOSTR_LIKE_CONTENT,
-  type RawEngagementEvent,
   toEngagementEvent
 } from '@/utils/nostrEngagement'
+import type { RawEngagementEvent } from '@/utils/nostrEngagement'
 
 const NOSTR_DISLIKE_CONTENT = '-'
 const NIP30_EMOJI_TAG = 'emoji'

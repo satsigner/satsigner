@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-import { type ImageExifData } from '@/utils/imageExif'
+import type { ImageExifData } from '@/utils/imageExif'
 
 export type SelectedImageMeta = {
   uri: string

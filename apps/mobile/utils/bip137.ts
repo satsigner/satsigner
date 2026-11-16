@@ -1,4 +1,5 @@
-import ecc, { type RecoveryIdType } from '@bitcoinerlab/secp256k1'
+import ecc from '@bitcoinerlab/secp256k1'
+import type { RecoveryIdType } from '@bitcoinerlab/secp256k1'
 import {
   address as bjsAddress,
   crypto as bcrypto,
@@ -7,7 +8,7 @@ import {
 } from 'bitcoinjs-lib'
 import * as varuint from 'varuint-bitcoin'
 
-import { type Network as AppNetwork } from '@/types/settings/blockchain'
+import type { Network as AppNetwork } from '@/types/settings/blockchain'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import { bytesEqual } from '@/utils/byteArray'
 import { isLowR, lowRExtraEntropy } from '@/utils/ecdsaLowR'

@@ -2,7 +2,7 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useState } from 'react'
 import { ActivityIndicator, StyleSheet, View } from 'react-native'
 
-import { type BlobDescriptor } from '@/api/blossom'
+import type { BlobDescriptor } from '@/api/blossom'
 import SSNostrBlossomFileFilterChips from '@/components/SSNostrBlossomFileFilterChips'
 import SSNostrBlossomFileList from '@/components/SSNostrBlossomFileList'
 import SSText from '@/components/SSText'
@@ -11,7 +11,7 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
-import { type BlossomFileTypeFilter } from '@/types/models/Blossom'
+import type { BlossomFileTypeFilter } from '@/types/models/Blossom'
 import {
   filterBlossomFilesByType,
   getAvailableBlossomFileFilters

@@ -2,17 +2,15 @@ import * as nostrKinds from 'nostr-tools/kinds'
 
 import { NostrAPI } from '@/api/nostr'
 import {
-  type NostrRumor,
   createChatRumor,
   createDerivedGiftWrap,
   toNdkEvent
 } from '@/api/nostrGiftWrap'
+import type { NostrRumor } from '@/api/nostrGiftWrap'
 import { MS_PER_SECOND } from '@/constants/time'
-import {
-  type NostrMessageWrap,
-  recordMessageWraps
-} from '@/db/nostrMessageState'
-import { type Account } from '@/types/models/Account'
+import { recordMessageWraps } from '@/db/nostrMessageState'
+import type { NostrMessageWrap } from '@/db/nostrMessageState'
+import type { Account } from '@/types/models/Account'
 import { NostrPartialSendError } from '@/utils/errors'
 import {
   compressMessage,

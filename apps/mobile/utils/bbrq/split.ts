@@ -5,12 +5,7 @@
  */
 
 import { ENCODING_SPLIT_MOD, HEADER_LEN } from './consts'
-import {
-  type Encoding,
-  type SplitOptions,
-  type SplitResult,
-  type Version
-} from './types'
+import type { Encoding, SplitOptions, SplitResult, Version } from './types'
 import {
   encodeData,
   intToBase36,

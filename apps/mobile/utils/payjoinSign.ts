@@ -1,6 +1,6 @@
 import * as bitcoinjs from 'bitcoinjs-lib'
 
-import { type Utxo } from '@/types/models/Utxo'
+import type { Utxo } from '@/types/models/Utxo'
 import { utxoScriptHex } from '@/utils/payjoinWallet'
 
 function txidFromPsbtInputHash(hash: Buffer | Uint8Array): string {

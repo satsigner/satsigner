@@ -5,13 +5,13 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors, Layout } from '@/styles'
-import {
-  type UtxoGroupMode,
-  type UtxoKeychainFilter,
-  type UtxoLabelFilter,
-  type UtxoListFilter,
-  type UtxoScriptFilter,
-  type UtxoTagFilter
+import type {
+  UtxoGroupMode,
+  UtxoKeychainFilter,
+  UtxoLabelFilter,
+  UtxoListFilter,
+  UtxoScriptFilter,
+  UtxoTagFilter
 } from '@/utils/utxoList'
 import {
   UTXO_SCRIPT_FILTER_PAIRS,

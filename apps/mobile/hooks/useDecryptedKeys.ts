@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-import { type Account, type Key } from '@/types/models/Account'
+import type { Account, Key } from '@/types/models/Account'
 import { haveSameKeys } from '@/utils/account'
 import { decryptAccountKeysOrFallback } from '@/utils/decryption'
 

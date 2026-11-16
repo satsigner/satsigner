@@ -1,7 +1,7 @@
 import * as nostrKinds from 'nostr-tools/kinds'
 
 import { NOSTR_ZAP_TAG_NAMES } from '@/constants/nostr'
-import { NostrKind1DraftImport } from '@/types/models/Nostr'
+import type { NostrKind1DraftImport } from '@/types/models/Nostr'
 import { isRecord } from '@/utils/object'
 
 export function stripZapTags(tags: string[][]): string[][] {

@@ -1,8 +1,8 @@
 import { queryOptions, useQuery, useQueryClient } from '@tanstack/react-query'
 
-import { type Account } from '@/types/models/Account'
+import type { Account } from '@/types/models/Account'
 import { getKeyFingerprint } from '@/utils/account'
-import { type KeyFingerprintsByAccount } from '@/utils/psbt'
+import type { KeyFingerprintsByAccount } from '@/utils/psbt'
 
 async function fetchKeyFingerprints(
   accounts: Account[]

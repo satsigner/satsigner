@@ -1,9 +1,9 @@
-import {
-  type NitroSQLiteConnection,
-  type SQLiteValue
+import type {
+  NitroSQLiteConnection,
+  SQLiteValue
 } from 'react-native-nitro-sqlite'
 
-import { type Utxo } from '@/types/models/Utxo'
+import type { Utxo } from '@/types/models/Utxo'
 
 import { bulkInsert } from '../bulkInsert'
 import { dateToIso, optionalToJson } from '../mappers'

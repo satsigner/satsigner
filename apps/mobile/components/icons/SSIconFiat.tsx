@@ -1,6 +1,8 @@
-import Svg, { Circle, Line, Rect, type SvgProps } from 'react-native-svg'
+import Svg, { Circle, Line, Rect } from 'react-native-svg'
+import type { SvgProps } from 'react-native-svg'
 
-import { getIconStrokeProps, type IconStrokeProps } from './iconStroke'
+import { getIconStrokeProps } from './iconStroke'
+import type { IconStrokeProps } from './iconStroke'
 
 type IconProps = Pick<SvgProps, 'width' | 'height'>
 

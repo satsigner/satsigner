@@ -2,8 +2,8 @@ import {
   storeNostrAccountSecret,
   storeNostrIdentitySecret
 } from '@/storage/encrypted'
-import { type Account } from '@/types/models/Account'
-import { type NostrAccount } from '@/types/models/Nostr'
+import type { Account } from '@/types/models/Account'
+import type { NostrAccount } from '@/types/models/Nostr'
 import { aesDecrypt } from '@/utils/crypto'
 import {
   clearNostrSecretsCaches,

@@ -7,7 +7,8 @@ import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useWalletsStore } from '@/store/wallets'
-import { type Account, type Key } from '@/types/models/Account'
+import type { Account, Key } from '@/types/models/Account'
+import { isZeroFingerprint } from '@/utils/account'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { aesEncrypt } from '@/utils/crypto'
 import { parseAddressDescriptorToAddress } from '@/utils/parse'
@@ -82,8 +83,7 @@ function useAccountBuilderFinish() {
                 ? key.secret.fingerprint
                 : undefined
             const derivedFingerprint = walletData.fingerprint
-            const isZero = (fp?: string) => !fp || /^0+$/.test(fp)
-            const finalFingerprint = !isZero(derivedFingerprint)
+            const finalFingerprint = !isZeroFingerprint(derivedFingerprint)
               ? derivedFingerprint
               : userFingerprint
             if (finalFingerprint) {

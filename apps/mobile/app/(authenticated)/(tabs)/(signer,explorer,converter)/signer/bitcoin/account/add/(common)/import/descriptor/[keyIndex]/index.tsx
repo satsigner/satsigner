@@ -2,7 +2,7 @@ import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useEffect, useState } from 'react'
 import { StyleSheet } from 'react-native'
-import { type Network as _Network } from 'react-native-bdk-sdk'
+import type { Network as _Network } from 'react-native-bdk-sdk'
 import Animated, {
   cancelAnimation,
   interpolate,
@@ -29,14 +29,14 @@ import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import { type NFCReadResult } from '@/types/models/Nfc'
-import { type ImportDescriptorSearchParams } from '@/types/navigation/searchParams'
+import type { NFCReadResult } from '@/types/models/Nfc'
+import type { ImportDescriptorSearchParams } from '@/types/navigation/searchParams'
 import { getExtendedKeyFromDescriptor } from '@/utils/bip32'
 import {
   getDerivationPathFromScriptVersion,
   getMultisigDerivationPathFromScriptVersion
 } from '@/utils/bitcoin'
-import { type DetectedContent } from '@/utils/contentDetector'
+import type { DetectedContent } from '@/utils/contentDetector'
 import {
   descriptorHasPrivateKeyMaterial,
   getDescriptorDerivationPath,

@@ -39,7 +39,7 @@ import { useSettingsStore } from '@/store/settings'
 import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
 import { DEFAULT_WORD_LIST } from '@/types/bips/39'
-import { type Key } from '@/types/models/Account'
+import type { Key } from '@/types/models/Account'
 import { collectArkBackup } from '@/utils/arkBackup'
 import { encryptBackup } from '@/utils/backupEncryption'
 import { getBackupFilename } from '@/utils/backupFilename'
@@ -55,7 +55,8 @@ import {
   wipeDevConsoleLog
 } from '@/utils/devConsole'
 import { saveFile } from '@/utils/filesystem'
-import { backupKeySecretFields, type BackupKeySecret } from '@/utils/keyBackup'
+import { backupKeySecretFields } from '@/utils/keyBackup'
+import type { BackupKeySecret } from '@/utils/keyBackup'
 import { resetInstance as resetNostrSync } from '@/utils/nostrSyncService'
 import { getPin } from '@/utils/pin'
 

@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { AppState, type AppStateStatus } from 'react-native'
+import { AppState } from 'react-native'
+import type { AppStateStatus } from 'react-native'
 
 import {
   clearReceiverSessionsForAccount,
@@ -17,12 +18,9 @@ import {
   usePayjoinSessionsStore
 } from '@/store/payjoinSessions'
 import { useSettingsStore } from '@/store/settings'
-import { type Account } from '@/types/models/Account'
-import { type Utxo } from '@/types/models/Utxo'
-import {
-  type PayjoinBoardDestination,
-  type PayjoinSession
-} from '@/types/payjoin'
+import type { Account } from '@/types/models/Account'
+import type { Utxo } from '@/types/models/Utxo'
+import type { PayjoinBoardDestination, PayjoinSession } from '@/types/payjoin'
 import { bitcoinjsNetwork } from '@/utils/bitcoin'
 import {
   isAlreadyHasProposalError,

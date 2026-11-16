@@ -93,12 +93,14 @@ describe('lndHttpMessage', () => {
   })
 })
 
+function uint8Subarray(this: Buffer, start?: number, end?: number) {
+  return Uint8Array.prototype.subarray.call(this, start, end)
+}
+
 describe('looksLikeHttp2Session', () => {
   it('detects a SETTINGS frame without Buffer.equals', () => {
     const settings = Buffer.from([0, 0, 0, 0x04, 0, 0, 0, 0, 0])
-    settings.subarray = function subarray(start?: number, end?: number) {
-      return Uint8Array.prototype.subarray.call(this, start, end)
-    }
+    settings.subarray = uint8Subarray
     expect(looksLikeHttp2Session(settings)).toBe(true)
   })
 })

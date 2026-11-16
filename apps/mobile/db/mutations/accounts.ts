@@ -1,6 +1,6 @@
-import { type NitroSQLiteConnection } from 'react-native-nitro-sqlite'
+import type { NitroSQLiteConnection } from 'react-native-nitro-sqlite'
 
-import { type Account, type Key } from '@/types/models/Account'
+import type { Account, Key } from '@/types/models/Account'
 
 import { getDb, runTransaction } from '../connection'
 import { boolToInt, dateToIso, optionalToJson } from '../mappers'

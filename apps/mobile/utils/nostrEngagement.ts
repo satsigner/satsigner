@@ -1,10 +1,10 @@
 import * as nostrKinds from 'nostr-tools/kinds'
 
-import {
-  type NostrEngagementDeletion,
-  type NostrEngagementEvent,
-  type NostrFeedNoteLike,
-  type NostrNoteEngagement
+import type {
+  NostrEngagementDeletion,
+  NostrEngagementEvent,
+  NostrFeedNoteLike,
+  NostrNoteEngagement
 } from '@/types/models/Nostr'
 
 type EngagementTarget = Pick<NostrFeedNoteLike, 'id' | 'kind' | 'pubkey'>

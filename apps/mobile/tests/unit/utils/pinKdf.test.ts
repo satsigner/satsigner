@@ -58,6 +58,20 @@ function realPbkdf2(pin: string, salt: string, iterations: number): string {
     .pbkdf2Sync(pin, salt, iterations, 32, 'sha256')
     .toString('hex')
 }
+
+// jest.resetModules yields a fresh mock registry; patching the fresh
+// QuickCrypto instance there is what the freshly required pinKdf will see.
+function requirePinKdfWithPatches(
+  patch: (qc: Record<string, jest.Mock>) => void
+) {
+  jest.resetModules()
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const qc = require('react-native-quick-crypto').default
+  patch(qc)
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  return require('@/utils/pinKdf')
+}
+
 describe('pinKdf', () => {
   beforeEach(() => {
     for (const key of Object.keys(secureStore)) {
@@ -184,19 +198,6 @@ describe('pinKdf', () => {
   })
 
   describe('kDF selection fallbacks', () => {
-    // jest.resetModules yields a fresh mock registry; patching the fresh
-    // QuickCrypto instance there is what the freshly required pinKdf will see.
-    function requirePinKdfWithPatches(
-      patch: (qc: Record<string, jest.Mock>) => void
-    ) {
-      jest.resetModules()
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const qc = require('react-native-quick-crypto').default
-      patch(qc)
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      return require('@/utils/pinKdf')
-    }
-
     afterEach(() => {
       jest.resetModules()
     })

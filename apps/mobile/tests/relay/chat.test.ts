@@ -11,20 +11,18 @@ import { MS_PER_SECOND } from '@/constants/time'
 import { listChatThread } from '@/db/queries/nostrChat'
 import {
   acquireChatPipeline,
-  type ChatIdentity,
   clearRecipientRelaysCache,
   closeActiveChatPipeline,
   getChatPipelineStatus,
   sendNip17Chat
 } from '@/utils/nostrChat'
+import type { ChatIdentity } from '@/utils/nostrChat'
 
-import {
-  createTestIdentity,
-  type TestIdentity,
-  wrapChatMessage
-} from './support/identities'
+import { createTestIdentity, wrapChatMessage } from './support/identities'
+import type { TestIdentity } from './support/identities'
 import { resetNodeNitroSqlite } from './support/nodeNitroSqlite'
-import { startTestRelay, type TestRelay } from './support/testRelay'
+import { startTestRelay } from './support/testRelay'
+import type { TestRelay } from './support/testRelay'
 import { delay, waitFor } from './support/waitFor'
 
 const STORED_MESSAGE_COUNT = 50

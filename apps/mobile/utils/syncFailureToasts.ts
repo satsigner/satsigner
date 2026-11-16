@@ -1,11 +1,8 @@
 import { toast } from 'sonner-native'
 
 import { t } from '@/locales'
-import {
-  type SyncFailure,
-  type SyncFailureNotice,
-  summarizeSyncFailures
-} from '@/utils/syncFailures'
+import { summarizeSyncFailures } from '@/utils/syncFailures'
+import type { SyncFailure, SyncFailureNotice } from '@/utils/syncFailures'
 
 export type SyncErrorReporter = (accountName: string, error: unknown) => void
 

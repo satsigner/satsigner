@@ -4,9 +4,9 @@ import {
   getUserPollVoteOptionIds,
   isPollExpired,
   resolvePollVoteOptionIds,
-  tallyPollVotes,
-  type NostrPollResponse
+  tallyPollVotes
 } from '@/utils/nostrPoll'
+import type { NostrPollResponse } from '@/utils/nostrPoll'
 
 describe('extractPollInfo', () => {
   it('parses poll options and metadata from tags', () => {

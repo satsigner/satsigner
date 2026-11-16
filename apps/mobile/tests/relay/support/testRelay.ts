@@ -2,7 +2,8 @@ import { once } from 'node:events'
 
 import type { Event, Filter } from 'nostr-tools'
 import { verifyEvent } from 'nostr-tools/pure'
-import { type WebSocket, WebSocketServer } from 'ws'
+import { WebSocketServer } from 'ws'
+import type { WebSocket } from 'ws'
 
 const RELAY_HOST = '127.0.0.1'
 const RANDOM_PORT = 0
@@ -297,6 +298,13 @@ function createEventStore(verifySignatures: boolean) {
   return { all, query, store }
 }
 
+function send(connection: Connection, message: unknown[]) {
+  if (connection.socket.readyState !== connection.socket.OPEN) {
+    return
+  }
+  connection.socket.send(JSON.stringify(message))
+}
+
 async function startTestRelay(
   options: TestRelayOptions = {}
 ): Promise<TestRelay> {
@@ -320,13 +328,6 @@ async function startTestRelay(
       done(true)
     }
   })
-
-  function send(connection: Connection, message: unknown[]) {
-    if (connection.socket.readyState !== connection.socket.OPEN) {
-      return
-    }
-    connection.socket.send(JSON.stringify(message))
-  }
 
   function sendEvent(connection: Connection, subId: string, event: Event) {
     const { fault } = state

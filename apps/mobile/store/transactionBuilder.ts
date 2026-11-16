@@ -1,17 +1,19 @@
-import { current, type Draft, enableMapSet } from 'immer'
-import { Psbt, type PsbtLike } from 'react-native-bdk-sdk'
+import { current, enableMapSet } from 'immer'
+import type { Draft } from 'immer'
+import { Psbt } from 'react-native-bdk-sdk'
+import type { PsbtLike } from 'react-native-bdk-sdk'
 import { create } from 'zustand'
 import { createJSONStorage, persist } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
 
-import mmkvStorage from '@/storage/mmkv'
-import { type AutoSelectUtxosAlgorithm } from '@/types/models/AutoSelectUtxos'
-import {
-  type FeeReplacementDraft,
-  type PrebuiltReplacement
+import { mmkvStorage } from '@/storage/mmkv'
+import type { AutoSelectUtxosAlgorithm } from '@/types/models/AutoSelectUtxos'
+import type {
+  FeeReplacementDraft,
+  PrebuiltReplacement
 } from '@/types/models/FeeReplacement'
-import { type Output } from '@/types/models/Output'
-import { type Utxo } from '@/types/models/Utxo'
+import type { Output } from '@/types/models/Output'
+import type { Utxo } from '@/types/models/Utxo'
 import { randomUuid } from '@/utils/crypto'
 import {
   DEFAULT_AUTO_SELECT,

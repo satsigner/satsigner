@@ -11,12 +11,10 @@ import { useAccountsStore } from '@/store/accounts'
 import { useNostrStore } from '@/store/nostr'
 import { deviceChatKey, useNostrChatReplyStore } from '@/store/nostrChatReply'
 import { useNostrDeviceChatSendsStore } from '@/store/nostrDeviceChatSends'
-import { type Account } from '@/types/models/Account'
-import { type NostrDM } from '@/types/models/Nostr'
-import {
-  type AuthorDisplayInput,
-  buildAuthorDisplayMap
-} from '@/utils/nostrAuthorDisplay'
+import type { Account } from '@/types/models/Account'
+import type { NostrDM } from '@/types/models/Nostr'
+import { buildAuthorDisplayMap } from '@/utils/nostrAuthorDisplay'
+import type { AuthorDisplayInput } from '@/utils/nostrAuthorDisplay'
 import {
   deleteDeviceMessageForEveryone,
   deleteDeviceMessageForMe,

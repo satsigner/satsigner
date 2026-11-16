@@ -1,5 +1,6 @@
 import { createElement, Fragment } from 'react'
-import { act, create, type ReactTestRenderer } from 'react-test-renderer'
+import { act, create } from 'react-test-renderer'
+import type { ReactTestRenderer } from 'react-test-renderer'
 
 import { useEcashAccountState } from '@/hooks/useEcashAccountState'
 import { useEcashActiveAccountSync } from '@/hooks/useEcashActiveAccountSync'

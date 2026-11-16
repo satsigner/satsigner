@@ -7,12 +7,12 @@ import {
   Rect,
   RoundedRect,
   Skia,
-  type SkTypefaceFontProvider,
   TextAlign,
   TextBaseline,
   useSVG,
   vec
 } from '@shopify/react-native-skia'
+import type { SkTypefaceFontProvider } from '@shopify/react-native-skia'
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react'
 
 import { DUST_LIMIT } from '@/constants/btc'
@@ -29,10 +29,8 @@ import { Colors, Typography } from '@/styles'
 import { gray, mainGreen, mainRed, warning, white } from '@/styles/colors'
 import type { Node, SankeyOutputRole } from '@/types/ui/sankey'
 import { formatFeeRateSatPerVb, formatNumber } from '@/utils/format'
-import {
-  type SankeyRibbonPlan,
-  totalThroughputToBandHeight
-} from '@/utils/sankeyFlowWidths'
+import { totalThroughputToBandHeight } from '@/utils/sankeyFlowWidths'
+import type { SankeyRibbonPlan } from '@/utils/sankeyFlowWidths'
 import {
   getInputOwnershipTag,
   getSankeyNodeParagraphKind,

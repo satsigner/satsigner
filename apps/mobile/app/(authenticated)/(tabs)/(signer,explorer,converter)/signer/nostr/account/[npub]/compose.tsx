@@ -30,8 +30,8 @@ import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
-import { type NostrKind1DraftImport } from '@/types/models/Nostr'
-import { type DetectedContent } from '@/utils/contentDetector'
+import type { NostrKind1DraftImport } from '@/types/models/Nostr'
+import type { DetectedContent } from '@/utils/contentDetector'
 import {
   parseKind1DraftFromJson,
   stripZapTags

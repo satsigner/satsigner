@@ -6,7 +6,8 @@ import SSVStack from '@/layouts/SSVStack'
 import { tn as _tn } from '@/locales'
 import { Colors, Layout, Typography } from '@/styles'
 import { decodeBlockFromHex, looksLikeBlockHex } from '@/utils/blockDecoded'
-import { TxDecoded, type TxDecodedField, TxField } from '@/utils/txDecoded'
+import { TxDecoded, TxField } from '@/utils/txDecoded'
+import type { TxDecodedField } from '@/utils/txDecoded'
 
 import SSBlockDecoded from './SSBlockDecoded'
 import SSPerformanceWarning from './SSPerformanceWarning'
@@ -36,7 +37,7 @@ function hexToAsciiFromHex(hex: string) {
       out += '?'
       continue
     }
-    out += n >= 32 && n <= 126 ? String.fromCharCode(n) : '.'
+    out += n >= 32 && n <= 126 ? String.fromCodePoint(n) : '.'
   }
   if (normalized.length % 2 === 1) {
     out += '?'

@@ -23,9 +23,9 @@ import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useBlockchainStore } from '@/store/blockchain'
 import { Colors } from '@/styles'
-import { Address, type AddressKeyPair } from '@/types/models/Address'
-import { type Utxo } from '@/types/models/Utxo'
-import { type AddrSearchParams } from '@/types/navigation/searchParams'
+import type { Address, AddressKeyPair } from '@/types/models/Address'
+import type { Utxo } from '@/types/models/Utxo'
+import type { AddrSearchParams } from '@/types/navigation/searchParams'
 import { getAccountFingerprint } from '@/utils/account'
 import {
   bitcoinjsNetwork,

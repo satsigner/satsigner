@@ -17,10 +17,11 @@ function createPlayer() {
   return { loop: false, muted: false, pause: jest.fn(), play: jest.fn() }
 }
 
+const released = () => {
+  throw new Error('Cannot use shared object that was already released')
+}
+
 function releasePlayer(player: ReturnType<typeof createPlayer>) {
-  const released = () => {
-    throw new Error('Cannot use shared object that was already released')
-  }
   player.pause.mockImplementation(released)
   player.play.mockImplementation(released)
 }

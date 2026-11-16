@@ -1,7 +1,8 @@
-import { type Label } from '@/types/bips/329'
+import type { Label } from '@/types/bips/329'
 
 import { getDb } from '../connection'
-import { type LabelRow, rowToLabel } from '../mappers'
+import { rowToLabel } from '../mappers'
+import type { LabelRow } from '../mappers'
 
 function getLabelsByAccount(accountId: string): Record<string, Label> {
   const db = getDb()

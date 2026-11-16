@@ -1,8 +1,5 @@
-import {
-  type SyncTaskControls,
-  SyncTimeoutError,
-  createSyncQueue
-} from '@/services/syncQueue'
+import { SyncTimeoutError, createSyncQueue } from '@/services/syncQueue'
+import type { SyncTaskControls } from '@/services/syncQueue'
 
 const TIMEOUT_MS = 1000
 

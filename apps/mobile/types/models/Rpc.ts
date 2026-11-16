@@ -1,4 +1,4 @@
-import z from 'zod'
+import { z } from 'zod'
 
 export const BlockTemplateTransactionSchema = z.object({
   data: z.string(), // transaction data encoded in hexadecimal

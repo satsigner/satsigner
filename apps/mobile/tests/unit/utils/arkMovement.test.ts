@@ -477,22 +477,22 @@ describe('getQueuedRefreshInputVtxoIds', () => {
   })
 })
 
-describe('shouldAnnounceArkReceive', () => {
-  function buildEvent(
-    overrides: Partial<ArkMovementEvent> = {}
-  ): ArkMovementEvent {
-    return {
-      accountId: 'ark-1',
-      effectiveBalanceSats: 5000,
-      movementId: 1,
-      status: 'pending',
-      subsystemKind: 'receive',
-      subsystemName: 'bark.lightning_receive',
-      type: 'created',
-      ...overrides
-    }
+function buildEvent(
+  overrides: Partial<ArkMovementEvent> = {}
+): ArkMovementEvent {
+  return {
+    accountId: 'ark-1',
+    effectiveBalanceSats: 5000,
+    movementId: 1,
+    status: 'pending',
+    subsystemKind: 'receive',
+    subsystemName: 'bark.lightning_receive',
+    type: 'created',
+    ...overrides
   }
+}
 
+describe('shouldAnnounceArkReceive', () => {
   const BOARD = { subsystemKind: 'board', subsystemName: 'bark.board' }
 
   it('announces an incoming movement when it is created', () => {
