@@ -245,7 +245,7 @@ function SSTransactionCard({
                     textSize={smallView ? 'xl' : '4xl'}
                     noColor={false}
                     showSign={false}
-                    weight="light"
+                    weight="ultralight"
                     letterSpacing={Typography.amountLetterSpacing.card}
                     unitSize={smallView ? 'xs' : 'sm'}
                   />
