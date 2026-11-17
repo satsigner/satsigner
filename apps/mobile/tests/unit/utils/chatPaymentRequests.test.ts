@@ -1,6 +1,10 @@
+import { MS_PER_MINUTE, MS_PER_SECOND } from '@/constants/time'
 import {
+  CHAT_INVOICE_EXPIRING_SOON_MS,
   CHAT_PAYMENT_REQUESTS_MAX,
   findChatPaymentRequests,
+  getChatInvoiceTiming,
+  hasChatInvoice,
   isChatInvoiceExpired,
   isChatPaymentRequestExpired
 } from '@/utils/chatPaymentRequests'
@@ -20,6 +24,7 @@ describe('findChatPaymentRequests: lightning', () => {
     const [found] = findChatPaymentRequests(`Pay 1 sat please:\n${INVOICE}`)
     expect(found).toStrictEqual({
       amountSats: 2100,
+      createdAt: INVOICE_TIMESTAMP,
       description: '',
       expiresAt: INVOICE_TIMESTAMP + INVOICE_EXPIRY_SEC,
       invoice: INVOICE,
@@ -157,5 +162,60 @@ describe('isChatPaymentRequestExpired', () => {
     expect(
       found && isChatPaymentRequestExpired(found, Number.MAX_SAFE_INTEGER)
     ).toBe(false)
+  })
+})
+
+describe('getChatInvoiceTiming', () => {
+  const expiresAt = INVOICE_TIMESTAMP + INVOICE_EXPIRY_SEC
+  const expiresAtMs = expiresAt * MS_PER_SECOND
+
+  it('is open while well before expiry', () => {
+    expect(
+      getChatInvoiceTiming(
+        { expiresAt },
+        expiresAtMs - CHAT_INVOICE_EXPIRING_SOON_MS - MS_PER_MINUTE
+      )
+    ).toStrictEqual({ expiresAtMs, state: 'open' })
+  })
+
+  it('is expiring soon inside the warning window', () => {
+    expect(
+      getChatInvoiceTiming({ expiresAt }, expiresAtMs - MS_PER_MINUTE)
+    ).toStrictEqual({ expiresAtMs, state: 'expiringSoon' })
+  })
+
+  it('is expired at and after expiry', () => {
+    expect(getChatInvoiceTiming({ expiresAt }, expiresAtMs)).toStrictEqual({
+      expiresAtMs,
+      state: 'expired'
+    })
+  })
+
+  it('is unknown without a timestamp', () => {
+    expect(getChatInvoiceTiming({ expiresAt: null }, 0)).toStrictEqual({
+      state: 'unknown'
+    })
+  })
+})
+
+describe('hasChatInvoice', () => {
+  it('is true when a message carries a decoded invoice', () => {
+    expect(hasChatInvoice(findChatPaymentRequests(`pay ${INVOICE}`))).toBe(true)
+  })
+
+  it('is false for bitcoin URIs only, including unified ones', () => {
+    expect(hasChatInvoice(findChatPaymentRequests(BITCOIN_URI))).toBe(false)
+    expect(
+      hasChatInvoice(
+        findChatPaymentRequests(
+          `bitcoin:${ADDRESS}?amount=0.000021&lightning=${INVOICE}`
+        )
+      )
+    ).toBe(false)
+  })
+
+  it('is false for invoices that fail to decode', () => {
+    const corrupted = `${INVOICE.slice(0, -6)}qqqqqq`
+    expect(hasChatInvoice(findChatPaymentRequests(corrupted))).toBe(false)
   })
 })

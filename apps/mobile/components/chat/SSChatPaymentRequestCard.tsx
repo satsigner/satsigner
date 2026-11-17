@@ -4,20 +4,23 @@ import { SSIconLightning } from '@/components/icons'
 import SSAmountDisplay from '@/components/SSAmountDisplay'
 import SSButton from '@/components/SSButton'
 import SSText from '@/components/SSText'
-import { MS_PER_SECOND } from '@/constants/time'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors, Typography } from '@/styles'
 import type { Network } from '@/types/settings/blockchain'
 import type { DisplayPreferences } from '@/types/ui/displayPreferences'
+import { getChatInvoiceTiming } from '@/utils/chatPaymentRequests'
 import type {
   ChatBitcoinRequest,
   ChatInvoice,
   ChatPaymentRequest
 } from '@/utils/chatPaymentRequests'
 import { formatAddress, formatFiatPrice } from '@/utils/format'
-import { formatExpiresRelative } from '@/utils/relativeTime'
+import {
+  formatCreatedRelative,
+  formatExpiresRelative
+} from '@/utils/relativeTime'
 
 const HEADER_ICON_SIZE = 14
 const FALLBACK_ICON_SIZE = 8
@@ -30,8 +33,6 @@ type SSChatPaymentRequestCardProps = {
   /** Unix ms, ticking, so an invoice greys out as it expires. */
   nowMs: number
   expired: boolean
-  /** The request is for another network than any wallet that could pay it. */
-  wrongNetwork: boolean
   canPay: boolean
   onPay: (request: ChatPaymentRequest) => void
   onCopy: (text: string) => void
@@ -192,35 +193,52 @@ function RequestIcon({ kind }: { kind: ChatPaymentRequest['kind'] }) {
   )
 }
 
-function ExpiryLabel({
-  request,
-  expired,
+function InvoiceStatus({
+  invoice,
   nowMs
 }: {
-  request: ChatPaymentRequest
-  expired: boolean
+  invoice: ChatInvoice
   nowMs: number
 }) {
-  if (expired) {
+  const timing = getChatInvoiceTiming(invoice, nowMs)
+  if (timing.state === 'unknown') {
     return (
-      <SSText size="xs" style={styles.expiredText}>
-        {t('nostrIdentity.chat.invoice.expired')}
+      <SSText size="xs" color="muted">
+        {t('nostrIdentity.chat.invoice.noExpiry')}
       </SSText>
     )
   }
-  if (request.kind !== 'lightning' || request.expiresAt === null) {
-    return null
+  if (timing.state === 'expired') {
+    return (
+      <SSText size="xs" style={styles.expiredText}>
+        {t('nostrIdentity.chat.invoice.expiredAgo', {
+          relative: formatCreatedRelative(timing.expiresAtMs, nowMs)
+        })}
+      </SSText>
+    )
+  }
+  const relative = formatExpiresRelative(timing.expiresAtMs, nowMs)
+  if (timing.state === 'expiringSoon') {
+    return (
+      <SSText size="xs" style={styles.warningText}>
+        {t('nostrIdentity.chat.invoice.expiringSoon', { relative })}
+      </SSText>
+    )
   }
   return (
     <SSText size="xs" color="muted">
-      {t('nostrIdentity.chat.payment.expires', {
-        relative: formatExpiresRelative(
-          request.expiresAt * MS_PER_SECOND,
-          nowMs
-        )
-      })}
+      {t('nostrIdentity.chat.payment.expires', { relative })}
     </SSText>
   )
+}
+
+function getPayHint(request: ChatPaymentRequest, canPay: boolean) {
+  if (canPay) {
+    return null
+  }
+  return request.kind === 'lightning'
+    ? t('nostrIdentity.chat.invoice.noWallet')
+    : t('nostrIdentity.chat.payment.noAccount')
 }
 
 function SSChatPaymentRequestCard({
@@ -228,11 +246,12 @@ function SSChatPaymentRequestCard({
   displayPreferences,
   nowMs,
   expired,
-  wrongNetwork,
   canPay,
   onPay,
   onCopy
 }: SSChatPaymentRequestCardProps) {
+  const payHint = expired ? null : getPayHint(request, canPay)
+
   function handlePay() {
     onPay(request)
   }
@@ -270,10 +289,12 @@ function SSChatPaymentRequestCard({
             displayPreferences={displayPreferences}
           />
         )}
-        <ExpiryLabel request={request} expired={expired} nowMs={nowMs} />
-        {wrongNetwork ? (
-          <SSText size="xs" style={styles.warningText}>
-            {t('nostrIdentity.chat.invoice.wrongNetwork')}
+        {request.kind === 'lightning' ? (
+          <InvoiceStatus invoice={request} nowMs={nowMs} />
+        ) : null}
+        {payHint ? (
+          <SSText size="xs" color="muted">
+            {payHint}
           </SSText>
         ) : null}
         <SSHStack gap="sm">
@@ -281,7 +302,7 @@ function SSChatPaymentRequestCard({
             <SSButton
               label={t('nostrIdentity.chat.invoice.pay')}
               onPress={handlePay}
-              disabled={expired || wrongNetwork || !canPay}
+              disabled={expired || !canPay}
             />
           </View>
           <View style={styles.button}>
