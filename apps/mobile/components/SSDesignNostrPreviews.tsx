@@ -1,9 +1,14 @@
+import type { BottomSheetMethods } from '@gorhom/bottom-sheet/lib/typescript/types'
 import * as nostrKinds from 'nostr-tools/kinds'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 
+import SSChatAccountPicker from '@/components/chat/SSChatAccountPicker'
 import SSChatComposer from '@/components/chat/SSChatComposer'
 import SSChatDaySeparator from '@/components/chat/SSChatDaySeparator'
+import SSChatPaymentRequests from '@/components/chat/SSChatPaymentRequests'
+import type { ChatPaymentActions } from '@/components/chat/SSChatPaymentRequests'
+import SSChatReactions from '@/components/chat/SSChatReactions'
 import SSMessageActionsModal from '@/components/chat/SSMessageActionsModal'
 import SSMessageDetail from '@/components/chat/SSMessageDetail'
 import SSNewMessagesPill from '@/components/chat/SSNewMessagesPill'
@@ -18,9 +23,11 @@ import SSPairedTabs from '@/components/SSPairedTabs'
 import SSSeparator from '@/components/SSSeparator'
 import SSShadedKeyText from '@/components/SSShadedKeyText'
 import {
+  DESIGN_CHAT_PAY_ACCOUNTS,
   DESIGN_NOSTR_AUTHORS,
   DESIGN_NOSTR_CHAT_SETS,
   DESIGN_NOSTR_FOLLOWING_CONVERSATIONS,
+  DESIGN_NOSTR_ME_HEX,
   DESIGN_NOSTR_ME_NPUB,
   DESIGN_NOSTR_MESSAGE_DETAIL_SETS,
   DESIGN_NOSTR_OTHER_CONVERSATIONS,
@@ -32,15 +39,23 @@ import {
   NOSTR_KEY_LINE_BREAK_EVERY
 } from '@/constants/nostr'
 import { MS_PER_SECOND } from '@/constants/time'
+import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import { useLocalDayStart } from '@/hooks/useLocalDayStart'
 import { getAuthorLabel } from '@/hooks/useNostrMessage'
+import { useNow } from '@/hooks/useNow'
 import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
 import type { Account } from '@/types/models/Account'
-import type { NostrDM } from '@/types/models/Nostr'
+import type { NostrChatReaction, NostrDM } from '@/types/models/Nostr'
+import type { ChatPaymentRequest } from '@/utils/chatPaymentRequests'
 import { formatNostrKey } from '@/utils/nostr'
 import type { NostrKeyFormat } from '@/utils/nostr'
+import {
+  getChatAgentStatus,
+  groupReactionsByMessage,
+  summarizeChatReactions
+} from '@/utils/nostrChatReactions'
 import {
   buildChatRows,
   buildReplyPreview,
@@ -63,6 +78,11 @@ const NO_VISIBLE_COMPONENTS = new Map<
 >()
 const NO_KEY_FINGERPRINTS = {}
 const SAMPLE_REPLY_WRAP_COUNT = 3
+const NO_REACTIONS: NostrChatReaction[] = []
+
+function canPayAnyBitcoin() {
+  return true
+}
 
 function NOOP() {
   // design preview only
@@ -77,7 +97,13 @@ function nowSeconds() {
 }
 
 function NostrChatPreview({ setIndex }: SetPreviewProps) {
-  const { failedIds, messages } = DESIGN_NOSTR_CHAT_SETS[setIndex].data
+  const { failedIds, messages, peerHex, reactions } =
+    DESIGN_NOSTR_CHAT_SETS[setIndex].data
+  const displayPreferences = useDisplayPreferences()
+  const nowMs = useNow()
+  const accountSheetRef = useRef<BottomSheetMethods>(null)
+  const [payAmountSats, setPayAmountSats] = useState(0)
+  const reactionsByMessage = groupReactionsByMessage(reactions)
   const [input, setInput] = useState('')
   const [replyTo, setReplyTo] = useState<NostrDM>()
   const [selected, setSelected] = useState<NostrDM>()
@@ -103,6 +129,27 @@ function NostrChatPreview({ setIndex }: SetPreviewProps) {
     setReplyTo(undefined)
   }
 
+  function handlePay(request: ChatPaymentRequest) {
+    if (request.kind === 'bitcoin') {
+      setPayAmountSats(request.amountSats)
+      accountSheetRef.current?.expand()
+    }
+  }
+
+  function handleSelectAccount() {
+    accountSheetRef.current?.close()
+  }
+
+  const paymentActions: ChatPaymentActions = {
+    canPayBitcoin: canPayAnyBitcoin,
+    canPayInvoice: true,
+    displayPreferences,
+    lightningNetwork: 'bitcoin',
+    nowMs,
+    onCopy: NOOP,
+    onPay: handlePay
+  }
+
   return (
     <SSScrollView showsVerticalScrollIndicator={false}>
       <SSVStack gap="lg" style={styles.scrollContent}>
@@ -120,6 +167,12 @@ function NostrChatPreview({ setIndex }: SetPreviewProps) {
               const preview = row.item.replyToId
                 ? buildReplyPreview(row.item.replyToId, messagesById)
                 : undefined
+              const messageReactions =
+                reactionsByMessage.get(row.item.id) ?? NO_REACTIONS
+              const agentStatus =
+                row.item.author === DESIGN_NOSTR_ME_HEX
+                  ? getChatAgentStatus(messageReactions, peerHex)
+                  : null
               return (
                 <SSNostrMessage
                   key={row.key}
@@ -150,6 +203,23 @@ function NostrChatPreview({ setIndex }: SetPreviewProps) {
                   }
                   onReplyPreviewPress={NOOP}
                   onLongPress={handleLongPress}
+                  renderMarkdown
+                  attachments={
+                    <>
+                      <SSChatPaymentRequests
+                        actions={paymentActions}
+                        text={row.item.description}
+                      />
+                      <SSChatReactions
+                        summaries={summarizeChatReactions(
+                          messageReactions,
+                          DESIGN_NOSTR_ME_HEX
+                        )}
+                        agentStatus={agentStatus}
+                        onRemove={NOOP}
+                      />
+                    </>
+                  }
                 />
               )
             })}
@@ -218,6 +288,14 @@ function NostrChatPreview({ setIndex }: SetPreviewProps) {
         onCopy={handleCloseActions}
         onDetails={handleCloseActions}
         onClose={handleCloseActions}
+        onReact={handleCloseActions}
+      />
+      <SSChatAccountPicker
+        ref={accountSheetRef}
+        accounts={DESIGN_CHAT_PAY_ACCOUNTS}
+        amountSats={payAmountSats}
+        privacyMode={displayPreferences.privacyMode}
+        onSelect={handleSelectAccount}
       />
     </SSScrollView>
   )

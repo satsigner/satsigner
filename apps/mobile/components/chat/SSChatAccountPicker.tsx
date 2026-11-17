@@ -14,21 +14,27 @@ import { formatMaskedSats } from '@/utils/format'
 
 const ROW_ACTIVE_OPACITY = 0.6
 
-type SSChatAccountPickerProps = {
+type PickerAccount = Pick<Account, 'id' | 'name' | 'summary'>
+
+type SSChatAccountPickerProps<T extends PickerAccount> = {
   ref: RefObject<BottomSheetMethods | null>
-  accounts: Account[]
+  accounts: T[]
   amountSats: number
   privacyMode: boolean
-  onSelect: (account: Account) => void
+  onSelect: (account: T) => void
 }
 
-type AccountRowProps = {
-  account: Account
+type AccountRowProps<T extends PickerAccount> = {
+  account: T
   privacyMode: boolean
-  onSelect: (account: Account) => void
+  onSelect: (account: T) => void
 }
 
-function AccountRow({ account, privacyMode, onSelect }: AccountRowProps) {
+function AccountRow<T extends PickerAccount>({
+  account,
+  privacyMode,
+  onSelect
+}: AccountRowProps<T>) {
   function handlePress() {
     onSelect(account)
   }
@@ -51,13 +57,13 @@ function AccountRow({ account, privacyMode, onSelect }: AccountRowProps) {
   )
 }
 
-function SSChatAccountPicker({
+function SSChatAccountPicker<T extends PickerAccount>({
   ref,
   accounts,
   amountSats,
   privacyMode,
   onSelect
-}: SSChatAccountPickerProps) {
+}: SSChatAccountPickerProps<T>) {
   function handleCancel() {
     ref.current?.close()
   }

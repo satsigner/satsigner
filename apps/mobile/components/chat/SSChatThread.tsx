@@ -9,7 +9,8 @@ import SSChatAccountPicker from '@/components/chat/SSChatAccountPicker'
 import SSChatComposer from '@/components/chat/SSChatComposer'
 import type { SSChatComposerReply } from '@/components/chat/SSChatComposer'
 import SSChatDaySeparator from '@/components/chat/SSChatDaySeparator'
-import SSChatPaymentRequestCard from '@/components/chat/SSChatPaymentRequestCard'
+import SSChatPaymentRequests from '@/components/chat/SSChatPaymentRequests'
+import type { ChatPaymentActions } from '@/components/chat/SSChatPaymentRequests'
 import SSChatReactions from '@/components/chat/SSChatReactions'
 import SSNewMessagesPill from '@/components/chat/SSNewMessagesPill'
 import SSNostrMessage from '@/components/SSNostrMessage'
@@ -31,13 +32,6 @@ import { t } from '@/locales'
 import { Colors } from '@/styles'
 import type { Account } from '@/types/models/Account'
 import type { NostrChatThreadItem, NostrDM } from '@/types/models/Nostr'
-import type { Network } from '@/types/settings/blockchain'
-import type { DisplayPreferences } from '@/types/ui/displayPreferences'
-import {
-  findChatPaymentRequests,
-  getRequestKey,
-  isChatPaymentRequestExpired
-} from '@/utils/chatPaymentRequests'
 import type { ChatPaymentRequest } from '@/utils/chatPaymentRequests'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
 import {
@@ -53,17 +47,6 @@ import {
 import type { ChatRow } from '@/utils/nostrChatRows'
 
 type VisibleComponents = Map<string, { sankey: boolean; status: boolean }>
-
-type ChatPaymentActions = {
-  canPayInvoice: boolean
-  canPayBitcoin: (request: ChatPaymentRequest) => boolean
-  displayPreferences: DisplayPreferences
-  /** Network the lightning wallets pay on. */
-  lightningNetwork: Network
-  nowMs: number
-  onCopy: (text: string) => void
-  onPay: (request: ChatPaymentRequest) => void
-}
 
 type ChatThreadRowContext = {
   paymentActions: ChatPaymentActions
@@ -97,51 +80,6 @@ function getThreadDm(item: NostrChatThreadItem): NostrDM {
 
 function getDmText(dm: NostrDM): string {
   return typeof dm.content === 'string' ? dm.content : ''
-}
-
-function canPayRequest(
-  request: ChatPaymentRequest,
-  actions: ChatPaymentActions
-) {
-  return request.kind === 'lightning'
-    ? actions.canPayInvoice
-    : actions.canPayBitcoin(request)
-}
-
-/** Bitcoin requests are checked per account, in canPayBitcoin. */
-function isWrongNetwork(
-  request: ChatPaymentRequest,
-  actions: ChatPaymentActions
-) {
-  return (
-    request.kind === 'lightning' && request.network !== actions.lightningNetwork
-  )
-}
-
-function ChatMessagePaymentRequests({
-  actions,
-  text
-}: {
-  actions: ChatPaymentActions
-  text: string
-}) {
-  const requests = findChatPaymentRequests(text)
-  if (requests.length === 0) {
-    return null
-  }
-  return requests.map((request) => (
-    <SSChatPaymentRequestCard
-      key={getRequestKey(request)}
-      request={request}
-      displayPreferences={actions.displayPreferences}
-      nowMs={actions.nowMs}
-      expired={isChatPaymentRequestExpired(request, actions.nowMs)}
-      wrongNetwork={isWrongNetwork(request, actions)}
-      canPay={canPayRequest(request, actions)}
-      onPay={actions.onPay}
-      onCopy={actions.onCopy}
-    />
-  ))
 }
 
 function ChatThreadRow({ row }: { row: ChatRow<NostrChatThreadItem> }) {
@@ -194,7 +132,7 @@ function ChatThreadRow({ row }: { row: ChatRow<NostrChatThreadItem> }) {
       renderMarkdown
       attachments={
         <>
-          <ChatMessagePaymentRequests
+          <SSChatPaymentRequests
             actions={context.paymentActions}
             text={getDmText(dm)}
           />
