@@ -6,6 +6,7 @@ import { StyleSheet, View } from 'react-native'
 import SSChatAccountPicker from '@/components/chat/SSChatAccountPicker'
 import SSChatComposer from '@/components/chat/SSChatComposer'
 import SSChatDaySeparator from '@/components/chat/SSChatDaySeparator'
+import SSChatPaymentRequestCard from '@/components/chat/SSChatPaymentRequestCard'
 import SSChatPaymentRequests from '@/components/chat/SSChatPaymentRequests'
 import type { ChatPaymentActions } from '@/components/chat/SSChatPaymentRequests'
 import SSChatReactions from '@/components/chat/SSChatReactions'
@@ -22,8 +23,10 @@ import SSNostrNoteReactions from '@/components/SSNostrNoteReactions'
 import SSPairedTabs from '@/components/SSPairedTabs'
 import SSSeparator from '@/components/SSSeparator'
 import SSShadedKeyText from '@/components/SSShadedKeyText'
+import SSText from '@/components/SSText'
 import {
   DESIGN_CHAT_PAY_ACCOUNTS,
+  DESIGN_CHAT_PAYMENT_CARDS,
   DESIGN_NOSTR_AUTHORS,
   DESIGN_NOSTR_CHAT_SETS,
   DESIGN_NOSTR_FOLLOWING_CONVERSATIONS,
@@ -48,6 +51,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
 import type { Account } from '@/types/models/Account'
 import type { NostrChatReaction, NostrDM } from '@/types/models/Nostr'
+import { isChatPaymentRequestExpired } from '@/utils/chatPaymentRequests'
 import type { ChatPaymentRequest } from '@/utils/chatPaymentRequests'
 import { formatNostrKey } from '@/utils/nostr'
 import type { NostrKeyFormat } from '@/utils/nostr'
@@ -224,6 +228,28 @@ function NostrChatPreview({ setIndex }: SetPreviewProps) {
               )
             })}
           </View>
+        </SSDesignSection>
+        <SSSeparator />
+        <SSDesignSection title={tn('nostrChatPaymentCards')}>
+          <SSVStack gap="md">
+            {DESIGN_CHAT_PAYMENT_CARDS.map((card) => (
+              <SSVStack key={card.labelKey} gap="xxs">
+                <SSText size="xs" color="muted" uppercase>
+                  {tn(card.labelKey)}
+                </SSText>
+                <SSChatPaymentRequestCard
+                  request={card.request}
+                  displayPreferences={displayPreferences}
+                  nowMs={nowMs}
+                  expired={isChatPaymentRequestExpired(card.request, nowMs)}
+                  wrongNetwork={card.wrongNetwork}
+                  canPay={card.canPay}
+                  onPay={handlePay}
+                  onCopy={NOOP}
+                />
+              </SSVStack>
+            ))}
+          </SSVStack>
         </SSDesignSection>
         <SSSeparator />
         <SSDesignSection title={tn('nostrChatComposer')}>
