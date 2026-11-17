@@ -45,6 +45,7 @@ import {
   formatChatDayLabel
 } from '@/utils/nostrChatRows'
 import type { ChatRow } from '@/utils/nostrChatRows'
+import { getDmText } from '@/utils/nostrDms'
 
 type VisibleComponents = Map<string, { sankey: boolean; status: boolean }>
 
@@ -76,10 +77,6 @@ function ignoreSignFlow() {
 
 function getThreadDm(item: NostrChatThreadItem): NostrDM {
   return item.dm
-}
-
-function getDmText(dm: NostrDM): string {
-  return typeof dm.content === 'string' ? dm.content : ''
 }
 
 function ChatThreadRow({ row }: { row: ChatRow<NostrChatThreadItem> }) {
@@ -134,7 +131,7 @@ function ChatThreadRow({ row }: { row: ChatRow<NostrChatThreadItem> }) {
         <>
           <SSChatPaymentRequests
             actions={context.paymentActions}
-            text={getDmText(dm)}
+            text={getDmText(dm) ?? ''}
           />
           {context.onRemoveReaction ? (
             <SSChatReactions

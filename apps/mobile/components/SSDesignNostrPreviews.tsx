@@ -65,6 +65,7 @@ import {
   buildReplyPreview,
   formatChatDayLabel
 } from '@/utils/nostrChatRows'
+import { getDmText } from '@/utils/nostrDms'
 import { buildMessageDetailRows } from '@/utils/nostrMessageDetail'
 
 const tn = _tn('settings.developer.designSystem.features')
@@ -212,7 +213,7 @@ function NostrChatPreview({ setIndex }: SetPreviewProps) {
                     <>
                       <SSChatPaymentRequests
                         actions={paymentActions}
-                        text={row.item.description}
+                        text={getDmText(row.item) ?? ''}
                       />
                       <SSChatReactions
                         summaries={summarizeChatReactions(
