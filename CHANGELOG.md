@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.9] - 2026-11-17
+
+### Added
+
+- Nostr DMs render markdown with copyable code blocks, and links ask before
+  opening.
+- Lightning invoices and bitcoin: payment requests in DMs show as cards with
+  the amount, label, expiry and network. Pay opens the wallet's pay screen or
+  the transaction preview; nothing is paid from the chat.
+- Invoice cards say where the invoice stands ("Expires in 2h", "pay soon" in
+  the last ten minutes, expired, or no expiry) and what to set up when no
+  wallet can pay it. A message carrying an invoice collapses its raw text
+  behind "Show more".
+- React to NIP-17 chat messages; a peer's 👀 ✅ ⚠️ on your message reads as
+  Working, Answered or Error.
+
 ## [0.3.8] - 2026-11-16
 
 ### Added
@@ -78,13 +94,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   demos.
 - Receive: "Set date" converts the fiat amount at the price on a chosen day,
   from bundled price history or the network when allowed in settings.
-- Nostr DMs render markdown with copyable code blocks, and links ask before
-  opening.
-- Lightning invoices and bitcoin: payment requests in DMs show as cards with
-  the amount, label, expiry and network. Pay opens the wallet's pay screen or
-  the transaction preview; nothing is paid from the chat.
-- React to NIP-17 chat messages; a peer's 👀 ✅ ⚠️ on your message reads as
-  Working, Answered or Error.
 
 ### Changed
 
