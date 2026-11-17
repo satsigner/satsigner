@@ -12,6 +12,11 @@ import type {
   NostrReactionRow,
   NostrReactionSummaryEntry
 } from '@/types/models/Nostr'
+import { findChatPaymentRequests } from '@/utils/chatPaymentRequests'
+import type {
+  ChatInvoice,
+  ChatPaymentRequest
+} from '@/utils/chatPaymentRequests'
 import { safeNpubEncode } from '@/utils/nostr'
 import type { NostrMessagePreview } from '@/utils/nostrMessageDetail'
 
@@ -119,9 +124,9 @@ const SAMPLE_EXPIRED_INVOICE =
   'lnbc2500u1pvjluezsp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygspp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdq5xysxxatsyp3k7enxv4jsxqzpu9qrsgquk0rl77nj30yxdy8j9vdx85fkpmdla2087ne0xh8nhedh8w27kyke0lp53ut353s06fv3qfegext0eh0ymjpf39tuven09sam30g4vgpfna3rh'
 // BOLT 11 spec test vector without amount or expiry field (expired too).
 const SAMPLE_AMOUNTLESS_INVOICE =
-  'lnbc1pvjluezsp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygspp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdpl2pkx2ctnv5sxxmmwwd5kgetjypeh2ursdae8g6twvus8g6rfwvs8qun0dfjkxaq9qrsgq357wnc5r2ueh7ck6q93dj32dlqnls087fxdwk8qakdyafkq3yap9us6v52vjjsrvywa6rt52cm9r9zqt8r2t7mlcwspyetp5h2tztugp9lfyql'
+  'lnbc1pvjluezsp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygspp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdpl2pkx2ctnv5sxxmmwwd5kgetjypeh2ursdae8g6twvus8g6rfwvs8qun0dfjkxaq9qrsgq357wnc5r2ueh7ck6q93dj32dlqnls087fxdwk8qakdyafkq3yap9us6v52vjjsrvywa6rt52cm9r9zqt8r2t7mlcwspyetp5h2tztugp9lfyql'
 const SAMPLE_ADDRESS = 'bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4'
-const SAMPLE_SIGNET_ADDRESS = 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx'
+const SAMPLE_TESTNET_ADDRESS = 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx'
 
 const PAYMENT_CHAT: NostrDM[] = [
   dm(
@@ -152,7 +157,7 @@ const PAYMENT_CHAT: NostrDM[] = [
     '5',
     ALICE_HEX,
     NOW - 3 * MINUTE,
-    `Signet test: bitcoin:${SAMPLE_SIGNET_ADDRESS}?amount=0.0001&label=Faucet%20refill or tip me ${SAMPLE_AMOUNTLESS_INVOICE}`
+    `Testnet faucet: bitcoin:${SAMPLE_TESTNET_ADDRESS}?amount=0.0001&label=Faucet%20refill or tip me ${SAMPLE_AMOUNTLESS_INVOICE}`
   ),
   dm(
     '6',
@@ -215,6 +220,94 @@ function payAccount(id: string, name: string, balance: number) {
     }
   }
 }
+
+function samplePaymentRequest(text: string): ChatPaymentRequest {
+  const [request] = findChatPaymentRequests(text)
+  if (!request) {
+    throw new Error(`Design sample is not a payment request: ${text}`)
+  }
+  return request
+}
+
+function sampleInvoice(invoice: string, expiresAt: number | null): ChatInvoice {
+  const request = samplePaymentRequest(invoice)
+  if (request.kind !== 'lightning') {
+    throw new Error(`Design sample is not an invoice: ${invoice}`)
+  }
+  return expiresAt === null ? request : { ...request, expiresAt }
+}
+
+const COFFEE_INVOICE = sampleInvoice(SAMPLE_EXPIRED_INVOICE, null)
+const PAYABLE_COFFEE_INVOICE = sampleInvoice(SAMPLE_EXPIRED_INVOICE, NOW + HOUR)
+
+export type DesignChatPaymentCard = {
+  /** settings.developer.designSystem.features key naming the state. */
+  labelKey: string
+  request: ChatPaymentRequest
+  wrongNetwork: boolean
+  canPay: boolean
+}
+
+/**
+ * One card per state the chat can show. The spec invoices are long expired,
+ * so the payable one is given an expiry an hour from now.
+ */
+export const DESIGN_CHAT_PAYMENT_CARDS: DesignChatPaymentCard[] = [
+  {
+    canPay: true,
+    labelKey: 'paymentCardInvoice',
+    request: PAYABLE_COFFEE_INVOICE,
+    wrongNetwork: false
+  },
+  {
+    canPay: true,
+    labelKey: 'paymentCardAmountless',
+    request: sampleInvoice(SAMPLE_AMOUNTLESS_INVOICE, NOW + DAY),
+    wrongNetwork: false
+  },
+  {
+    canPay: true,
+    labelKey: 'paymentCardExpired',
+    request: COFFEE_INVOICE,
+    wrongNetwork: false
+  },
+  {
+    canPay: true,
+    labelKey: 'paymentCardWrongNetwork',
+    request: PAYABLE_COFFEE_INVOICE,
+    wrongNetwork: true
+  },
+  {
+    canPay: true,
+    labelKey: 'paymentCardBitcoin',
+    request: samplePaymentRequest(
+      `bitcoin:${SAMPLE_ADDRESS}?amount=0.0021&label=Pizza%20night&message=Split%20for%20Friday`
+    ),
+    wrongNetwork: false
+  },
+  {
+    canPay: true,
+    labelKey: 'paymentCardBitcoinNoAmount',
+    request: samplePaymentRequest(`bitcoin:${SAMPLE_ADDRESS}`),
+    wrongNetwork: false
+  },
+  {
+    canPay: true,
+    labelKey: 'paymentCardUnified',
+    request: samplePaymentRequest(
+      `bitcoin:${SAMPLE_ADDRESS}?amount=0.0025&lightning=${SAMPLE_EXPIRED_INVOICE}`
+    ),
+    wrongNetwork: false
+  },
+  {
+    canPay: false,
+    labelKey: 'paymentCardNoAccount',
+    request: samplePaymentRequest(
+      `bitcoin:${SAMPLE_TESTNET_ADDRESS}?amount=0.0001&label=Faucet%20refill`
+    ),
+    wrongNetwork: false
+  }
+]
 
 /** Accounts offered when paying a bitcoin request from the chat preview. */
 export const DESIGN_CHAT_PAY_ACCOUNTS = [
