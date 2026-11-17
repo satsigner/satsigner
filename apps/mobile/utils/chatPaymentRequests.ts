@@ -1,6 +1,6 @@
 import { SATS_PER_BITCOIN } from '@/constants/btc'
 import { BOLT11_DEFAULT_EXPIRY_SECONDS } from '@/constants/lightning'
-import { MS_PER_SECOND } from '@/constants/time'
+import { MS_PER_MINUTE, MS_PER_SECOND } from '@/constants/time'
 import type { Network } from '@/types/settings/blockchain'
 import { parseBitcoinUri } from '@/utils/bip321'
 import { getBolt11Network } from '@/utils/bolt11Network'
@@ -12,6 +12,9 @@ import { hasMalformedUriEncoding, hasRequiredUriParam } from '@/utils/parse'
 
 /** A message can carry many payment requests; only the first few become cards. */
 export const CHAT_PAYMENT_REQUESTS_MAX = 3
+
+/** An open invoice this close to expiry is flagged so it gets paid in time. */
+export const CHAT_INVOICE_EXPIRING_SOON_MS = 10 * MS_PER_MINUTE
 
 // Optional `lightning:` scheme, then a bech32 bolt11 body. The lookbehind
 // keeps words that merely contain "lnbc" (e.g. "kilnbcd") from matching.
@@ -27,6 +30,8 @@ type ChatInvoice = {
   kind: 'lightning'
   amountSats: number
   description: string
+  /** Unix seconds; null when the invoice carries no timestamp. */
+  createdAt: number | null
   /** Unix seconds; null when the invoice carries no timestamp. */
   expiresAt: number | null
   invoice: string
@@ -47,6 +52,10 @@ type ChatBitcoinRequest = {
 
 type ChatPaymentRequest = ChatInvoice | ChatBitcoinRequest
 
+type ChatInvoiceTiming =
+  | { state: 'unknown' }
+  | { state: 'open' | 'expiringSoon' | 'expired'; expiresAtMs: number }
+
 type TextMatch = {
   start: number
   end: number
@@ -61,10 +70,12 @@ function decodeChatInvoice(invoice: string): ChatInvoice | null {
     const expirySec = Number.isNaN(expiry)
       ? BOLT11_DEFAULT_EXPIRY_SECONDS
       : expiry
+    const createdAt = Number.isNaN(timestamp) ? null : timestamp
     return {
       amountSats: bolt11AmountSats(decoded),
+      createdAt,
       description: decoded.description,
-      expiresAt: Number.isNaN(timestamp) ? null : timestamp + expirySec,
+      expiresAt: createdAt === null ? null : createdAt + expirySec,
       invoice,
       kind: 'lightning',
       network: getBolt11Network(invoice)
@@ -161,6 +172,11 @@ function findChatPaymentRequests(text: string): ChatPaymentRequest[] {
   return unique.slice(0, CHAT_PAYMENT_REQUESTS_MAX)
 }
 
+/** The text is mostly a bolt11 the card already shows, so it can collapse. */
+function hasChatInvoice(requests: ChatPaymentRequest[]): boolean {
+  return requests.some((request) => request.kind === 'lightning')
+}
+
 function isChatInvoiceExpired(
   invoice: Pick<ChatInvoice, 'expiresAt'>,
   nowMs = Date.now()
@@ -169,6 +185,24 @@ function isChatInvoiceExpired(
     return false
   }
   return invoice.expiresAt * MS_PER_SECOND <= nowMs
+}
+
+/** Where an invoice stands against its expiry, for the card's status line. */
+function getChatInvoiceTiming(
+  invoice: Pick<ChatInvoice, 'expiresAt'>,
+  nowMs: number
+): ChatInvoiceTiming {
+  if (invoice.expiresAt === null) {
+    return { state: 'unknown' }
+  }
+  const expiresAtMs = invoice.expiresAt * MS_PER_SECOND
+  if (expiresAtMs <= nowMs) {
+    return { expiresAtMs, state: 'expired' }
+  }
+  if (expiresAtMs - nowMs <= CHAT_INVOICE_EXPIRING_SOON_MS) {
+    return { expiresAtMs, state: 'expiringSoon' }
+  }
+  return { expiresAtMs, state: 'open' }
 }
 
 function isChatPaymentRequestExpired(
@@ -180,8 +214,15 @@ function isChatPaymentRequestExpired(
 
 export {
   findChatPaymentRequests,
+  getChatInvoiceTiming,
   getRequestKey,
+  hasChatInvoice,
   isChatInvoiceExpired,
   isChatPaymentRequestExpired
 }
-export type { ChatBitcoinRequest, ChatInvoice, ChatPaymentRequest }
+export type {
+  ChatBitcoinRequest,
+  ChatInvoice,
+  ChatInvoiceTiming,
+  ChatPaymentRequest
+}

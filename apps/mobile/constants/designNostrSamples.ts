@@ -244,7 +244,6 @@ export type DesignChatPaymentCard = {
   /** settings.developer.designSystem.features key naming the state. */
   labelKey: string
   request: ChatPaymentRequest
-  wrongNetwork: boolean
   canPay: boolean
 }
 
@@ -256,56 +255,53 @@ export const DESIGN_CHAT_PAYMENT_CARDS: DesignChatPaymentCard[] = [
   {
     canPay: true,
     labelKey: 'paymentCardInvoice',
-    request: PAYABLE_COFFEE_INVOICE,
-    wrongNetwork: false
+    request: PAYABLE_COFFEE_INVOICE
   },
   {
     canPay: true,
     labelKey: 'paymentCardAmountless',
-    request: sampleInvoice(SAMPLE_AMOUNTLESS_INVOICE, NOW + DAY),
-    wrongNetwork: false
+    request: sampleInvoice(SAMPLE_AMOUNTLESS_INVOICE, NOW + DAY)
   },
   {
     canPay: true,
     labelKey: 'paymentCardExpired',
-    request: COFFEE_INVOICE,
-    wrongNetwork: false
+    request: COFFEE_INVOICE
   },
   {
     canPay: true,
-    labelKey: 'paymentCardWrongNetwork',
-    request: PAYABLE_COFFEE_INVOICE,
-    wrongNetwork: true
+    labelKey: 'paymentCardExpiringSoon',
+    request: sampleInvoice(SAMPLE_EXPIRED_INVOICE, NOW + 4 * MINUTE)
+  },
+  {
+    canPay: false,
+    labelKey: 'paymentCardNoWallet',
+    request: PAYABLE_COFFEE_INVOICE
   },
   {
     canPay: true,
     labelKey: 'paymentCardBitcoin',
     request: samplePaymentRequest(
       `bitcoin:${SAMPLE_ADDRESS}?amount=0.0021&label=Pizza%20night&message=Split%20for%20Friday`
-    ),
-    wrongNetwork: false
+    )
   },
   {
     canPay: true,
     labelKey: 'paymentCardBitcoinNoAmount',
-    request: samplePaymentRequest(`bitcoin:${SAMPLE_ADDRESS}`),
-    wrongNetwork: false
+    request: samplePaymentRequest(`bitcoin:${SAMPLE_ADDRESS}`)
   },
   {
     canPay: true,
     labelKey: 'paymentCardUnified',
     request: samplePaymentRequest(
       `bitcoin:${SAMPLE_ADDRESS}?amount=0.0025&lightning=${SAMPLE_EXPIRED_INVOICE}`
-    ),
-    wrongNetwork: false
+    )
   },
   {
     canPay: false,
     labelKey: 'paymentCardNoAccount',
     request: samplePaymentRequest(
       `bitcoin:${SAMPLE_TESTNET_ADDRESS}?amount=0.0001&label=Faucet%20refill`
-    ),
-    wrongNetwork: false
+    )
   }
 ]
 

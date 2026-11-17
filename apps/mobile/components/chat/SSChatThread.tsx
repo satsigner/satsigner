@@ -32,6 +32,10 @@ import { t } from '@/locales'
 import { Colors } from '@/styles'
 import type { Account } from '@/types/models/Account'
 import type { NostrChatThreadItem, NostrDM } from '@/types/models/Nostr'
+import {
+  findChatPaymentRequests,
+  hasChatInvoice
+} from '@/utils/chatPaymentRequests'
 import type { ChatPaymentRequest } from '@/utils/chatPaymentRequests'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
 import {
@@ -100,6 +104,7 @@ function ChatThreadRow({ row }: { row: ChatRow<NostrChatThreadItem> }) {
   const preview = dm.replyToId
     ? buildReplyPreview(dm.replyToId, context.messagesById)
     : undefined
+  const paymentRequests = findChatPaymentRequests(getDmText(dm) ?? '')
   return (
     <SSNostrMessage
       item={dm}
@@ -127,11 +132,12 @@ function ChatThreadRow({ row }: { row: ChatRow<NostrChatThreadItem> }) {
       onReplyPreviewPress={context.onReplyPreviewPress}
       onLongPress={context.onLongPress}
       renderMarkdown
+      collapseText={hasChatInvoice(paymentRequests)}
       attachments={
         <>
           <SSChatPaymentRequests
             actions={context.paymentActions}
-            text={getDmText(dm) ?? ''}
+            requests={paymentRequests}
           />
           {context.onRemoveReaction ? (
             <SSChatReactions
@@ -288,7 +294,6 @@ export default function SSChatThread({
       canPayBitcoin,
       canPayInvoice: invoicePay.canPay,
       displayPreferences,
-      lightningNetwork: invoicePay.network,
       nowMs,
       onCopy: handlePaymentCopy,
       onPay: handlePaymentPay

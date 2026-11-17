@@ -1,3 +1,4 @@
+import { useRecyclingState } from '@shopify/flash-list'
 import type { ReactNode } from 'react'
 import { Image, Pressable, StyleSheet, View } from 'react-native'
 
@@ -54,6 +55,11 @@ type SSNostrMessageProps = {
   renderMarkdown?: boolean
   /** Extra content under the text, e.g. payment cards. */
   attachments?: ReactNode
+  /**
+   * The attachments already show what the text says (a decoded invoice), so
+   * the text starts as one line with a "Show more" link.
+   */
+  collapseText?: boolean
 }
 
 type AuthorNameProps = {
@@ -108,6 +114,8 @@ function AuthorAvatar({ author }: { author: AuthorDisplayInfo }) {
   return <View style={[styles.avatar, { backgroundColor: author.color }]} />
 }
 
+const SHOW_MORE_HIT_SLOP = 8
+
 function MessageText({
   content,
   markdown
@@ -119,6 +127,50 @@ function MessageText({
     return <SSMarkdown content={content} confirmLinks />
   }
   return <SSText size="md">{content}</SSText>
+}
+
+function CollapsibleMessageText({
+  content,
+  markdown,
+  messageId
+}: {
+  content: string
+  markdown: boolean
+  messageId: string
+}) {
+  // Resets when FlashList recycles the row for another message.
+  const [expanded, setExpanded] = useRecyclingState(false, [messageId])
+
+  function handleToggle() {
+    setExpanded((current) => !current)
+  }
+
+  return (
+    <SSVStack gap="xxs">
+      {expanded ? (
+        <MessageText content={content} markdown={markdown} />
+      ) : (
+        <SSText
+          size="sm"
+          color="muted"
+          numberOfLines={1}
+          ellipsizeMode="middle"
+        >
+          {content}
+        </SSText>
+      )}
+      <Pressable
+        accessibilityRole="button"
+        hitSlop={SHOW_MORE_HIT_SLOP}
+        onPress={handleToggle}
+        style={({ pressed }) => [styles.showMore, pressed && styles.pressed]}
+      >
+        <SSText size="xs" style={styles.showMoreText}>
+          {expanded ? t('common.showLess') : t('common.showMore')}
+        </SSText>
+      </Pressable>
+    </SSVStack>
+  )
 }
 
 function SSNostrMessage({
@@ -140,7 +192,8 @@ function SSNostrMessage({
   onReplyPreviewPress,
   onLongPress,
   renderMarkdown = false,
-  attachments
+  attachments,
+  collapseText = false
 }: SSNostrMessageProps) {
   const {
     authorNpub,
@@ -272,6 +325,12 @@ function SSNostrMessage({
             onGoToSignFlow={handleGoToSignFlow}
             onOpenLinkedTx={onOpenLinkedTx}
           />
+        ) : collapseText ? (
+          <CollapsibleMessageText
+            content={messageContent}
+            markdown={renderMarkdown}
+            messageId={msg.id}
+          />
         ) : (
           <MessageText content={messageContent} markdown={renderMarkdown} />
         )}
@@ -363,6 +422,13 @@ const styles = StyleSheet.create({
   },
   retryText: {
     color: Colors.white,
+    textDecorationLine: 'underline'
+  },
+  showMore: {
+    alignSelf: 'flex-start'
+  },
+  showMoreText: {
+    color: Colors.gray[75],
     textDecorationLine: 'underline'
   },
   status: {

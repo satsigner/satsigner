@@ -1,6 +1,9 @@
 import { DESIGN_CHAT_PAYMENT_CARDS } from '@/constants/designNostrSamples'
 import { MS_PER_SECOND } from '@/constants/time'
-import { isChatPaymentRequestExpired } from '@/utils/chatPaymentRequests'
+import {
+  getChatInvoiceTiming,
+  isChatPaymentRequestExpired
+} from '@/utils/chatPaymentRequests'
 
 function cardFor(labelKey: string) {
   const card = DESIGN_CHAT_PAYMENT_CARDS.find(
@@ -34,6 +37,17 @@ describe('design chat payment cards', () => {
     expect(
       isChatPaymentRequestExpired(cardFor('paymentCardExpired').request, nowMs)
     ).toBe(true)
+  })
+
+  it('shows the expiring-soon invoice inside the warning window', () => {
+    const { request } = cardFor('paymentCardExpiringSoon')
+    expect(
+      request.kind === 'lightning' && getChatInvoiceTiming(request, nowMs).state
+    ).toBe('expiringSoon')
+  })
+
+  it('marks the no-wallet invoice as unpayable', () => {
+    expect(cardFor('paymentCardNoWallet').canPay).toBe(false)
   })
 
   it('decodes the amounts from the sample requests', () => {

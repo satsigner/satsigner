@@ -5,7 +5,6 @@ import { toast } from 'sonner-native'
 
 import { t } from '@/locales'
 import { useArkStore } from '@/store/ark'
-import { useBlockchainStore } from '@/store/blockchain'
 import { useEcashStore } from '@/store/ecash'
 import { useLightningStore } from '@/store/lightning'
 import type { PaymentMethod } from '@/types/models/PaymentMethod'
@@ -20,7 +19,6 @@ import { buildPaymentMethods, getInvoicePayRoute } from '@/utils/paymentMethods'
  */
 function useChatInvoicePay() {
   const router = useRouter()
-  const network = useBlockchainStore((state) => state.selectedNetwork)
   const lightningConfig = useLightningStore((state) => state.config)
   const lightningNodeAlias = useLightningStore(
     (state) => state.status.nodeInfo?.alias
@@ -87,7 +85,6 @@ function useChatInvoicePay() {
   return {
     canPay: paymentMethods.length > 0,
     copy,
-    network,
     pay,
     paymentMethods,
     paymentSheetRef,

@@ -51,7 +51,11 @@ import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
 import type { Account } from '@/types/models/Account'
 import type { NostrChatReaction, NostrDM } from '@/types/models/Nostr'
-import { isChatPaymentRequestExpired } from '@/utils/chatPaymentRequests'
+import {
+  findChatPaymentRequests,
+  hasChatInvoice,
+  isChatPaymentRequestExpired
+} from '@/utils/chatPaymentRequests'
 import type { ChatPaymentRequest } from '@/utils/chatPaymentRequests'
 import { formatNostrKey } from '@/utils/nostr'
 import type { NostrKeyFormat } from '@/utils/nostr'
@@ -149,7 +153,6 @@ function NostrChatPreview({ setIndex }: SetPreviewProps) {
     canPayBitcoin: canPayAnyBitcoin,
     canPayInvoice: true,
     displayPreferences,
-    lightningNetwork: 'bitcoin',
     nowMs,
     onCopy: NOOP,
     onPay: handlePay
@@ -172,6 +175,9 @@ function NostrChatPreview({ setIndex }: SetPreviewProps) {
               const preview = row.item.replyToId
                 ? buildReplyPreview(row.item.replyToId, messagesById)
                 : undefined
+              const paymentRequests = findChatPaymentRequests(
+                getDmText(row.item) ?? ''
+              )
               const messageReactions =
                 reactionsByMessage.get(row.item.id) ?? NO_REACTIONS
               const agentStatus =
@@ -209,11 +215,12 @@ function NostrChatPreview({ setIndex }: SetPreviewProps) {
                   onReplyPreviewPress={NOOP}
                   onLongPress={handleLongPress}
                   renderMarkdown
+                  collapseText={hasChatInvoice(paymentRequests)}
                   attachments={
                     <>
                       <SSChatPaymentRequests
                         actions={paymentActions}
-                        text={getDmText(row.item) ?? ''}
+                        requests={paymentRequests}
                       />
                       <SSChatReactions
                         summaries={summarizeChatReactions(
@@ -243,7 +250,6 @@ function NostrChatPreview({ setIndex }: SetPreviewProps) {
                   displayPreferences={displayPreferences}
                   nowMs={nowMs}
                   expired={isChatPaymentRequestExpired(card.request, nowMs)}
-                  wrongNetwork={card.wrongNetwork}
                   canPay={card.canPay}
                   onPay={handlePay}
                   onCopy={NOOP}
