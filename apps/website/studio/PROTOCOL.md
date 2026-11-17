@@ -53,6 +53,10 @@ Run `node studio/tools/extract-all.mjs --app ../satsigner/apps/mobile` (the defa
 
 Then run `node studio/tools/coverage.mjs`. It maps catalog screens to app routes through `coverage.json` and writes `generated/coverage.md`, which shows routes with no screen and screens whose route was renamed in the app. Rerun both after pulling app changes.
 
+## Distribution images
+
+`node studio/tools/export-distribution.mjs` rasterizes every artboard on the Distribution view (Open Graph, social posts, App Store and Play screenshots, the Play feature graphic, logos, and chicklets) and writes them to `generated/distribution/`. Each image is the size that surface accepts, as `.jpg` and `.png`. `manifest.json` lists the public path (`/studio/generated/distribution/<file>`), pixel size, and byte length. `store-text.md` is the store copy. Commit the folder so other agents, and the deployed site, can fetch the files without opening Studio. Needs Chrome and `playwright-core` (`npm i --no-save playwright-core`). The script serves the repo itself unless you pass `--base`.
+
 ## Component kit
 
 `components.js` exposes `ss`, with one render function per app component (`ss.button`, `ss.text`, `ss.vstack`, `ss.textInput`, `ss.checkbox`, `ss.radio`, `ss.modal` and the rest). The props mirror the React Native props, and `go:` routes like `data-go`. The styles are in `components.css` (`ss-` classes, generated tokens only). Every kit component is shown at the top of the Components view (`?view=components`). Add a component there when you port it.
