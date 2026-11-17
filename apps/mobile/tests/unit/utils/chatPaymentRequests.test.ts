@@ -1,7 +1,8 @@
 import {
   CHAT_PAYMENT_REQUESTS_MAX,
-  findChatInvoices,
-  isChatInvoiceExpired
+  findChatPaymentRequests,
+  isChatInvoiceExpired,
+  isChatPaymentRequestExpired
 } from '@/utils/chatPaymentRequests'
 
 // A paid 2100 sat routstr top-up invoice (mainnet, 24h expiry, no description).
@@ -14,41 +15,46 @@ const INVOICE_EXPIRY_SEC = 86_400
 const AMOUNTLESS_INVOICE =
   'lnbc1pvjluezsp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygspp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdpl2pkx2ctnv5sxxmmwwd5kgetjypeh2ursdae8g6twvus8g6rfwvs8qun0dfjkxaq9qrsgq357wnc5r2ueh7ck6q93dj32dlqnls087fxdwk8qakdyafkq3yap9us6v52vjjsrvywa6rt52cm9r9zqt8r2t7mlcwspyetp5h2tztugp9lfyql'
 
-describe('findChatInvoices', () => {
+describe('findChatPaymentRequests: lightning', () => {
   it('decodes the amount from the invoice, not the surrounding text', () => {
-    const [found] = findChatInvoices(`Pay 1 sat please:\n${INVOICE}`)
+    const [found] = findChatPaymentRequests(`Pay 1 sat please:\n${INVOICE}`)
     expect(found).toStrictEqual({
       amountSats: 2100,
       description: '',
       expiresAt: INVOICE_TIMESTAMP + INVOICE_EXPIRY_SEC,
       invoice: INVOICE,
+      kind: 'lightning',
       network: 'bitcoin'
     })
   })
 
   it('finds invoices behind a lightning: scheme and in code blocks', () => {
-    expect(findChatInvoices(`lightning:${INVOICE}`)).toHaveLength(1)
-    expect(findChatInvoices(`\`\`\`\n${INVOICE}\n\`\`\``)).toHaveLength(1)
+    expect(findChatPaymentRequests(`lightning:${INVOICE}`)).toHaveLength(1)
+    expect(findChatPaymentRequests(`\`\`\`\n${INVOICE}\n\`\`\``)).toHaveLength(
+      1
+    )
   })
 
   it('matches uppercase invoices and keeps them lowercase', () => {
-    const [found] = findChatInvoices(INVOICE.toUpperCase())
-    expect(found?.invoice).toBe(INVOICE)
+    const [found] = findChatPaymentRequests(INVOICE.toUpperCase())
+    expect(found?.kind === 'lightning' && found.invoice).toBe(INVOICE)
   })
 
   it('reports amountless invoices as 0 sats', () => {
-    const [found] = findChatInvoices(AMOUNTLESS_INVOICE)
+    const [found] = findChatPaymentRequests(AMOUNTLESS_INVOICE)
     expect(found?.amountSats).toBe(0)
   })
 
   it('ignores words that merely contain an invoice prefix', () => {
-    expect(findChatInvoices('the kilnbc oven and lnbc alone')).toStrictEqual([])
-    expect(findChatInvoices(`x${INVOICE}`)).toStrictEqual([])
+    expect(
+      findChatPaymentRequests('the kilnbc oven and lnbc alone')
+    ).toStrictEqual([])
+    expect(findChatPaymentRequests(`x${INVOICE}`)).toStrictEqual([])
   })
 
   it('drops strings that look like invoices but fail to decode', () => {
     const corrupted = `${INVOICE.slice(0, -6)}qqqqqq`
-    expect(findChatInvoices(corrupted)).toStrictEqual([])
+    expect(findChatPaymentRequests(corrupted)).toStrictEqual([])
   })
 
   it('deduplicates and caps the number of invoices per message', () => {
@@ -56,8 +62,8 @@ describe('findChatInvoices', () => {
       { length: CHAT_PAYMENT_REQUESTS_MAX + 2 },
       (_, index) => (index % 2 === 0 ? INVOICE : AMOUNTLESS_INVOICE)
     ).join(' ')
-    expect(findChatInvoices(text)).toHaveLength(2)
-    expect(findChatInvoices(`${INVOICE} ${INVOICE}`)).toHaveLength(1)
+    expect(findChatPaymentRequests(text)).toHaveLength(2)
+    expect(findChatPaymentRequests(`${INVOICE} ${INVOICE}`)).toHaveLength(1)
   })
 })
 
@@ -73,5 +79,83 @@ describe('isChatInvoiceExpired', () => {
 
   it('never expires without a timestamp', () => {
     expect(isChatInvoiceExpired({ expiresAt: null })).toBe(false)
+  })
+})
+
+const ADDRESS = 'bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4'
+const BITCOIN_URI = `bitcoin:${ADDRESS}?amount=0.0021&label=Pizza%20night&message=Split%20for%20Friday`
+
+describe('findChatPaymentRequests: bitcoin URIs', () => {
+  it('reads the amount, label and message of a bip21 URI', () => {
+    expect(
+      findChatPaymentRequests(`Can you send ${BITCOIN_URI} ?`)
+    ).toStrictEqual([
+      {
+        address: ADDRESS,
+        amountSats: 210_000,
+        hasLightningFallback: false,
+        kind: 'bitcoin',
+        label: 'Pizza night',
+        message: 'Split for Friday',
+        network: 'bitcoin',
+        uri: BITCOIN_URI
+      }
+    ])
+  })
+
+  it('reports a URI without amount as 0 sats', () => {
+    const [found] = findChatPaymentRequests(`bitcoin:${ADDRESS}`)
+    expect(found?.amountSats).toBe(0)
+  })
+
+  it('drops prose punctuation and markdown around the URI', () => {
+    const [fromSentence] = findChatPaymentRequests(`Pay to ${BITCOIN_URI}.`)
+    const [fromLink] = findChatPaymentRequests(`[pay](${BITCOIN_URI})`)
+    const [fromBold] = findChatPaymentRequests(`**${BITCOIN_URI}**`)
+    expect(fromSentence?.kind === 'bitcoin' && fromSentence.uri).toBe(
+      BITCOIN_URI
+    )
+    expect(fromLink?.kind === 'bitcoin' && fromLink.uri).toBe(BITCOIN_URI)
+    expect(fromBold?.kind === 'bitcoin' && fromBold.uri).toBe(BITCOIN_URI)
+  })
+
+  it('shows a unified URI as one card with a lightning fallback', () => {
+    const requests = findChatPaymentRequests(
+      `bitcoin:${ADDRESS}?amount=0.000021&lightning=${INVOICE}`
+    )
+    expect(requests).toHaveLength(1)
+    expect(
+      requests[0]?.kind === 'bitcoin' && requests[0].hasLightningFallback
+    ).toBe(true)
+  })
+
+  it('reads a lightning-only bitcoin: URI as an invoice', () => {
+    const [found] = findChatPaymentRequests(`bitcoin:?lightning=${INVOICE}`)
+    expect(found?.kind).toBe('lightning')
+  })
+
+  it('drops URIs with unknown required params or broken encoding', () => {
+    expect(
+      findChatPaymentRequests(`bitcoin:${ADDRESS}?amount=0.01&req-foo=1`)
+    ).toStrictEqual([])
+    expect(
+      findChatPaymentRequests(`bitcoin:${ADDRESS}?label=100%`)
+    ).toStrictEqual([])
+  })
+
+  it('keeps invoices and URIs in reading order', () => {
+    const kinds = findChatPaymentRequests(`${BITCOIN_URI} or ${INVOICE}`).map(
+      (request) => request.kind
+    )
+    expect(kinds).toStrictEqual(['bitcoin', 'lightning'])
+  })
+})
+
+describe('isChatPaymentRequestExpired', () => {
+  it('never expires bitcoin URIs', () => {
+    const [found] = findChatPaymentRequests(BITCOIN_URI)
+    expect(
+      found && isChatPaymentRequestExpired(found, Number.MAX_SAFE_INTEGER)
+    ).toBe(false)
   })
 })

@@ -5,10 +5,11 @@ import { createContext, use, useState } from 'react'
 import { ActivityIndicator, StyleSheet, View } from 'react-native'
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller'
 
+import SSChatAccountPicker from '@/components/chat/SSChatAccountPicker'
 import SSChatComposer from '@/components/chat/SSChatComposer'
 import type { SSChatComposerReply } from '@/components/chat/SSChatComposer'
 import SSChatDaySeparator from '@/components/chat/SSChatDaySeparator'
-import SSChatInvoiceCard from '@/components/chat/SSChatInvoiceCard'
+import SSChatPaymentRequestCard from '@/components/chat/SSChatPaymentRequestCard'
 import SSChatReactions from '@/components/chat/SSChatReactions'
 import SSNewMessagesPill from '@/components/chat/SSNewMessagesPill'
 import SSNostrMessage from '@/components/SSNostrMessage'
@@ -18,22 +19,26 @@ import {
   NOSTR_DM_MESSAGE_MAX_LENGTH,
   NOSTR_GROUP_CHAT_AUTOSCROLL_THRESHOLD
 } from '@/constants/nostr'
+import { useChatBitcoinRequestPay } from '@/hooks/useChatBitcoinRequestPay'
 import { useChatInvoicePay } from '@/hooks/useChatInvoicePay'
+import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import { useLocalDayStart } from '@/hooks/useLocalDayStart'
 import { useNostrChatScroll } from '@/hooks/useNostrChatScroll'
 import { getAuthorLabel } from '@/hooks/useNostrMessage'
 import type { AuthorDisplayInfo } from '@/hooks/useNostrMessage'
+import { useNow } from '@/hooks/useNow'
 import { t } from '@/locales'
-import { useSettingsStore } from '@/store/settings'
 import { Colors } from '@/styles'
 import type { Account } from '@/types/models/Account'
 import type { NostrChatThreadItem, NostrDM } from '@/types/models/Nostr'
 import type { Network } from '@/types/settings/blockchain'
+import type { DisplayPreferences } from '@/types/ui/displayPreferences'
 import {
-  findChatInvoices,
-  isChatInvoiceExpired
+  findChatPaymentRequests,
+  getRequestKey,
+  isChatPaymentRequestExpired
 } from '@/utils/chatPaymentRequests'
-import type { ChatInvoice } from '@/utils/chatPaymentRequests'
+import type { ChatPaymentRequest } from '@/utils/chatPaymentRequests'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
 import {
   getChatAgentStatus,
@@ -49,16 +54,19 @@ import type { ChatRow } from '@/utils/nostrChatRows'
 
 type VisibleComponents = Map<string, { sankey: boolean; status: boolean }>
 
-type ChatInvoiceActions = {
-  canPay: boolean
-  network: Network
-  privacyMode: boolean
-  onCopy: (invoice: string) => void
-  onPay: (invoice: ChatInvoice) => void
+type ChatPaymentActions = {
+  canPayInvoice: boolean
+  canPayBitcoin: (request: ChatPaymentRequest) => boolean
+  displayPreferences: DisplayPreferences
+  /** Network the lightning wallets pay on. */
+  lightningNetwork: Network
+  nowMs: number
+  onCopy: (text: string) => void
+  onPay: (request: ChatPaymentRequest) => void
 }
 
 type ChatThreadRowContext = {
-  invoiceActions: ChatInvoiceActions
+  paymentActions: ChatPaymentActions
   ownHex: string | null
   peerHex: string | null
   onRemoveReaction?: (reactionId: string) => void
@@ -91,25 +99,45 @@ function getDmText(dm: NostrDM): string {
   return typeof dm.content === 'string' ? dm.content : ''
 }
 
-function ChatMessageInvoices({
+function canPayRequest(
+  request: ChatPaymentRequest,
+  actions: ChatPaymentActions
+) {
+  return request.kind === 'lightning'
+    ? actions.canPayInvoice
+    : actions.canPayBitcoin(request)
+}
+
+/** Bitcoin requests are checked per account, in canPayBitcoin. */
+function isWrongNetwork(
+  request: ChatPaymentRequest,
+  actions: ChatPaymentActions
+) {
+  return (
+    request.kind === 'lightning' && request.network !== actions.lightningNetwork
+  )
+}
+
+function ChatMessagePaymentRequests({
   actions,
   text
 }: {
-  actions: ChatInvoiceActions
+  actions: ChatPaymentActions
   text: string
 }) {
-  const invoices = findChatInvoices(text)
-  if (invoices.length === 0) {
+  const requests = findChatPaymentRequests(text)
+  if (requests.length === 0) {
     return null
   }
-  return invoices.map((invoice) => (
-    <SSChatInvoiceCard
-      key={invoice.invoice}
-      invoice={invoice}
-      expired={isChatInvoiceExpired(invoice)}
-      wrongNetwork={invoice.network !== actions.network}
-      canPay={actions.canPay}
-      privacyMode={actions.privacyMode}
+  return requests.map((request) => (
+    <SSChatPaymentRequestCard
+      key={getRequestKey(request)}
+      request={request}
+      displayPreferences={actions.displayPreferences}
+      nowMs={actions.nowMs}
+      expired={isChatPaymentRequestExpired(request, actions.nowMs)}
+      wrongNetwork={isWrongNetwork(request, actions)}
+      canPay={canPayRequest(request, actions)}
       onPay={actions.onPay}
       onCopy={actions.onCopy}
     />
@@ -166,8 +194,8 @@ function ChatThreadRow({ row }: { row: ChatRow<NostrChatThreadItem> }) {
       renderMarkdown
       attachments={
         <>
-          <ChatMessageInvoices
-            actions={context.invoiceActions}
+          <ChatMessagePaymentRequests
+            actions={context.paymentActions}
             text={getDmText(dm)}
           />
           {context.onRemoveReaction ? (
@@ -261,8 +289,10 @@ export default function SSChatThread({
     showNewMessages
   } = useNostrChatScroll<ChatRow<NostrChatThreadItem>>(items.at(-1)?.dm.id)
   const todayStart = useLocalDayStart()
-  const privacyMode = useSettingsStore((state) => state.privacyMode)
+  const displayPreferences = useDisplayPreferences()
+  const nowMs = useNow()
   const invoicePay = useChatInvoicePay()
+  const bitcoinPay = useChatBitcoinRequestPay()
 
   function handleSend() {
     const text = inputValue.trim()
@@ -293,19 +323,24 @@ export default function SSChatThread({
     })
   }
 
-  function handleInvoiceCopy(invoice: string) {
-    void invoicePay.copy(invoice)
+  function handlePaymentCopy(text: string) {
+    void invoicePay.copy(text)
+  }
+
+  function handlePaymentPay(request: ChatPaymentRequest) {
+    if (request.kind === 'lightning') {
+      invoicePay.pay(request)
+      return
+    }
+    bitcoinPay.pay(request)
+  }
+
+  function canPayBitcoin(request: ChatPaymentRequest) {
+    return request.kind === 'bitcoin' && bitcoinPay.canPay(request)
   }
 
   const rowContext: ChatThreadRowContext = {
     formattedNpubs,
-    invoiceActions: {
-      canPay: invoicePay.canPay,
-      network: invoicePay.network,
-      onCopy: handleInvoiceCopy,
-      onPay: invoicePay.pay,
-      privacyMode
-    },
     messagesById: new Map(items.map(({ dm }) => [dm.id, dm])),
     onAuthorPress,
     onLongPress: onMessageLongPress,
@@ -314,6 +349,15 @@ export default function SSChatThread({
     onToggleVisibility: handleToggleVisibility,
     ownHex: getPubKeyHexFromNpub(ownNpub),
     ownNpub,
+    paymentActions: {
+      canPayBitcoin,
+      canPayInvoice: invoicePay.canPay,
+      displayPreferences,
+      lightningNetwork: invoicePay.network,
+      nowMs,
+      onCopy: handlePaymentCopy,
+      onPay: handlePaymentPay
+    },
     peerHex: peerHex ?? null,
     todayStart,
     visibleComponents
@@ -383,6 +427,13 @@ export default function SSChatThread({
         onSelect={invoicePay.selectMethod}
         methods={invoicePay.paymentMethods}
         amountSats={invoicePay.pendingAmountSats}
+      />
+      <SSChatAccountPicker
+        ref={bitcoinPay.accountSheetRef}
+        accounts={bitcoinPay.pendingAccounts}
+        amountSats={bitcoinPay.pendingAmountSats}
+        privacyMode={displayPreferences.privacyMode}
+        onSelect={bitcoinPay.selectAccount}
       />
     </KeyboardAvoidingView>
   )
