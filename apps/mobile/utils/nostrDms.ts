@@ -11,7 +11,7 @@ import type { NostrDM } from '@/types/models/Nostr'
 function getDmText(
   dm: Pick<NostrDM, 'content'> | { content: unknown }
 ): string | null {
-  const content: unknown = dm.content
+  const { content }: { content: unknown } = dm
   if (typeof content === 'string') {
     return content
   }
