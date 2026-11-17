@@ -1568,6 +1568,7 @@ export {
   sendChatReaction,
   sendNip17Chat,
   subscribeChatPipelineStatus,
-  subscribeToIdentityChat
+  subscribeToIdentityChat,
+  toChatThreadItem
 }
 export type { ChatIdentity, ChatMessageDetail, ChatPipelineLease }
