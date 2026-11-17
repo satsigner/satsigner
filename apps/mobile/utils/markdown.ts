@@ -9,6 +9,8 @@ const UL_RE = /^[-*+]\s+(.+)$/
 const OL_RE = /^(\d+)[.)]\s*(.+)$/
 const QUOTE_RE = /^>\s?(.+)$/
 const HR_RE = /^(\*{3,}|-{3,}|_{3,})$/
+const CODE_FENCE = '```'
+const CODE_LANGUAGE_RE = /^[\w#+.-]{1,20}$/
 
 function trimLineStart(line: string): string {
   return line.trimStart()
@@ -26,6 +28,12 @@ export function isSafeHttpUrl(url: string): boolean {
   }
 }
 
+/** The label after an opening fence, kept only when it looks like a language name. */
+function parseCodeLanguage(fenceLine: string): string | undefined {
+  const label = fenceLine.trim().slice(CODE_FENCE.length).trim()
+  return CODE_LANGUAGE_RE.test(label) ? label : undefined
+}
+
 export function parseMarkdownBlocks(content: string): MarkdownBlock[] {
   const lines = content.replaceAll('\r\n', '\n').split('\n')
   const blocks: MarkdownBlock[] = []
@@ -41,17 +49,25 @@ export function parseMarkdownBlocks(content: string): MarkdownBlock[] {
       continue
     }
 
-    if (line.trim().startsWith('```')) {
+    if (line.trim().startsWith(CODE_FENCE)) {
+      const language = parseCodeLanguage(line)
       const codeLines: string[] = []
       index += 1
-      while (index < lines.length && !lines[index].trim().startsWith('```')) {
+      while (
+        index < lines.length &&
+        !lines[index].trim().startsWith(CODE_FENCE)
+      ) {
         codeLines.push(lines[index])
         index += 1
       }
       if (index < lines.length) {
         index += 1
       }
-      blocks.push({ type: 'code', value: codeLines.join('\n') })
+      blocks.push({
+        type: 'code',
+        value: codeLines.join('\n'),
+        ...(language ? { language } : {})
+      })
       continue
     }
 

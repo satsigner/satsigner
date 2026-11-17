@@ -10,7 +10,9 @@ jest.mock<typeof import('@/db/mutations/nostrChat')>(
   '@/db/mutations/nostrChat',
   () => {
     const store = new Map<string, unknown>()
+    const reactions = new Map<string, { author: string; id: string }>()
     return {
+      __reactions: reactions,
       __store: store,
       deleteChatMessages: jest.fn((_npub: string, ids: string[]) => {
         for (const id of ids) {
@@ -18,6 +20,15 @@ jest.mock<typeof import('@/db/mutations/nostrChat')>(
         }
       }),
       deleteChatMessagesForIdentity: jest.fn(),
+      deleteChatReactions: jest.fn(
+        (_npub: string, author: string, ids: string[]) => {
+          for (const id of ids) {
+            if (reactions.get(id)?.author === author) {
+              reactions.delete(id)
+            }
+          }
+        }
+      ),
       failInterruptedChatSends: jest.fn(),
       insertChatMessage: jest.fn((message: { id: string }) => {
         if (store.has(message.id)) {
@@ -26,6 +37,15 @@ jest.mock<typeof import('@/db/mutations/nostrChat')>(
         store.set(message.id, message)
         return true
       }),
+      insertChatReaction: jest.fn(
+        (reaction: { author: string; id: string }) => {
+          if (reactions.has(reaction.id)) {
+            return false
+          }
+          reactions.set(reaction.id, reaction)
+          return true
+        }
+      ),
       markChatThreadRead: jest.fn(() => 0),
       updateChatMessageStatus: jest.fn()
     }
@@ -68,7 +88,8 @@ jest.mock<typeof import('@/db/queries/nostrChat')>(
       hasOutgoingChatMessage: jest.fn(() => false),
       listChatConversations: jest.fn(() => []),
       listChatReplies: jest.fn(() => []),
-      listChatThread: jest.fn(() => [])
+      listChatThread: jest.fn(() => []),
+      listChatThreadReactions: jest.fn(() => [])
     }
   }
 )
@@ -142,6 +163,8 @@ import {
   getChatPipelineStatus,
   ingestChatMessage,
   restartChatPipeline,
+  removeChatReaction,
+  sendChatReaction,
   sendNip04Chat,
   sendNip17Chat,
   subscribeToIdentityChat
@@ -174,7 +197,8 @@ function unwrapPublished(
   return nip59.unwrapEvent(raw, secretKey)
 }
 
-const { __store: chatStore } = jest.requireMock<{
+const { __reactions: reactionStore, __store: chatStore } = jest.requireMock<{
+  __reactions: Map<string, StoredMessage>
   __store: Map<string, StoredMessage>
 }>('@/db/mutations/nostrChat')
 const { __processed: processedWraps } = jest.requireMock<{
@@ -270,6 +294,7 @@ describe('nostrChat', () => {
     closeActiveChatPipeline()
     flushChatMessages()
     chatStore.clear()
+    reactionStore.clear()
     processedWraps.clear()
     clearRecipientRelaysCache()
     // Real mining would make every send slow; one test opts in below.
@@ -369,6 +394,159 @@ describe('nostrChat', () => {
 
     deletionFrom(peerPubkey, 'w3')
     expect(storedMessages()).toHaveLength(0)
+  })
+
+  describe('reactions', () => {
+    const messageId = 'b'.repeat(64)
+
+    async function subscribeWithPeerMessage() {
+      const { api, captured } = createFakeChatApi()
+      await subscribeToIdentityChat(api, sender)
+      deliverRumor(captured.handlers, 'w-msg', {
+        content: 'from peer',
+        created_at: 1,
+        id: messageId,
+        pubkey: peerPubkey,
+        tags: [['p', senderPubkey]]
+      })
+      return captured
+    }
+
+    function reactionRumor(id: string, pubkey: string, content = '👀') {
+      return {
+        content,
+        created_at: 2,
+        id: id.padStart(64, 'e'),
+        kind: 7,
+        pubkey,
+        tags: [
+          ['e', messageId],
+          ['k', '14']
+        ]
+      }
+    }
+
+    it('stores a reaction as a relation, never as a thread message', async () => {
+      const captured = await subscribeWithPeerMessage()
+      deliverRumor(captured.handlers, 'w-r1', reactionRumor('a1', peerPubkey))
+
+      expect(storedMessages()).toHaveLength(1)
+      expect([...reactionStore.values()]).toStrictEqual([
+        expect.objectContaining({
+          author: peerPubkey,
+          emoji: '👀',
+          messageId
+        })
+      ])
+    })
+
+    it('ignores reactions from outside the conversation', async () => {
+      const captured = await subscribeWithPeerMessage()
+      deliverRumor(
+        captured.handlers,
+        'w-r2',
+        reactionRumor('a2', 'c'.repeat(64))
+      )
+      expect(reactionStore.size).toBe(0)
+    })
+
+    it('leaves a reaction to an unknown message to be read again', async () => {
+      const { api, captured } = createFakeChatApi()
+      await subscribeToIdentityChat(api, sender)
+      deliverRumor(
+        captured.handlers,
+        'w-early',
+        reactionRumor('a3', peerPubkey)
+      )
+
+      expect(reactionStore.size).toBe(0)
+      expect(processedWraps.has(`chat:${senderNpub}|w-early`)).toBe(false)
+    })
+
+    it('removes a reaction only when its author deletes it', async () => {
+      const captured = await subscribeWithPeerMessage()
+      const rumor = reactionRumor('a4', peerPubkey)
+      deliverRumor(captured.handlers, 'w-r4', rumor)
+      const deletionFrom = (pubkey: string, wrapId: string) =>
+        deliverRumor(captured.handlers, wrapId, {
+          id: wrapId.padStart(64, 'd'),
+          kind: 5,
+          pubkey,
+          tags: [
+            ['e', rumor.id],
+            ['k', '7']
+          ]
+        })
+
+      deletionFrom('c'.repeat(64), 'w-del1')
+      expect(reactionStore.size).toBe(1)
+      deletionFrom(peerPubkey, 'w-del2')
+      expect(reactionStore.size).toBe(0)
+      expect(storedMessages()).toHaveLength(1)
+    })
+
+    it('sends a gift-wrapped kind 7 to the peer and keeps it locally', async () => {
+      const { api, captured } = createFakeChatApi()
+      await subscribeToIdentityChat(api, sender)
+      deliverRumor(captured.handlers, 'w-msg', {
+        content: 'from peer',
+        created_at: 1,
+        id: messageId,
+        pubkey: peerPubkey,
+        tags: [['p', senderPubkey]]
+      })
+      const published: Awaited<ReturnType<NDKEvent['toNostrEvent']>>[] = []
+      jest.spyOn(api, 'publishEvent').mockImplementation(async (event) => {
+        published.push(await event.toNostrEvent())
+      })
+
+      await sendChatReaction(api, sender, peerNpub, messageId, '👍')
+
+      expect(published).toHaveLength(2)
+      expect(published[0]?.kind).toBe(1059)
+      const rumor = unwrapPublished(published[0], peerSecretKey)
+      expect(rumor).toMatchObject({ content: '👍', kind: 7 })
+      expect(rumor.tags).toContainEqual(['e', messageId])
+      expect(rumor.tags).toContainEqual(['p', peerPubkey])
+      expect([...reactionStore.values()]).toStrictEqual([
+        expect.objectContaining({ author: senderPubkey, id: rumor.id })
+      ])
+    })
+
+    it('drops my reaction again when no relay takes it', async () => {
+      const { api, captured } = createFakeChatApi()
+      await subscribeToIdentityChat(api, sender)
+      deliverRumor(captured.handlers, 'w-msg', {
+        content: 'from peer',
+        created_at: 1,
+        id: messageId,
+        pubkey: peerPubkey,
+        tags: [['p', senderPubkey]]
+      })
+      jest.spyOn(api, 'publishEvent').mockRejectedValue(new Error('down'))
+
+      await expect(
+        sendChatReaction(api, sender, peerNpub, messageId, '👍')
+      ).rejects.toThrow('down')
+      expect(reactionStore.size).toBe(0)
+    })
+
+    it('takes a reaction back with a gift-wrapped kind 5 naming it', async () => {
+      const api = new NostrAPI([])
+      const published: Awaited<ReturnType<NDKEvent['toNostrEvent']>>[] = []
+      jest.spyOn(api, 'publishEvent').mockImplementation(async (event) => {
+        published.push(await event.toNostrEvent())
+      })
+      const reactionId = 'f'.repeat(64)
+      reactionStore.set(reactionId, { author: senderPubkey, id: reactionId })
+
+      await removeChatReaction(api, sender, peerNpub, reactionId)
+
+      const rumor = unwrapPublished(published[0], peerSecretKey)
+      expect(rumor.kind).toBe(5)
+      expect(rumor.tags).toContainEqual(['e', reactionId])
+      expect(reactionStore.size).toBe(0)
+    })
   })
 
   it('sendNip17Chat seals one rumor tagged with the peer for both recipients', async () => {

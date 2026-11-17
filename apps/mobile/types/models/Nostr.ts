@@ -568,6 +568,26 @@ export const NostrChatMessageSchema = z.object({
   status: z.enum(['pending', 'sent', 'failed'])
 })
 
+/** A NIP-25 reaction (kind 7 rumor) to a NIP-17 chat message. */
+export type NostrChatReaction = {
+  /** Reaction rumor id, named by a later kind 5 that removes it. */
+  id: string
+  identityNpub: string
+  messageId: string
+  /** Hex pubkey of whoever reacted. */
+  author: string
+  emoji: string
+  created_at: number
+}
+
+/** Reactions on one message, grouped by emoji. */
+export type NostrChatReactionSummary = {
+  emoji: string
+  count: number
+  /** Id of my reaction with this emoji, to remove it. */
+  ownReactionId?: string
+}
+
 export type NostrChatProtocol = z.infer<typeof NostrChatProtocolSchema>
 export type NostrChatMessage = z.infer<typeof NostrChatMessageSchema>
 
@@ -619,6 +639,7 @@ export type NostrChatGiftWrap = NostrChatEventRef & {
 export type NostrChatThreadItem = {
   dm: NostrDM
   failed: boolean
+  reactions: NostrChatReaction[]
 }
 
 export type NostrErrorCode =

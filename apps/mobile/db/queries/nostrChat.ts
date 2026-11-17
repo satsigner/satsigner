@@ -1,7 +1,8 @@
 import type {
   NostrChatConversation,
   NostrChatMessage,
-  NostrChatProtocol
+  NostrChatProtocol,
+  NostrChatReaction
 } from '@/types/models/Nostr'
 
 import { getDb } from '../connection'
@@ -17,6 +18,15 @@ type ChatMessageRow = {
   read: number
   created_at: number
   reply_to_id?: string | null
+}
+
+type ChatReactionRow = {
+  id: string
+  identity_npub: string
+  message_id: string
+  author: string
+  emoji: string
+  created_at: number
 }
 
 type ChatConversationRow = {
@@ -82,6 +92,33 @@ function listChatThread(
     [identityNpub, protocol, peerPubkey, limit]
   )
   return rows._array.map((row) => rowToChatMessage(row)).toReversed()
+}
+
+/** Reactions on the newest `limit` messages of a thread (the loaded window). */
+function listChatThreadReactions(
+  identityNpub: string,
+  protocol: NostrChatProtocol,
+  peerPubkey: string,
+  limit: number
+): NostrChatReaction[] {
+  const { rows } = getDb().execute<ChatReactionRow>(
+    `SELECT r.* FROM nostr_chat_reactions r
+      WHERE r.identity_npub = ? AND r.message_id IN (
+        SELECT id FROM nostr_chat_messages
+         WHERE identity_npub = ? AND protocol = ? AND peer_pubkey = ?
+         ORDER BY created_at DESC LIMIT ?
+      )
+      ORDER BY r.created_at ASC`,
+    [identityNpub, identityNpub, protocol, peerPubkey, limit]
+  )
+  return rows._array.map((row) => ({
+    author: row.author,
+    created_at: row.created_at,
+    emoji: row.emoji,
+    id: row.id,
+    identityNpub: row.identity_npub,
+    messageId: row.message_id
+  }))
 }
 
 /** Newest relay-confirmed message: the live subscription's catch-up cursor. */
@@ -209,5 +246,6 @@ export {
   listChatConversations,
   listChatReplies,
   listChatThread,
+  listChatThreadReactions,
   listPeersWrittenTo
 }

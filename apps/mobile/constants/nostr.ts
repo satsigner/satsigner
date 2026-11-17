@@ -95,6 +95,21 @@ export const NOSTR_GROUP_CHAT_PAGE_SIZE = 50
 export const NOSTR_GROUP_CHAT_SCROLL_THRESHOLD = 40
 export const NOSTR_GROUP_CHAT_AUTOSCROLL_THRESHOLD = 0.2
 export const NOSTR_GROUP_CHAT_MESSAGE_MAX_LENGTH = 500
+// NIP-44 caps the sealed rumor at 65535 bytes; 16k chars stays under it even
+// at 4 bytes per char, leaving room for the rumor's JSON and tags.
+export const NOSTR_DM_MESSAGE_MAX_LENGTH = 16_000
+// Picker for reacting to a chat message; 👀 ✅ ⚠️ double as agent status.
+export const NOSTR_CHAT_REACTION_CHOICES = [
+  '👍',
+  '❤️',
+  '😂',
+  '🙏',
+  '👀',
+  '✅',
+  '⚠️'
+] as const
+// Longest reaction kept: one emoji, possibly a ZWJ sequence or a short word.
+export const NOSTR_CHAT_REACTION_MAX_LENGTH = 32
 export const NOSTR_PSBT_DETAILS_CACHE_MAX = 100
 // NIP-44 encrypts at most 65535 bytes; Bitcoin Safe chunks label sync at 60k.
 export const NOSTR_LABELS_MAX_CHUNK_BYTES = 60_000
