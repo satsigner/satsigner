@@ -29,6 +29,7 @@ import {
   PAYJOIN_DEFAULT_PJOS,
   PAYJOIN_MIN_RECEIVE_SATS
 } from '@/constants/payjoin'
+import { FIAT_DATA_SETTINGS_ROUTE } from '@/constants/routes'
 import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import useGetFirstUnusedAddress from '@/hooks/useGetFirstUnusedAddress'
@@ -69,6 +70,7 @@ import { isPayjoinSuccess } from '@/utils/payjoinSessionStatus'
 import { preparePayjoinPsbtForWalletSign } from '@/utils/payjoinSign'
 import { parsePayjoinUri } from '@/utils/payjoinUri'
 import { buildPayjoinWalletCallbacks } from '@/utils/payjoinWallet'
+import { isSamePriceDay } from '@/utils/priceAtDate'
 import { appendLabelNote, buildPriceLabelNote } from '@/utils/receivePriceLabel'
 import {
   buildReceiveQrUri,
@@ -263,6 +265,7 @@ export default function Receive() {
   const priceDateSheetRef = useRef<BottomSheetMethods>(null)
   const [priceDate, setPriceDate] = useState<Date>()
   const [pendingPriceDate, setPendingPriceDate] = useState(() => new Date())
+  const [priceDatePickerKey, setPriceDatePickerKey] = useState(0)
   const datedPrice = usePriceAtDate(priceDate, fiatCurrency)
   const pendingPrice = usePriceAtDate(pendingPriceDate, fiatCurrency)
   const conversionPrice = priceDate ? (datedPrice.price ?? 0) : btcPrice
@@ -607,7 +610,11 @@ export default function Receive() {
   }
 
   function handleOpenPriceDate() {
-    setPendingPriceDate(priceDate ?? new Date())
+    const openDate = priceDate ?? new Date()
+    if (!isSamePriceDay(openDate, pendingPriceDate)) {
+      setPendingPriceDate(openDate)
+      setPriceDatePickerKey((key) => key + 1)
+    }
     priceDateSheetRef.current?.expand()
   }
 
@@ -628,7 +635,7 @@ export default function Receive() {
 
   function handleOpenPriceSettings() {
     priceDateSheetRef.current?.close()
-    router.navigate('/settings/features/fiatData')
+    router.navigate(FIAT_DATA_SETTINGS_ROUTE)
   }
 
   function getSatsDisplay(fiat: string): string {
@@ -1181,6 +1188,7 @@ export default function Receive() {
       <SSPriceDateSheet
         ref={priceDateSheetRef}
         date={pendingPriceDate}
+        pickerKey={priceDatePickerKey}
         currency={fiatCurrency}
         price={pendingPrice.price}
         isLoading={pendingPrice.isLoading}

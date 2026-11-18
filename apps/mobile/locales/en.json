@@ -357,7 +357,6 @@
     "sync.check.deep": "Deep rescan",
     "sync.check.full": "Full check",
     "sync.check.quick": "Quick check",
-    "sync.details.backend": "Server",
     "sync.details.checkAll": "Check all addresses",
     "sync.details.deepRescan": "Deep rescan",
     "sync.details.deepRescanWarning": "Walks past your last used address to find funds on addresses this wallet has never shown. Slower.",

@@ -19,6 +19,7 @@ const SHEET_SNAP_POINTS = ['62%']
 type SSPriceDateSheetProps = {
   ref: React.Ref<BottomSheetMethods>
   date: Date
+  pickerKey: number
   currency: Currency
   price?: number
   isLoading: boolean
@@ -56,6 +57,7 @@ function getRateMessage({
 function SSPriceDateSheet({
   ref,
   date,
+  pickerKey,
   currency,
   price,
   isLoading,
@@ -75,6 +77,7 @@ function SSPriceDateSheet({
       <SSVStack gap="md">
         <View style={styles.pickerWrap}>
           <SSDatePicker
+            key={pickerKey}
             value={date}
             onChange={onDateChange}
             width="90%"
