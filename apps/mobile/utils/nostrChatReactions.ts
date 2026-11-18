@@ -16,11 +16,11 @@ const LIKE_EMOJI = '👍'
 /** Status an agent signals by reacting to my message. */
 type ChatAgentStatus = 'answered' | 'error' | 'working'
 
-const AGENT_STATUS_BY_EMOJI: Record<string, ChatAgentStatus> = {
-  '⚠️': 'error',
-  '✅': 'answered',
-  '👀': 'working'
-}
+const AGENT_STATUS_BY_EMOJI = new Map<string, ChatAgentStatus>([
+  ['⚠️', 'error'],
+  ['✅', 'answered'],
+  ['👀', 'working']
+])
 
 /**
  * The emoji a reaction rumor carries, or null when it isn't a usable one:
@@ -112,11 +112,10 @@ function getChatAgentStatus(
   const [newest] = reactions
     .filter(
       (reaction) =>
-        reaction.author === peerHex &&
-        AGENT_STATUS_BY_EMOJI[reaction.emoji] !== undefined
+        reaction.author === peerHex && AGENT_STATUS_BY_EMOJI.has(reaction.emoji)
     )
     .toSorted((a, b) => b.created_at - a.created_at)
-  return newest ? (AGENT_STATUS_BY_EMOJI[newest.emoji] ?? null) : null
+  return newest ? (AGENT_STATUS_BY_EMOJI.get(newest.emoji) ?? null) : null
 }
 
 /** Reactions grouped by the message they target. */

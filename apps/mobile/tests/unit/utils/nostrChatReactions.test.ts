@@ -124,6 +124,13 @@ describe('getChatAgentStatus', () => {
       )
     ).toBeNull()
   })
+
+  it('ignores reactions named after object prototype keys', () => {
+    const reactions = ['constructor', 'toString', '__proto__'].map(
+      (emoji, index) => reaction({ emoji, id: `r${index}` })
+    )
+    expect(getChatAgentStatus(reactions, PEER)).toBeNull()
+  })
 })
 
 describe('groupReactionsByMessage', () => {
