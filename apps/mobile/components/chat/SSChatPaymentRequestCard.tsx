@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native'
 import { SSIconLightning } from '@/components/icons'
 import SSAmountDisplay from '@/components/SSAmountDisplay'
 import SSButton from '@/components/SSButton'
+import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
@@ -154,9 +155,11 @@ function BitcoinDetails({
           {request.message}
         </SSText>
       ) : null}
-      <SSText type="mono" size="xxs" color="muted" numberOfLines={1}>
-        {formatAddress(request.address)}
-      </SSText>
+      <SSClipboardCopy text={request.address}>
+        <SSText type="mono" size="xxs" color="muted" numberOfLines={1}>
+          {formatAddress(request.address)}
+        </SSText>
+      </SSClipboardCopy>
       {request.hasLightningFallback ? (
         <SSHStack gap="xxs" style={styles.centered}>
           <SSIconLightning
