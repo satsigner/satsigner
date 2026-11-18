@@ -92,9 +92,11 @@ export default function FiatData() {
                 selected={fetchCurrentPrices}
                 onPress={toggleFetchCurrentPrices}
               />
-              <SSText color="muted" size="xs">
-                {tl('current.source', { provider: providerName })}
-              </SSText>
+              {fetchCurrentPrices ? (
+                <SSText color="muted" size="xs">
+                  {tl('current.source', { provider: providerName })}
+                </SSText>
+              ) : null}
             </SSVStack>
             <SSVStack gap="sm">
               <SSText weight="medium">{tl('historical.title')}</SSText>

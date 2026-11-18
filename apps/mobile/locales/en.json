@@ -3451,7 +3451,7 @@
     "features.fiatData.apiFormat.historicalPrices": "Historical prices",
     "features.fiatData.apiUrlHint": "Mempool-compatible API base URL. Custom providers must match the endpoints and JSON shape below.",
     "features.fiatData.current.description": "Today's BTC price, used to show balances and amounts in fiat.",
-    "features.fiatData.current.source": "Source: %{provider} (always online)",
+    "features.fiatData.current.source": "Source: %{provider}. If it can't be reached, the latest price bundled with the app is used.",
     "features.fiatData.current.title": "Current price",
     "features.fiatData.current.toggle": "Fetch the current price",
     "features.fiatData.description": "Control how fiat price data is fetched and displayed",
