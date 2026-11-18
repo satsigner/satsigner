@@ -3,6 +3,7 @@ import type { Transaction } from '@/types/models/Transaction'
 import { formatDate } from '@/utils/format'
 import { parseLabel } from '@/utils/parse'
 import { sortTransactions } from '@/utils/sort'
+import { time } from '@/utils/time'
 
 type TransactionDirection = Transaction['type']
 
@@ -14,7 +15,7 @@ type TransactionSearchFilters = {
   to?: Date
 }
 
-const MS_PER_DAY = 86_400_000
+const MS_PER_DAY = time.days(1)
 
 type TransactionDateBounds = { first: Date; dayCount: number }
 
@@ -159,7 +160,9 @@ function describeActiveFilters({
 }
 
 function toggleTag(tags: string[], tag: string) {
-  return tags.includes(tag) ? tags.filter((t) => t !== tag) : [...tags, tag]
+  return tags.includes(tag)
+    ? tags.filter((selected) => selected !== tag)
+    : [...tags, tag]
 }
 
 export {
