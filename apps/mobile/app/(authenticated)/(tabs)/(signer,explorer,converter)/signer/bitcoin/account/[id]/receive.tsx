@@ -25,11 +25,11 @@ import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { SATS_PER_BITCOIN } from '@/constants/btc'
 import { MAX_SUPPLY_SATS } from '@/constants/consensus'
-import { FIAT_DATA_SETTINGS_ROUTE } from '@/constants/routes'
 import {
   PAYJOIN_DEFAULT_PJOS,
   PAYJOIN_MIN_RECEIVE_SATS
 } from '@/constants/payjoin'
+import { FIAT_DATA_SETTINGS_ROUTE } from '@/constants/routes'
 import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import useGetFirstUnusedAddress from '@/hooks/useGetFirstUnusedAddress'
@@ -68,9 +68,9 @@ import { formatDate, formatNumber } from '@/utils/format'
 import { formatPayjoinExpiringLabel } from '@/utils/payjoinExpiry'
 import { isPayjoinSuccess } from '@/utils/payjoinSessionStatus'
 import { preparePayjoinPsbtForWalletSign } from '@/utils/payjoinSign'
-import { isSamePriceDay } from '@/utils/priceAtDate'
 import { parsePayjoinUri } from '@/utils/payjoinUri'
 import { buildPayjoinWalletCallbacks } from '@/utils/payjoinWallet'
+import { isSamePriceDay } from '@/utils/priceAtDate'
 import { appendLabelNote, buildPriceLabelNote } from '@/utils/receivePriceLabel'
 import {
   buildReceiveQrUri,
