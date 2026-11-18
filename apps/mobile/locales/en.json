@@ -2481,6 +2481,7 @@
     "chat.npubPlaceholder": "npub1… or name",
     "chat.invoice.anyAmount": "Any amount",
     "chat.invoice.expired": "Expired",
+    "chat.invoice.expiredBeforePay": "This invoice expired before a wallet was picked",
     "chat.invoice.expiredAgo": "Expired %{relative}",
     "chat.invoice.expiringSoon": "Expires %{relative}, pay soon",
     "chat.invoice.noExpiry": "No expiry in the invoice",

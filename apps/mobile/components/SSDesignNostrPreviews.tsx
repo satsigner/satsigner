@@ -89,7 +89,7 @@ const NO_KEY_FINGERPRINTS = {}
 const SAMPLE_REPLY_WRAP_COUNT = 3
 const NO_REACTIONS: NostrChatReaction[] = []
 
-function canPayAnyBitcoin() {
+function canPayAnyRequest() {
   return true
 }
 
@@ -150,8 +150,8 @@ function NostrChatPreview({ setIndex }: SetPreviewProps) {
   }
 
   const paymentActions: ChatPaymentActions = {
-    canPayBitcoin: canPayAnyBitcoin,
-    canPayInvoice: true,
+    canPayBitcoin: canPayAnyRequest,
+    canPayInvoice: canPayAnyRequest,
     displayPreferences,
     nowMs,
     onCopy: NOOP,

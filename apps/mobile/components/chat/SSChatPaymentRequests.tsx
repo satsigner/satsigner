@@ -4,10 +4,13 @@ import {
   getPaymentRequestText,
   isChatPaymentRequestExpired
 } from '@/utils/chatPaymentRequests'
-import type { ChatPaymentRequest } from '@/utils/chatPaymentRequests'
+import type {
+  ChatInvoice,
+  ChatPaymentRequest
+} from '@/utils/chatPaymentRequests'
 
 type ChatPaymentActions = {
-  canPayInvoice: boolean
+  canPayInvoice: (request: ChatInvoice) => boolean
   canPayBitcoin: (request: ChatPaymentRequest) => boolean
   displayPreferences: DisplayPreferences
   nowMs: number
@@ -25,7 +28,7 @@ function canPayRequest(
   actions: ChatPaymentActions
 ) {
   return request.kind === 'lightning'
-    ? actions.canPayInvoice
+    ? actions.canPayInvoice(request)
     : actions.canPayBitcoin(request)
 }
 

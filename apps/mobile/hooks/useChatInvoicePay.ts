@@ -8,9 +8,14 @@ import { useArkStore } from '@/store/ark'
 import { useEcashStore } from '@/store/ecash'
 import { useLightningStore } from '@/store/lightning'
 import type { PaymentMethod } from '@/types/models/PaymentMethod'
+import { isChatInvoiceExpired } from '@/utils/chatPaymentRequests'
 import type { ChatInvoice } from '@/utils/chatPaymentRequests'
 import { setClipboard } from '@/utils/clipboard'
-import { buildPaymentMethods, getInvoicePayRoute } from '@/utils/paymentMethods'
+import {
+  buildPaymentMethods,
+  getInvoicePaymentMethods,
+  getInvoicePayRoute
+} from '@/utils/paymentMethods'
 
 /**
  * Paying an invoice found in a chat message: picks the wallet (the only one,
@@ -55,9 +60,14 @@ function useChatInvoicePay() {
     router.navigate(route)
   }
 
+  function canPay(invoice: ChatInvoice) {
+    return getInvoicePaymentMethods(paymentMethods, invoice).length > 0
+  }
+
   function pay(invoice: ChatInvoice) {
-    const [onlyMethod] = paymentMethods
-    if (paymentMethods.length === 1 && onlyMethod) {
+    const methods = getInvoicePaymentMethods(paymentMethods, invoice)
+    const [onlyMethod] = methods
+    if (methods.length === 1 && onlyMethod) {
       openPayScreen(onlyMethod, invoice)
       return
     }
@@ -67,10 +77,15 @@ function useChatInvoicePay() {
 
   function selectMethod(method: PaymentMethod) {
     paymentSheetRef.current?.close()
-    if (pending) {
-      openPayScreen(method, pending)
-    }
     setPending(null)
+    if (!pending) {
+      return
+    }
+    if (isChatInvoiceExpired(pending)) {
+      toast.error(t('nostrIdentity.chat.invoice.expiredBeforePay'))
+      return
+    }
+    openPayScreen(method, pending)
   }
 
   async function copy(invoice: string) {
@@ -83,10 +98,12 @@ function useChatInvoicePay() {
   }
 
   return {
-    canPay: paymentMethods.length > 0,
+    canPay,
     copy,
     pay,
-    paymentMethods,
+    paymentMethods: pending
+      ? getInvoicePaymentMethods(paymentMethods, pending)
+      : [],
     paymentSheetRef,
     pendingAmountSats: pending?.amountSats ?? 0,
     selectMethod
