@@ -22,67 +22,62 @@ type SSSyncTickerProps = {
   labels: string[]
 }
 
-function SSSyncTicker({ labels }: SSSyncTickerProps) {
+type SyncTickerMarqueeProps = {
+  interlude: string
+  lead: string
+}
+
+// The lead label holds still, the track scrolls through the interlude, and
+// the second copy of the lead lands exactly where the first was, so the jump
+// back to the start is invisible. Animating a 0..1 progress lets the lead
+// change width (live counts) without restarting the scroll. Unmounting cancels
+// the loop, so it only runs while there is more than one label.
+function SyncTickerMarquee({ interlude, lead }: SyncTickerMarqueeProps) {
   const leadWidth = useSharedValue(0)
   const loopOffset = useSharedValue(0)
   const progress = useSharedValue(0)
 
   const windowStyle = useAnimatedStyle(() =>
     // Rounded up: a window a fraction narrower than the text clips its end.
-    leadWidth.value > 0 ? { width: Math.ceil(leadWidth.value) } : {}
+    leadWidth.get() > 0 ? { width: Math.ceil(leadWidth.get()) } : {}
   )
   const trackStyle = useAnimatedStyle(() => ({
     transform: [
       {
-        translateX: -progress.value * loopOffset.value
+        translateX: -progress.get() * loopOffset.get()
       }
     ]
   }))
 
-  const [lead = '', ...rest] = labels
-  if (rest.length === 0) {
-    return (
-      <View style={styles.window}>
-        <SSText color="muted" size="xs" center numberOfLines={1}>
-          {lead}
-        </SSText>
-      </View>
-    )
-  }
-
-  const interlude = `${MARQUEE_SEPARATOR}${rest.join(MARQUEE_SEPARATOR)}${MARQUEE_SEPARATOR}`
-
-  // The lead label holds still, the track scrolls through the interlude, and
-  // the second copy of the lead lands exactly where the first was, so the
-  // jump back to the start is invisible. Animating a 0..1 progress lets the
-  // lead change width (live counts) without restarting the scroll.
   function startLoop() {
-    if (progress.value > 0) {
+    if (progress.get() > 0) {
       return
     }
-    progress.value = withRepeat(
-      withSequence(
-        withDelay(
-          SYNC_LABEL_TICK_MS,
-          withTiming(1, {
-            duration: MARQUEE_SCROLL_MS,
-            easing: Easing.inOut(Easing.quad)
-          })
+    progress.set(
+      withRepeat(
+        withSequence(
+          withDelay(
+            SYNC_LABEL_TICK_MS,
+            withTiming(1, {
+              duration: MARQUEE_SCROLL_MS,
+              easing: Easing.inOut(Easing.quad)
+            })
+          ),
+          withTiming(0, { duration: 0 })
         ),
-        withTiming(0, { duration: 0 })
-      ),
-      -1
+        -1
+      )
     )
   }
 
   function handleLeadLayout(event: LayoutChangeEvent) {
-    leadWidth.value = event.nativeEvent.layout.width
+    leadWidth.set(event.nativeEvent.layout.width)
     startLoop()
   }
 
   // Where the second copy actually starts, so the scroll lands on it exactly.
   function handleRepeatLayout(event: LayoutChangeEvent) {
-    loopOffset.value = event.nativeEvent.layout.x
+    loopOffset.set(event.nativeEvent.layout.x)
   }
 
   return (
@@ -110,6 +105,23 @@ function SSSyncTicker({ labels }: SSSyncTickerProps) {
       </Animated.View>
     </Animated.View>
   )
+}
+
+function SSSyncTicker({ labels }: SSSyncTickerProps) {
+  const [lead = '', ...rest] = labels
+  if (rest.length === 0) {
+    return (
+      <View style={styles.window}>
+        <SSText color="muted" size="xs" center numberOfLines={1}>
+          {lead}
+        </SSText>
+      </View>
+    )
+  }
+
+  const interlude = `${MARQUEE_SEPARATOR}${rest.join(MARQUEE_SEPARATOR)}${MARQUEE_SEPARATOR}`
+
+  return <SyncTickerMarquee interlude={interlude} lead={lead} />
 }
 
 const styles = StyleSheet.create({
