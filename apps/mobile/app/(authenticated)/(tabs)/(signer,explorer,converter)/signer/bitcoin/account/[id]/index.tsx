@@ -598,6 +598,8 @@ function AccountActivityToolbar({
     <SSHStack justifyBetween style={styles.activityToolbar}>
       {leftActions}
       <SSPressable
+        accessibilityLabel={labels.join(', ')}
+        accessibilityRole="button"
         onPress={() => setDetailsVisible(true)}
         style={styles.activityToolbarCenter}
       >

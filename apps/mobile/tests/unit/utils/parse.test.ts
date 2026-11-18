@@ -1,4 +1,5 @@
 import {
+  addLabelTag,
   ensureBitcoinPrefix,
   normalizeUtxoLabelForDisplay,
   parseDescriptor,
@@ -12,6 +13,27 @@ import {
 } from '@/utils/parse'
 
 describe('parse utils', () => {
+  describe('addLabelTag', () => {
+    it('appends the tag after the label and its tags', () => {
+      expect(addLabelTag('rent #bills', 'selfsend')).toBe(
+        'rent #bills #selfsend'
+      )
+      expect(addLabelTag('', 'selfsend')).toBe('#selfsend')
+    })
+
+    it('keeps text that follows a mid-label hash', () => {
+      expect(addLabelTag('Invoice #12 from Bob', 'selfsend')).toBe(
+        'Invoice #12 from Bob #selfsend'
+      )
+    })
+
+    it('leaves the label alone when the tag is already there', () => {
+      expect(addLabelTag('moved #selfsend coins', 'selfsend')).toBe(
+        'moved #selfsend coins'
+      )
+    })
+  })
+
   describe('ensureBitcoinPrefix', () => {
     it('adds the scheme once and trims', () => {
       expect(ensureBitcoinPrefix(' abc?amount=1 ')).toBe('bitcoin:abc?amount=1')

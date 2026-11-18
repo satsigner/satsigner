@@ -60,6 +60,10 @@ const DIRECTION_OPTIONS = [
   labelKey: string
 }[]
 
+function getTransactionKey(transaction: Transaction) {
+  return transaction.id
+}
+
 export default function AccountTransactionSearchPage() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
@@ -201,153 +205,157 @@ export default function AccountTransactionSearchPage() {
   }
 
   const filters = (
-    <SSVStack gap="md" style={styles.filters} onLayout={handleFiltersLayout}>
-      <SSTextInput
-        value={query}
-        onChangeText={setQuery}
-        placeholder={t('account.search.placeholder')}
-        autoCapitalize="none"
-        autoCorrect={false}
-      />
+    <View onLayout={handleFiltersLayout}>
+      <SSVStack gap="md" style={styles.filters}>
+        <SSTextInput
+          value={query}
+          onChangeText={setQuery}
+          placeholder={t('account.search.placeholder')}
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
 
-      <SSHStack gap="xs">
-        {DIRECTION_OPTIONS.map((option) => (
-          <SSRadioButton
-            key={option.labelKey}
-            variant="outline"
-            label={t(option.labelKey)}
-            selected={direction === option.direction}
-            onPress={() => setDirection(option.direction)}
-            style={styles.edgeButton}
-          />
-        ))}
-      </SSHStack>
+        <SSHStack gap="xs">
+          {DIRECTION_OPTIONS.map((option) => (
+            <SSRadioButton
+              key={option.labelKey}
+              variant="outline"
+              label={t(option.labelKey)}
+              selected={direction === option.direction}
+              onPress={() => setDirection(option.direction)}
+              style={styles.edgeButton}
+            />
+          ))}
+        </SSHStack>
 
-      {availableTags.length > 0 ? (
-        <SSVStack gap="xs">
-          <SSText color="muted" size="xs" uppercase>
-            {t('account.search.tags')}
-          </SSText>
-          <SSHStack gap="xs" style={styles.wrap}>
-            {availableTags.map((tag) => (
-              <SSPressable
-                key={tag}
-                onPress={() => setSelectedTags((tags) => toggleTag(tags, tag))}
-                style={[
-                  styles.tagChip,
-                  selectedTags.includes(tag) && styles.tagChipSelected
-                ]}
-              >
-                <SSText
-                  size="xs"
-                  uppercase
-                  color={selectedTags.includes(tag) ? 'white' : 'muted'}
+        {availableTags.length > 0 ? (
+          <SSVStack gap="xs">
+            <SSText color="muted" size="xs" uppercase>
+              {t('account.search.tags')}
+            </SSText>
+            <SSHStack gap="xs" style={styles.wrap}>
+              {availableTags.map((tag) => (
+                <SSPressable
+                  key={tag}
+                  onPress={() =>
+                    setSelectedTags((tags) => toggleTag(tags, tag))
+                  }
+                  style={[
+                    styles.tagChip,
+                    selectedTags.includes(tag) && styles.tagChipSelected
+                  ]}
                 >
-                  {`#${tag}`}
-                </SSText>
-              </SSPressable>
-            ))}
-          </SSHStack>
-        </SSVStack>
-      ) : null}
+                  <SSText
+                    size="xs"
+                    uppercase
+                    color={selectedTags.includes(tag) ? 'white' : 'muted'}
+                  >
+                    {`#${tag}`}
+                  </SSText>
+                </SSPressable>
+              ))}
+            </SSHStack>
+          </SSVStack>
+        ) : null}
 
-      <SSVStack gap="xs">
-        <SSHStack justifyBetween>
-          <SSText color="muted" size="xs" uppercase>
-            {t('account.search.dateRange')}
+        <SSVStack gap="xs">
+          <SSHStack justifyBetween>
+            <SSText color="muted" size="xs" uppercase>
+              {t('account.search.dateRange')}
+            </SSText>
+            {dateBounds ? (
+              <SSText size="xs" uppercase onPress={handleToggleDateInputMode}>
+                {isSliderMode
+                  ? t('account.search.useCalendar')
+                  : t('account.search.useSlider')}
+              </SSText>
+            ) : null}
+          </SSHStack>
+          {isSliderMode ? (
+            <SSVStack gap="none">
+              <Slider
+                minimumValue={0}
+                maximumValue={dateBounds.dayCount}
+                step={SLIDER_STEP_DAYS}
+                value={sliderValue(dateBounds)}
+                onValueChange={handleSliderChange}
+                containerStyle={styles.slider}
+                minimumTrackTintColor={Colors.gray[400]}
+                maximumTrackTintColor={Colors.gray[800]}
+                trackStyle={styles.sliderTrack}
+                thumbTintColor={Colors.white}
+                thumbStyle={styles.sliderThumb}
+              />
+              <SSHStack justifyBetween>
+                <SSText size="sm">
+                  {formatDate(dateRange.from ?? dateBounds.first)}
+                </SSText>
+                <SSText size="sm">
+                  {formatDate(
+                    dateRange.to ??
+                      dayIndexToDate(dateBounds.first, dateBounds.dayCount)
+                  )}
+                </SSText>
+              </SSHStack>
+            </SSVStack>
+          ) : (
+            <>
+              <SSHStack gap="xs">
+                <SSRadioButton
+                  variant="outline"
+                  label={edgeLabel('from')}
+                  selected={editingEdge === 'from'}
+                  onPress={() => handleToggleEdge('from')}
+                  style={styles.edgeButton}
+                />
+                <SSRadioButton
+                  variant="outline"
+                  label={edgeLabel('to')}
+                  selected={editingEdge === 'to'}
+                  onPress={() => handleToggleEdge('to')}
+                  style={styles.edgeButton}
+                />
+              </SSHStack>
+              {editingEdge ? (
+                <SSVStack gap="xs">
+                  <View style={styles.pickerWrap}>
+                    <SSDatePicker
+                      key={editingEdge}
+                      value={dateRange[editingEdge]}
+                      onChange={handleDateChange}
+                      width="90%"
+                      height={DATE_PICKER_HEIGHT}
+                      fontSize={Sizes.text.fontSize.xl}
+                      textColor={Colors.white}
+                      fadeColor={Colors.gray[950]}
+                      markColor={Colors.gray[950]}
+                      markHeight={DATE_PICKER_MARK_HEIGHT}
+                      startYear={BITCOIN_GENESIS_YEAR}
+                    />
+                  </View>
+                  <SSButton
+                    label={t('account.search.clearDate')}
+                    variant="ghost"
+                    onPress={handleClearEdge}
+                  />
+                </SSVStack>
+              ) : null}
+            </>
+          )}
+        </SSVStack>
+
+        <SSHStack justifyBetween style={styles.summary}>
+          <SSText color="muted" size="sm">
+            {t('account.search.results', { count: results.length })}
           </SSText>
-          {dateBounds ? (
-            <SSText size="xs" uppercase onPress={handleToggleDateInputMode}>
-              {isSliderMode
-                ? t('account.search.useCalendar')
-                : t('account.search.useSlider')}
+          {hasFilters ? (
+            <SSText size="sm" onPress={handleClearAll}>
+              {t('account.search.clearAll')}
             </SSText>
           ) : null}
         </SSHStack>
-        {isSliderMode ? (
-          <SSVStack gap="none">
-            <Slider
-              minimumValue={0}
-              maximumValue={dateBounds.dayCount}
-              step={SLIDER_STEP_DAYS}
-              value={sliderValue(dateBounds)}
-              onValueChange={handleSliderChange}
-              containerStyle={styles.slider}
-              minimumTrackTintColor={Colors.gray[400]}
-              maximumTrackTintColor={Colors.gray[800]}
-              trackStyle={styles.sliderTrack}
-              thumbTintColor={Colors.white}
-              thumbStyle={styles.sliderThumb}
-            />
-            <SSHStack justifyBetween>
-              <SSText size="sm">
-                {formatDate(dateRange.from ?? dateBounds.first)}
-              </SSText>
-              <SSText size="sm">
-                {formatDate(
-                  dateRange.to ??
-                    dayIndexToDate(dateBounds.first, dateBounds.dayCount)
-                )}
-              </SSText>
-            </SSHStack>
-          </SSVStack>
-        ) : (
-          <>
-            <SSHStack gap="xs">
-              <SSRadioButton
-                variant="outline"
-                label={edgeLabel('from')}
-                selected={editingEdge === 'from'}
-                onPress={() => handleToggleEdge('from')}
-                style={styles.edgeButton}
-              />
-              <SSRadioButton
-                variant="outline"
-                label={edgeLabel('to')}
-                selected={editingEdge === 'to'}
-                onPress={() => handleToggleEdge('to')}
-                style={styles.edgeButton}
-              />
-            </SSHStack>
-            {editingEdge ? (
-              <SSVStack gap="xs">
-                <View style={styles.pickerWrap}>
-                  <SSDatePicker
-                    key={editingEdge}
-                    value={dateRange[editingEdge]}
-                    onChange={handleDateChange}
-                    width="90%"
-                    height={DATE_PICKER_HEIGHT}
-                    fontSize={Sizes.text.fontSize.xl}
-                    textColor={Colors.white}
-                    fadeColor={Colors.gray[950]}
-                    markColor={Colors.gray[950]}
-                    markHeight={DATE_PICKER_MARK_HEIGHT}
-                    startYear={BITCOIN_GENESIS_YEAR}
-                  />
-                </View>
-                <SSButton
-                  label={t('account.search.clearDate')}
-                  variant="ghost"
-                  onPress={handleClearEdge}
-                />
-              </SSVStack>
-            ) : null}
-          </>
-        )}
       </SSVStack>
-
-      <SSHStack justifyBetween style={styles.summary}>
-        <SSText color="muted" size="sm">
-          {t('account.search.results', { count: results.length })}
-        </SSText>
-        {hasFilters ? (
-          <SSText size="sm" onPress={handleClearAll}>
-            {t('account.search.clearAll')}
-          </SSText>
-        ) : null}
-      </SSHStack>
-    </SSVStack>
+    </View>
   )
 
   return (
@@ -366,7 +374,7 @@ export default function AccountTransactionSearchPage() {
           scrollEventThrottle={SCROLL_EVENT_THROTTLE_MS}
           data={results}
           renderItem={renderTransaction}
-          keyExtractor={(item) => item.id}
+          keyExtractor={getTransactionKey}
           ListHeaderComponent={filters}
           maintainVisibleContentPosition={DISABLED_CONTENT_POSITION}
           ListEmptyComponent={

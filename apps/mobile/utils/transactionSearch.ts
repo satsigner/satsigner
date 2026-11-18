@@ -2,6 +2,8 @@ import { t } from '@/locales'
 import type { Transaction } from '@/types/models/Transaction'
 import { formatDate } from '@/utils/format'
 import { parseLabel } from '@/utils/parse'
+import { sortTransactions } from '@/utils/sort'
+import { time } from '@/utils/time'
 
 type TransactionDirection = Transaction['type']
 
@@ -13,7 +15,7 @@ type TransactionSearchFilters = {
   to?: Date
 }
 
-const MS_PER_DAY = 86_400_000
+const MS_PER_DAY = time.days(1)
 
 type TransactionDateBounds = { first: Date; dayCount: number }
 
@@ -94,17 +96,14 @@ function filterTransactions(
   { direction, query, tags, from, to }: TransactionSearchFilters,
   automaticTagsByTxid = NO_AUTOMATIC_TAGS
 ) {
-  return transactions
-    .filter(
-      (tx) =>
-        matchesDirection(tx, direction) &&
-        matchesQuery(tx, query) &&
-        matchesTags(tx, tags, automaticTagsByTxid) &&
-        matchesDateRange(tx, from, to)
-    )
-    .toSorted(
-      (a, b) => (b.timestamp?.getTime() ?? 0) - (a.timestamp?.getTime() ?? 0)
-    )
+  const matches = transactions.filter(
+    (tx) =>
+      matchesDirection(tx, direction) &&
+      matchesQuery(tx, query) &&
+      matchesTags(tx, tags, automaticTagsByTxid) &&
+      matchesDateRange(tx, from, to)
+  )
+  return sortTransactions(matches, 'desc', 'date')
 }
 
 function getTransactionDateBounds(
@@ -161,7 +160,9 @@ function describeActiveFilters({
 }
 
 function toggleTag(tags: string[], tag: string) {
-  return tags.includes(tag) ? tags.filter((t) => t !== tag) : [...tags, tag]
+  return tags.includes(tag)
+    ? tags.filter((selected) => selected !== tag)
+    : [...tags, tag]
 }
 
 export {
