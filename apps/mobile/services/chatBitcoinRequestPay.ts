@@ -4,6 +4,7 @@ import { UNSET_OUTPUT_AMOUNT_SATS } from '@/constants/btc'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import type { Account } from '@/types/models/Account'
+import { matchAddressNetwork } from '@/utils/bitcoin'
 import type { ChatBitcoinRequest } from '@/utils/chatPaymentRequests'
 import {
   commitBitcoinUriToIoPreview,
@@ -12,12 +13,19 @@ import {
 } from '@/utils/contentProcessor'
 import { hasPayjoinParam } from '@/utils/payjoinUri'
 
-/** Accounts that can pay a bitcoin request: same network as the request. */
+/**
+ * Accounts that can pay a bitcoin request: the address is valid on their
+ * network. Testnet and signet share address prefixes, so the request's parsed
+ * network (always testnet for a tb1 address) can't tell them apart.
+ */
 export function getChatBitcoinPayAccounts(
   accounts: Account[],
-  request: Pick<ChatBitcoinRequest, 'network'>
+  request: Pick<ChatBitcoinRequest, 'address'>
 ): Account[] {
-  return accounts.filter((account) => account.network === request.network)
+  return accounts.filter(
+    (account) =>
+      matchAddressNetwork(request.address, account.network) === 'match'
+  )
 }
 
 /**
