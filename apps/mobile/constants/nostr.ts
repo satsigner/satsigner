@@ -95,9 +95,10 @@ export const NOSTR_GROUP_CHAT_PAGE_SIZE = 50
 export const NOSTR_GROUP_CHAT_SCROLL_THRESHOLD = 40
 export const NOSTR_GROUP_CHAT_AUTOSCROLL_THRESHOLD = 0.2
 export const NOSTR_GROUP_CHAT_MESSAGE_MAX_LENGTH = 500
-// NIP-44 caps the sealed rumor at 65535 bytes; 16k chars stays under it even
-// at 4 bytes per char, leaving room for the rumor's JSON and tags.
-export const NOSTR_DM_MESSAGE_MAX_LENGTH = 16_000
+// NIP-44 caps each layer at 65535 bytes. The seal carries the rumor as padded
+// base64, so the rumor JSON must stay within 40960 bytes: 13k UTF-16 units at
+// up to 3 UTF-8 bytes each leaves room for its tags.
+export const NOSTR_DM_MESSAGE_MAX_LENGTH = 13_000
 // Picker for reacting to a chat message; 👀 ✅ ⚠️ double as agent status.
 export const NOSTR_CHAT_REACTION_CHOICES = [
   '👍',
