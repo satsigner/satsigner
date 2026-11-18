@@ -96,6 +96,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   white corners.
 - Dev and branch builds carry a coloured badge on the icon.
 - Self-sends are tagged `#selfsend` on sync.
+- Fiat Data settings are split into current price, historical prices and
+  price provider, and say where each price comes from and what is sent.
 - Transactions show automatic `#consolidation`, `#payjoin`, `#dust` and `#rbf`
   tags, worked out from the transaction and drawn as outlines.
 
