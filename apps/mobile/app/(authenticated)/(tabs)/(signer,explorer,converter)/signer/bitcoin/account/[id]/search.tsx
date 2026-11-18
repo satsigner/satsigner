@@ -60,6 +60,10 @@ const DIRECTION_OPTIONS = [
   labelKey: string
 }[]
 
+function getTransactionKey(transaction: Transaction) {
+  return transaction.id
+}
+
 export default function AccountTransactionSearchPage() {
   const router = useRouter()
   const { id } = useLocalSearchParams<AccountSearchParams>()
@@ -370,7 +374,7 @@ export default function AccountTransactionSearchPage() {
           scrollEventThrottle={SCROLL_EVENT_THROTTLE_MS}
           data={results}
           renderItem={renderTransaction}
-          keyExtractor={(item) => item.id}
+          keyExtractor={getTransactionKey}
           ListHeaderComponent={filters}
           maintainVisibleContentPosition={DISABLED_CONTENT_POSITION}
           ListEmptyComponent={
