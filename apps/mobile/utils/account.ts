@@ -3,6 +3,7 @@ import { SELF_SEND_TAG } from '@/constants/transaction'
 import { getKeySecret, storeKeySecret } from '@/storage/encrypted'
 import { SecretSchema } from '@/types/models/Account'
 import type { Account, Key, Secret } from '@/types/models/Account'
+import { getAccountAddressSets } from '@/utils/address'
 import { aesDecrypt, aesEncrypt } from '@/utils/crypto'
 import { decryptKeySecret } from '@/utils/decryption'
 import { addLabelTag } from '@/utils/parse'
@@ -85,9 +86,7 @@ export function updateAccountObjectLabels(account: Account) {
     updatedAccount.utxos[index].label = label || ''
   }
 
-  const ownAddresses = new Set(
-    updatedAccount.addresses.map(({ address }) => address)
-  )
+  const { ownAddresses } = getAccountAddressSets(updatedAccount.addresses)
 
   for (const [index, tx] of updatedAccount.transactions.entries()) {
     const { id: txRef, vout, vin } = tx

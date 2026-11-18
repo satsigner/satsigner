@@ -61,12 +61,12 @@ describe('getTransactionTags', () => {
 })
 
 describe('filterTransactions', () => {
-  it('returns everything, newest first, without filters', () => {
+  it('returns everything, unconfirmed then newest first, without filters', () => {
     expect(ids(filterTransactions(transactions, noFilters))).toStrictEqual([
+      'ddd444',
       'ccc333',
       'bbb222',
-      'aaa111',
-      'ddd444'
+      'aaa111'
     ])
   })
 
@@ -75,7 +75,7 @@ describe('filterTransactions', () => {
       ...noFilters,
       query: 'COFFEE'
     })
-    expect(ids(result)).toStrictEqual(['aaa111', 'ddd444'])
+    expect(ids(result)).toStrictEqual(['ddd444', 'aaa111'])
     expect(
       filterTransactions(transactions, { ...noFilters, query: 'friends' })
     ).toStrictEqual([])
@@ -99,7 +99,7 @@ describe('filterTransactions', () => {
       direction: 'receive'
     })
     expect(ids(sent)).toStrictEqual(['ccc333'])
-    expect(ids(received)).toStrictEqual(['bbb222', 'aaa111', 'ddd444'])
+    expect(ids(received)).toStrictEqual(['ddd444', 'bbb222', 'aaa111'])
   })
 
   it('requires every selected tag', () => {
