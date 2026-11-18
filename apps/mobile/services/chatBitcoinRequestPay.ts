@@ -1,6 +1,7 @@
 import type { Href } from 'expo-router'
 
 import { UNSET_OUTPUT_AMOUNT_SATS } from '@/constants/btc'
+import { startFreshTransaction } from '@/services/transactionBuilderPrefill'
 import { useBlockchainStore } from '@/store/blockchain'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import type { Account } from '@/types/models/Account'
@@ -38,10 +39,8 @@ export function startChatBitcoinRequestPay(
   request: ChatBitcoinRequest,
   navigate: (href: Href) => void
 ): void {
-  useBlockchainStore.getState().setSelectedNetwork(account.network)
+  startFreshTransaction(account)
   const store = useTransactionBuilderStore.getState()
-  store.clearTransaction()
-  store.setAccountId(account.id)
 
   const payjoinUri = hasPayjoinParam(request.uri) ? request.uri : undefined
   const paymentRequest = {

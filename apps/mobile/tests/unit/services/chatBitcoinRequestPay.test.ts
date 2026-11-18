@@ -116,9 +116,32 @@ describe('startChatBitcoinRequestPay', () => {
       label: 'Pizza night',
       to: ADDRESS
     })
-    expect(navigate).toHaveBeenCalledWith(
-      expect.objectContaining({ pathname: IO_PREVIEW })
+    expect(navigate).toHaveBeenCalledWith({
+      params: { autoSelectFromUri: expect.any(String), id: 'sig' },
+      pathname: IO_PREVIEW
+    })
+  })
+
+  it('starts a fresh draft and keeps the draft of the account left behind', () => {
+    const store = useTransactionBuilderStore.getState()
+    store.setAccountId('sig')
+    store.addOutput({ amount: 1000, label: 'old sig', to: ADDRESS })
+    store.setAccountId('other')
+    store.addOutput({ amount: 2000, label: 'other draft', to: ADDRESS })
+
+    startChatBitcoinRequestPay(
+      account('sig', 'signet'),
+      request(25_000),
+      jest.fn()
     )
+
+    const builder = useTransactionBuilderStore.getState()
+    expect(builder.outputs.map(({ label }) => label)).toStrictEqual([
+      'Pizza night'
+    ])
+    expect(
+      builder.drafts.other?.outputs.map(({ label }) => label)
+    ).toStrictEqual(['other draft'])
   })
 
   it('leaves the amount for the user to fill when the URI has none', () => {
