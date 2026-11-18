@@ -1,4 +1,5 @@
 import {
+  AUTOMATIC_TAGS,
   CONSOLIDATION_MIN_INPUTS,
   CONSOLIDATION_TAG,
   DUST_ATTACK_MAX_SATS,
@@ -70,6 +71,10 @@ function getAutomaticTransactionTags(
   return detected.filter(([, matches]) => matches).map(([tag]) => tag)
 }
 
+function isAutomaticTag(tag: string) {
+  return AUTOMATIC_TAGS.includes(tag)
+}
+
 function getAutomaticTagsByTxid(account: AutomaticTagSource) {
   const context = buildAutomaticTagContext(account)
   return new Map(
@@ -84,6 +89,7 @@ export {
   buildAutomaticTagContext,
   getAutomaticTagsByTxid,
   getAutomaticTransactionTags,
+  isAutomaticTag,
   isDustReceive
 }
 export type { AutomaticTagContext }
