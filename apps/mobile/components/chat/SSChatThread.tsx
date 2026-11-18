@@ -232,8 +232,23 @@ export default function SSChatThread({
   const todayStart = useLocalDayStart()
   const displayPreferences = useDisplayPreferences()
   const nowMs = useNow()
-  const invoicePay = useChatInvoicePay()
-  const bitcoinPay = useChatBitcoinRequestPay()
+  const {
+    canPay: canPayInvoice,
+    copy: copyPaymentRequest,
+    pay: payInvoice,
+    paymentMethods,
+    paymentSheetRef,
+    pendingAmountSats: pendingInvoiceAmountSats,
+    selectMethod
+  } = useChatInvoicePay()
+  const {
+    accountSheetRef,
+    canPay: canPayBitcoinRequest,
+    pay: payBitcoinRequest,
+    pendingAccounts,
+    pendingAmountSats: pendingBitcoinAmountSats,
+    selectAccount
+  } = useChatBitcoinRequestPay()
 
   function handleSend() {
     const text = inputValue.trim()
@@ -265,19 +280,19 @@ export default function SSChatThread({
   }
 
   function handlePaymentCopy(text: string) {
-    void invoicePay.copy(text)
+    void copyPaymentRequest(text)
   }
 
   function handlePaymentPay(request: ChatPaymentRequest) {
     if (request.kind === 'lightning') {
-      invoicePay.pay(request)
+      payInvoice(request)
       return
     }
-    bitcoinPay.pay(request)
+    payBitcoinRequest(request)
   }
 
   function canPayBitcoin(request: ChatPaymentRequest) {
-    return request.kind === 'bitcoin' && bitcoinPay.canPay(request)
+    return request.kind === 'bitcoin' && canPayBitcoinRequest(request)
   }
 
   const rowContext: ChatThreadRowContext = {
@@ -292,7 +307,7 @@ export default function SSChatThread({
     ownNpub,
     paymentActions: {
       canPayBitcoin,
-      canPayInvoice: invoicePay.canPay,
+      canPayInvoice,
       displayPreferences,
       nowMs,
       onCopy: handlePaymentCopy,
@@ -363,17 +378,17 @@ export default function SSChatThread({
         onCancelReply={onCancelReply}
       />
       <SSPaymentMethodPicker
-        ref={invoicePay.paymentSheetRef}
-        onSelect={invoicePay.selectMethod}
-        methods={invoicePay.paymentMethods}
-        amountSats={invoicePay.pendingAmountSats}
+        ref={paymentSheetRef}
+        onSelect={selectMethod}
+        methods={paymentMethods}
+        amountSats={pendingInvoiceAmountSats}
       />
       <SSChatAccountPicker
-        ref={bitcoinPay.accountSheetRef}
-        accounts={bitcoinPay.pendingAccounts}
-        amountSats={bitcoinPay.pendingAmountSats}
+        ref={accountSheetRef}
+        accounts={pendingAccounts}
+        amountSats={pendingBitcoinAmountSats}
         privacyMode={displayPreferences.privacyMode}
-        onSelect={bitcoinPay.selectAccount}
+        onSelect={selectAccount}
       />
     </KeyboardAvoidingView>
   )
