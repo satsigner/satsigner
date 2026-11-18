@@ -1,14 +1,8 @@
 import type { ComponentProps } from 'react'
-import {
-  Alert,
-  Linking,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View
-} from 'react-native'
+import { Alert, Linking, ScrollView, StyleSheet, View } from 'react-native'
 import { toast } from 'sonner-native'
 
+import SSPressable from '@/components/SSPressable'
 import SSText from '@/components/SSText'
 import {
   NOSTR_MARKDOWN_BODY_LINE_HEIGHT,
@@ -64,6 +58,7 @@ type HeadingStyle = {
 const BODY_SIZE: TextFontSize = 'md'
 const BOLD_WEIGHT: TextFontWeight = 'medium'
 const CODE_COPY_HIT_SLOP = 8
+const CODE_COPY_PRESSED_OPACITY = 0.6
 
 async function openLink(url: string) {
   if (!isSafeHttpUrl(url)) {
@@ -72,7 +67,7 @@ async function openLink(url: string) {
   try {
     await Linking.openURL(url)
   } catch {
-    // Ignore invalid or unsupported links.
+    toast.error(t('common.openLinkFailed'))
   }
 }
 
@@ -265,16 +260,17 @@ function MarkdownCodeBlock({
         <SSText size="xxs" color="muted" type="mono">
           {language ?? ''}
         </SSText>
-        <Pressable
+        <SSPressable
           accessibilityLabel={t('common.copyToClipboard')}
+          accessibilityRole="button"
+          activeOpacity={CODE_COPY_PRESSED_OPACITY}
           hitSlop={CODE_COPY_HIT_SLOP}
           onPress={handleCopy}
-          style={({ pressed }) => pressed && styles.pressed}
         >
           <SSText size="xxs" color="muted" uppercase>
             {t('common.copy')}
           </SSText>
-        </Pressable>
+        </SSPressable>
       </SSHStack>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <SSText type="mono" size="xs" style={styles.codeBlockText}>
@@ -495,9 +491,6 @@ const styles = StyleSheet.create({
   },
   paragraph: {
     marginTop: 1
-  },
-  pressed: {
-    opacity: 0.6
   },
   quote: {
     backgroundColor: Colors.gray[925],

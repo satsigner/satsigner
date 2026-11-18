@@ -1184,6 +1184,7 @@
     "notConnected": "Not Connected",
     "of": "Of",
     "open": "Open",
+    "openLinkFailed": "Couldn't open this link",
     "optional": "Optional",
     "paste": "Paste",
     "pasteFromClipboard": "Paste from clipboard",
