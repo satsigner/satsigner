@@ -4,8 +4,8 @@ import {
   getLocalPriceCoverage,
   getLocalPricesAt
 } from '@/api/localPrices'
-import { MS_PER_SECOND } from '@/constants/time'
 import { CurrencySchema } from '@/types/models/Blockchain'
+import { getPriceDateTimestamp } from '@/utils/priceAtDate'
 
 describe('findClosestPrice', () => {
   const times = [100, 200, 300]
@@ -80,8 +80,8 @@ describe('getLocalPriceCoverage', () => {
     'starts and ends on days with a %s price',
     (currency) => {
       const coverage = getLocalPriceCoverage(currency)
-      const first = (coverage?.first.getTime() ?? 0) / MS_PER_SECOND
-      const last = (coverage?.last.getTime() ?? 0) / MS_PER_SECOND
+      const first = getPriceDateTimestamp(coverage?.first ?? new Date(0))
+      const last = getPriceDateTimestamp(coverage?.last ?? new Date(0))
 
       expect(getLocalPriceAt(currency, first)).not.toBeNull()
       expect(getLocalPriceAt(currency, first - 1)).toBeNull()

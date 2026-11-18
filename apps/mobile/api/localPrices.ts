@@ -116,6 +116,13 @@ function getLocalPriceSeries(
   return series
 }
 
+// Rows are UTC days. A local date on the same calendar day formats as that
+// day in every time zone.
+function getCalendarDay(timestamp: number) {
+  const date = new Date(timestamp * MS_PER_SECOND)
+  return new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
+}
+
 function getLocalPriceCoverage(
   currency: Currency
 ): { first: Date; last: Date } | null {
@@ -126,8 +133,8 @@ function getLocalPriceCoverage(
     return null
   }
   return {
-    first: new Date(first.time * MS_PER_SECOND),
-    last: new Date(last.time * MS_PER_SECOND)
+    first: getCalendarDay(first.time),
+    last: getCalendarDay(last.time)
   }
 }
 
