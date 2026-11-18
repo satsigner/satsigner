@@ -25,6 +25,7 @@ import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { SATS_PER_BITCOIN } from '@/constants/btc'
 import { MAX_SUPPLY_SATS } from '@/constants/consensus'
+import { FIAT_DATA_SETTINGS_ROUTE } from '@/constants/routes'
 import {
   PAYJOIN_DEFAULT_PJOS,
   PAYJOIN_MIN_RECEIVE_SATS
@@ -634,7 +635,7 @@ export default function Receive() {
 
   function handleOpenPriceSettings() {
     priceDateSheetRef.current?.close()
-    router.navigate('/settings/features/fiatData')
+    router.navigate(FIAT_DATA_SETTINGS_ROUTE)
   }
 
   function getSatsDisplay(fiat: string): string {
