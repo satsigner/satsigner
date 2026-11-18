@@ -3110,7 +3110,20 @@
     "payjoin.status.receivedOriginal": "Sender posted — contributing a coin…",
     "payjoin.status.unavailable": "Payjoin unavailable — toggle off/on to retry",
     "payjoin.status.waiting": "Waiting for sender to post",
-    "payjoin.status.waitingHint": "Keep this screen open. When the sender posts, we contribute a coin and sign."
+    "payjoin.status.waitingHint": "Keep this screen open. When the sender posts, we contribute a coin and sign.",
+    "priceDate.apply": "Use this date",
+    "priceDate.historicalOff": "Historical prices are off. Turn them on in price settings.",
+    "priceDate.loading": "Looking up the price…",
+    "priceDate.openSettings": "Open price settings",
+    "priceDate.rate": "1 BTC = %{price} %{currency}",
+    "priceDate.rateOn": "Converted at the price on %{date} (1 BTC = %{price} %{currency})",
+    "priceDate.setDate": "Set date",
+    "priceDate.title": "Price date",
+    "priceDate.unavailable": "No price for this date",
+    "priceDate.useCurrent": "Use current price",
+    "priceLabel.add": "Add price",
+    "priceLabel.rate": "%{date} (1 BTC = %{price} %{currency})",
+    "priceLabel.withAmount": "%{amount} %{currency} on %{rate}"
   },
   "script": {
     "diagram.data.emptyElement": "empty",

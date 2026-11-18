@@ -74,6 +74,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   date range on a calendar or a two-thumb slider.
 - The sample segwit wallet labels every transaction, UTXO and address, for
   demos.
+- Receive: "Set date" converts the fiat amount at the price on a chosen day,
+  from bundled price history or the network when allowed in settings.
 
 ### Changed
 

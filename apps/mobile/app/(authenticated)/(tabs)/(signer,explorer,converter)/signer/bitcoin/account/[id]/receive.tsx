@@ -1,3 +1,4 @@
+import type { BottomSheetMethods } from '@gorhom/bottom-sheet/lib/typescript/types'
 import * as Clipboard from 'expo-clipboard'
 import * as Haptics from 'expo-haptics'
 import { Redirect, Stack, useLocalSearchParams, useRouter } from 'expo-router'
@@ -16,6 +17,7 @@ import SSButton from '@/components/SSButton'
 import SSEllipsisAnimation from '@/components/SSEllipsisAnimation'
 import SSLoader from '@/components/SSLoader'
 import SSNumberInput from '@/components/SSNumberInput'
+import SSPriceDateSheet from '@/components/SSPriceDateSheet'
 import SSPsbtTransport from '@/components/SSPsbtTransport'
 import SSShareableQR from '@/components/SSShareableQR'
 import SSShareButton from '@/components/SSShareButton'
@@ -27,6 +29,7 @@ import {
   PAYJOIN_DEFAULT_PJOS,
   PAYJOIN_MIN_RECEIVE_SATS
 } from '@/constants/payjoin'
+import { FIAT_DATA_SETTINGS_ROUTE } from '@/constants/routes'
 import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import useGetAccountWallet from '@/hooks/useGetAccountWallet'
 import useGetFirstUnusedAddress from '@/hooks/useGetFirstUnusedAddress'
@@ -37,6 +40,7 @@ import {
   usePayjoinReceiver,
   walletCanContributeToPayjoin
 } from '@/hooks/usePayjoinReceiver'
+import { usePriceAtDate } from '@/hooks/usePriceAtDate'
 import SSFormLayout from '@/layouts/SSFormLayout'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -60,11 +64,14 @@ import {
   resolveReceiveAddressSelection
 } from '@/utils/externalAddress'
 import { fiatToSats, satsToFiat } from '@/utils/fiat'
+import { formatDate, formatNumber } from '@/utils/format'
 import { formatPayjoinExpiringLabel } from '@/utils/payjoinExpiry'
 import { isPayjoinSuccess } from '@/utils/payjoinSessionStatus'
 import { preparePayjoinPsbtForWalletSign } from '@/utils/payjoinSign'
 import { parsePayjoinUri } from '@/utils/payjoinUri'
 import { buildPayjoinWalletCallbacks } from '@/utils/payjoinWallet'
+import { isSamePriceDay } from '@/utils/priceAtDate'
+import { appendLabelNote, buildPriceLabelNote } from '@/utils/receivePriceLabel'
 import {
   buildReceiveQrUri,
   parseReceiveAmountSats,
@@ -255,6 +262,13 @@ export default function Receive() {
   } = useNFCEmitter()
 
   const { btcPrice, fiatCurrency, fiatEnabled } = useDisplayPreferences()
+  const priceDateSheetRef = useRef<BottomSheetMethods>(null)
+  const [priceDate, setPriceDate] = useState<Date>()
+  const [pendingPriceDate, setPendingPriceDate] = useState(() => new Date())
+  const [priceDatePickerKey, setPriceDatePickerKey] = useState(0)
+  const datedPrice = usePriceAtDate(priceDate, fiatCurrency)
+  const pendingPrice = usePriceAtDate(pendingPriceDate, fiatCurrency)
+  const conversionPrice = priceDate ? (datedPrice.price ?? 0) : btcPrice
 
   const saveLabelTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined
@@ -555,18 +569,73 @@ export default function Receive() {
     if (!sats || Number.isNaN(Number(sats)) || Number(sats) <= 0) {
       return ''
     }
-    const fiatAmount = satsToFiat(Number(sats), btcPrice, fiatEnabled)
+    const fiatAmount = satsToFiat(Number(sats), conversionPrice, fiatEnabled)
     return fiatAmount > 0 ? `≈ ${fiatAmount.toFixed(2)} ${fiatCurrency}` : ''
   }
 
   function getSatsFromFiat(fiat: string): number | null {
+    return getSatsFromFiatAtPrice(fiat, conversionPrice)
+  }
+
+  function getSatsFromFiatAtPrice(fiat: string, price: number) {
     if (!fiat || Number.isNaN(Number(fiat)) || Number(fiat) <= 0) {
       return null
     }
-    if (!btcPrice || btcPrice <= 0) {
+    if (!price || price <= 0) {
       return null
     }
-    return fiatToSats(Number(fiat), btcPrice)
+    return fiatToSats(Number(fiat), price)
+  }
+
+  function repriceFiatAmount(price: number) {
+    if (amountMode !== 'fiat' || !localFiatAmount) {
+      return
+    }
+    const sats = getSatsFromFiatAtPrice(localFiatAmount, price)
+    setLocalCustomAmount(sats !== null ? sats.toString() : '')
+  }
+
+  function handleAddPriceToLabel() {
+    const fiatAmount =
+      amountMode === 'fiat'
+        ? Number(localFiatAmount)
+        : satsToFiat(Number(localCustomAmount), conversionPrice, fiatEnabled)
+    const note = buildPriceLabelNote({
+      currency: fiatCurrency,
+      date: priceDate ?? new Date(),
+      fiatAmount,
+      price: conversionPrice
+    })
+    handleLabelChange(appendLabelNote(localLabel, note))
+  }
+
+  function handleOpenPriceDate() {
+    const openDate = priceDate ?? new Date()
+    if (!isSamePriceDay(openDate, pendingPriceDate)) {
+      setPendingPriceDate(openDate)
+      setPriceDatePickerKey((key) => key + 1)
+    }
+    priceDateSheetRef.current?.expand()
+  }
+
+  function handleApplyPriceDate() {
+    if (pendingPrice.price === undefined) {
+      return
+    }
+    setPriceDate(pendingPriceDate)
+    repriceFiatAmount(pendingPrice.price)
+    priceDateSheetRef.current?.close()
+  }
+
+  function handleUseCurrentPrice() {
+    setPriceDate(undefined)
+    repriceFiatAmount(btcPrice)
+    priceDateSheetRef.current?.close()
+  }
+
+  function handleOpenPriceSettings() {
+    priceDateSheetRef.current?.close()
+    router.navigate(FIAT_DATA_SETTINGS_ROUTE)
   }
 
   function getSatsDisplay(fiat: string): string {
@@ -578,11 +647,15 @@ export default function Receive() {
   }
 
   function handleSwitchToFiat() {
-    if (!btcPrice || btcPrice <= 0) {
+    if (!conversionPrice || conversionPrice <= 0) {
       return
     }
     if (localCustomAmount && Number(localCustomAmount) > 0) {
-      const fiat = satsToFiat(Number(localCustomAmount), btcPrice, fiatEnabled)
+      const fiat = satsToFiat(
+        Number(localCustomAmount),
+        conversionPrice,
+        fiatEnabled
+      )
       setLocalFiatAmount(fiat > 0 ? fiat.toFixed(2) : '')
     }
     setAmountMode('fiat')
@@ -950,7 +1023,7 @@ export default function Receive() {
                         alwaysTriggerOnChange
                         style={styles.amountTextInput}
                       />
-                      {btcPrice > 0 && (
+                      {conversionPrice > 0 && (
                         <SSText
                           color="muted"
                           size="sm"
@@ -987,11 +1060,33 @@ export default function Receive() {
                       </SSText>
                     </>
                   )}
-                  <SSButton
-                    label={t('receive.pasteAmount')}
-                    variant="subtle"
-                    onPress={handlePasteAmount}
-                  />
+                  {priceDate ? (
+                    <SSText color="muted" size="xs" center>
+                      {t('receive.priceDate.rateOn', {
+                        currency: fiatCurrency,
+                        date: formatDate(priceDate),
+                        price: formatNumber(conversionPrice)
+                      })}
+                    </SSText>
+                  ) : null}
+                  <SSHStack gap="xs">
+                    <SSButton
+                      label={t('receive.pasteAmount')}
+                      variant="subtle"
+                      onPress={handlePasteAmount}
+                      style={styles.amountActionButton}
+                    />
+                    <SSButton
+                      label={
+                        priceDate
+                          ? formatDate(priceDate)
+                          : t('receive.priceDate.setDate')
+                      }
+                      variant="subtle"
+                      onPress={handleOpenPriceDate}
+                      style={styles.amountActionButton}
+                    />
+                  </SSHStack>
                 </SSFormLayout.Item>
                 <SSFormLayout.Item>
                   <SSFormLayout.Label label={t('receive.label')} />
@@ -1003,11 +1098,22 @@ export default function Receive() {
                     numberOfLines={3}
                     style={styles.labelTextInput}
                   />
-                  <SSButton
-                    label={t('receive.pasteLabel')}
-                    variant="subtle"
-                    onPress={handlePasteLabel}
-                  />
+                  <SSHStack gap="xs">
+                    <SSButton
+                      label={t('receive.pasteLabel')}
+                      variant="subtle"
+                      onPress={handlePasteLabel}
+                      style={styles.amountActionButton}
+                    />
+                    {conversionPrice > 0 ? (
+                      <SSButton
+                        label={t('receive.priceLabel.add')}
+                        variant="subtle"
+                        onPress={handleAddPriceToLabel}
+                        style={styles.amountActionButton}
+                      />
+                    ) : null}
+                  </SSHStack>
                 </SSFormLayout.Item>
               </SSFormLayout>
               <SSVStack widthFull>
@@ -1079,6 +1185,19 @@ export default function Receive() {
           </SSVStack>
         </SSVStack>
       </SSScrollView>
+      <SSPriceDateSheet
+        ref={priceDateSheetRef}
+        date={pendingPriceDate}
+        pickerKey={priceDatePickerKey}
+        currency={fiatCurrency}
+        price={pendingPrice.price}
+        isLoading={pendingPrice.isLoading}
+        isHistoricalEnabled={pendingPrice.isHistoricalEnabled}
+        onDateChange={setPendingPriceDate}
+        onApply={handleApplyPriceDate}
+        onUseCurrentPrice={handleUseCurrentPrice}
+        onOpenPriceSettings={handleOpenPriceSettings}
+      />
     </SSMainLayout>
   )
 }
@@ -1097,6 +1216,7 @@ const styles = StyleSheet.create({
     textAlign: 'left',
     width: '100%'
   },
+  amountActionButton: { flex: 1 },
   amountTextInput: {
     fontSize: 21
   },
