@@ -4,6 +4,7 @@ import type { LayoutChangeEvent } from 'react-native'
 import Animated, {
   Easing,
   useAnimatedStyle,
+  useReducedMotion,
   useSharedValue,
   withDelay,
   withRepeat,
@@ -117,12 +118,14 @@ function SyncTickerMarquee({ interlude, lead }: SyncTickerMarqueeProps) {
 }
 
 function SSSyncTicker({ labels }: SSSyncTickerProps) {
+  const reduceMotion = useReducedMotion()
   const [lead = '', ...rest] = labels
-  if (rest.length === 0) {
+  // Reduce Motion ends the marquee before it scrolls, so show every label.
+  if (rest.length === 0 || reduceMotion) {
     return (
       <View style={styles.window}>
         <SSText color="muted" size="xs" center numberOfLines={1}>
-          {lead}
+          {labels.join(MARQUEE_SEPARATOR)}
         </SSText>
       </View>
     )
