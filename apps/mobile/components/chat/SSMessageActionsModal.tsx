@@ -1,7 +1,8 @@
-import { Pressable, StyleSheet } from 'react-native'
+import { StyleSheet } from 'react-native'
 
 import SSButton from '@/components/SSButton'
 import SSModal from '@/components/SSModal'
+import SSPressable from '@/components/SSPressable'
 import SSText from '@/components/SSText'
 import { NOSTR_CHAT_REACTION_CHOICES } from '@/constants/nostr'
 import SSHStack from '@/layouts/SSHStack'
@@ -10,6 +11,7 @@ import { t } from '@/locales'
 import { Colors } from '@/styles'
 
 const REACTION_HIT_SLOP = 4
+const REACTION_PRESSED_OPACITY = 0.6
 
 type SSMessageActionsModalProps = {
   visible: boolean
@@ -34,14 +36,16 @@ function ReactionChoice({
     onReact(emoji)
   }
   return (
-    <Pressable
+    <SSPressable
       accessibilityLabel={t('nostrIdentity.chat.reactions.add', { emoji })}
+      accessibilityRole="button"
+      activeOpacity={REACTION_PRESSED_OPACITY}
       hitSlop={REACTION_HIT_SLOP}
       onPress={handlePress}
-      style={({ pressed }) => [styles.reaction, pressed && styles.pressed]}
+      style={styles.reaction}
     >
       <SSText size="xl">{emoji}</SSText>
-    </Pressable>
+    </SSPressable>
   )
 }
 
@@ -95,9 +99,6 @@ const styles = StyleSheet.create({
     alignSelf: 'stretch',
     flex: 1,
     justifyContent: 'center'
-  },
-  pressed: {
-    opacity: 0.6
   },
   reaction: {
     backgroundColor: Colors.gray[850],
