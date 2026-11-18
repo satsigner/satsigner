@@ -57,7 +57,7 @@ type ChatThreadRowContext = {
   paymentActions: ChatPaymentActions
   ownHex: string | null
   peerHex: string | null
-  onRemoveReaction?: (reactionId: string) => void
+  onRemoveReaction?: (reactionIds: string[]) => void
   formattedNpubs: Map<string, AuthorDisplayInfo>
   messagesById: ReadonlyMap<string, NostrDM>
   todayStart: number
@@ -139,13 +139,11 @@ function ChatThreadRow({ row }: { row: ChatRow<NostrChatThreadItem> }) {
             actions={context.paymentActions}
             requests={paymentRequests}
           />
-          {context.onRemoveReaction ? (
-            <SSChatReactions
-              summaries={summarizeChatReactions(reactions, context.ownHex)}
-              agentStatus={agentStatus}
-              onRemove={context.onRemoveReaction}
-            />
-          ) : null}
+          <SSChatReactions
+            summaries={summarizeChatReactions(reactions, context.ownHex)}
+            agentStatus={agentStatus}
+            onRemove={context.onRemoveReaction}
+          />
         </>
       }
     />
@@ -189,8 +187,8 @@ type SSChatThreadProps = {
   onCancelReply?: () => void
   /** Hex pubkey of the peer, whose 👀 ✅ ⚠️ reactions read as agent status. */
   peerHex?: string
-  /** Reactions are shown (NIP-17 threads) only when this is set. */
-  onRemoveReaction?: (reactionId: string) => void
+  /** Lets my reaction chips take my reactions back; without it they are read-only. */
+  onRemoveReaction?: (reactionIds: string[]) => void
 }
 
 /**

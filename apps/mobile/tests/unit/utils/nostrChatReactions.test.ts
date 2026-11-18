@@ -90,9 +90,24 @@ describe('summarizeChatReactions', () => {
       ME
     )
     expect(summary).toStrictEqual([
-      { count: 2, emoji: '👍', ownReactionId: 'r3' },
-      { count: 1, emoji: '❤️' }
+      { count: 2, emoji: '👍', ownReactionIds: ['r3'] },
+      { count: 1, emoji: '❤️', ownReactionIds: [] }
     ])
+  })
+
+  it('keeps every id of mine behind one chip, from any of my devices', () => {
+    const [summary] = summarizeChatReactions(
+      [
+        reaction({ author: ME, id: 'r1' }),
+        reaction({ author: ME, created_at: 101, id: 'r2' })
+      ],
+      ME
+    )
+    expect(summary).toStrictEqual({
+      count: 1,
+      emoji: '👍',
+      ownReactionIds: ['r1', 'r2']
+    })
   })
 
   it('orders emoji by first use', () => {

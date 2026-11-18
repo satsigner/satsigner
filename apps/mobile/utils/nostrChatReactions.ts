@@ -67,6 +67,14 @@ function buildChatReactionTags(messageId: string): string[][] {
   ]
 }
 
+/** Tags for a kind 5 that takes back reactions. */
+function buildChatReactionDeletionTags(reactionIds: string[]): string[][] {
+  return [
+    ...reactionIds.map((id) => ['e', id]),
+    ['k', String(nostrKinds.Reaction)]
+  ]
+}
+
 /**
  * Groups one message's reactions by emoji: one per author and emoji, so a
  * relay replaying the same reaction (or a client sending it twice) counts once.
@@ -78,26 +86,27 @@ function summarizeChatReactions(
 ): NostrChatReactionSummary[] {
   const byEmoji = new Map<
     string,
-    { authors: Set<string>; firstAt: number; ownReactionId?: string }
+    { authors: Set<string>; firstAt: number; ownReactionIds: string[] }
   >()
   for (const reaction of reactions) {
     const entry = byEmoji.get(reaction.emoji) ?? {
       authors: new Set<string>(),
-      firstAt: reaction.created_at
+      firstAt: reaction.created_at,
+      ownReactionIds: []
     }
     entry.authors.add(reaction.author)
     entry.firstAt = Math.min(entry.firstAt, reaction.created_at)
     if (reaction.author === ownHex) {
-      entry.ownReactionId = reaction.id
+      entry.ownReactionIds.push(reaction.id)
     }
     byEmoji.set(reaction.emoji, entry)
   }
   return [...byEmoji.entries()]
     .toSorted(([, a], [, b]) => a.firstAt - b.firstAt)
-    .map(([emoji, { authors, ownReactionId }]) => ({
+    .map(([emoji, { authors, ownReactionIds }]) => ({
       count: authors.size,
       emoji,
-      ...(ownReactionId ? { ownReactionId } : {})
+      ownReactionIds
     }))
 }
 
@@ -142,6 +151,7 @@ function groupReactionsByMessage(
 }
 
 export {
+  buildChatReactionDeletionTags,
   buildChatReactionTags,
   getChatAgentStatus,
   getReactionTargetId,

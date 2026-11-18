@@ -164,7 +164,7 @@ import {
   getChatPipelineStatus,
   ingestChatMessage,
   restartChatPipeline,
-  removeChatReaction,
+  removeChatReactions,
   sendChatReaction,
   sendNip04Chat,
   sendNip17Chat,
@@ -587,20 +587,45 @@ describe('nostrChat', () => {
       expect(reactionStore.size).toBe(0)
     })
 
-    it('takes a reaction back with a gift-wrapped kind 5 naming it', async () => {
+    it('takes reactions back with one gift-wrapped kind 5 naming them', async () => {
       const api = new NostrAPI([])
       const published: Awaited<ReturnType<NDKEvent['toNostrEvent']>>[] = []
       jest.spyOn(api, 'publishEvent').mockImplementation(async (event) => {
         published.push(await event.toNostrEvent())
       })
-      const reactionId = 'f'.repeat(64)
-      reactionStore.set(reactionId, { author: senderPubkey, id: reactionId })
+      const tombstone = jest.spyOn(nostrMessageState, 'tombstoneMessages')
+      const reactionIds = ['f'.repeat(64), 'e'.repeat(64)]
+      for (const id of reactionIds) {
+        reactionStore.set(id, { author: senderPubkey, id })
+      }
 
-      await removeChatReaction(api, sender, peerNpub, reactionId)
+      await removeChatReactions(api, sender, peerNpub, reactionIds)
 
       const rumor = unwrapPublished(published[0], peerSecretKey)
       expect(rumor.kind).toBe(5)
-      expect(rumor.tags).toContainEqual(['e', reactionId])
+      expect(rumor.tags).toContainEqual(['e', reactionIds[0]])
+      expect(rumor.tags).toContainEqual(['e', reactionIds[1]])
+      expect(reactionStore.size).toBe(0)
+      expect(tombstone).toHaveBeenCalledWith(
+        `chat:${senderNpub}`,
+        reactionIds.map((messageId) => ({ author: senderPubkey, messageId })),
+        expect.any(Number)
+      )
+    })
+
+    it('does not react to a message the peer never got', async () => {
+      const api = new NostrAPI([])
+      const publish = jest.spyOn(api, 'publishEvent').mockResolvedValue()
+      jest.spyOn(api, 'publishEvent').mockRejectedValueOnce(new Error('down'))
+      await expect(
+        sendNip17Chat(api, sender, peerNpub, 'never delivered')
+      ).rejects.toThrow()
+      const [failed] = storedMessages()
+      publish.mockClear()
+
+      await sendChatReaction(api, sender, peerNpub, failed?.id ?? '', '👍')
+
+      expect(publish).not.toHaveBeenCalled()
       expect(reactionStore.size).toBe(0)
     })
   })

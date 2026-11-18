@@ -584,8 +584,8 @@ export type NostrChatReaction = {
 export type NostrChatReactionSummary = {
   emoji: string
   count: number
-  /** Id of my reaction with this emoji, to remove it. */
-  ownReactionId?: string
+  /** Ids of my reactions with this emoji (from any of my devices), to remove them. */
+  ownReactionIds: string[]
 }
 
 export type NostrChatProtocol = z.infer<typeof NostrChatProtocolSchema>

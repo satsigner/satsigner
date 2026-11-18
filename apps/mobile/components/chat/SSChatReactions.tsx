@@ -1,5 +1,6 @@
-import { Pressable, StyleSheet } from 'react-native'
+import { StyleSheet } from 'react-native'
 
+import SSPressable from '@/components/SSPressable'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import { t } from '@/locales'
@@ -8,6 +9,7 @@ import type { NostrChatReactionSummary } from '@/types/models/Nostr'
 import type { ChatAgentStatus } from '@/utils/nostrChatReactions'
 
 const CHIP_HIT_SLOP = 4
+const CHIP_PRESSED_OPACITY = 0.6
 
 const STATUS_LABEL_KEYS: Record<ChatAgentStatus, string> = {
   answered: 'nostrIdentity.chat.reactions.status.answered',
@@ -19,8 +21,12 @@ type SSChatReactionsProps = {
   summaries: NostrChatReactionSummary[]
   /** Peer's status signal on my message (👀 ✅ ⚠️). */
   agentStatus: ChatAgentStatus | null
-  /** Tapping my own chip takes the reaction back. */
-  onRemove: (reactionId: string) => void
+  /** Tapping my own chip takes the reaction back; without it chips are read-only. */
+  onRemove?: (reactionIds: string[]) => void
+}
+
+function getChipText({ count, emoji }: NostrChatReactionSummary): string {
+  return count > 1 ? `${emoji} ${count}` : emoji
 }
 
 function ReactionChip({
@@ -28,36 +34,32 @@ function ReactionChip({
   onRemove
 }: {
   summary: NostrChatReactionSummary
-  onRemove: (reactionId: string) => void
+  onRemove?: (reactionIds: string[]) => void
 }) {
-  const { ownReactionId } = summary
+  const { ownReactionIds } = summary
+  const isMine = ownReactionIds.length > 0
+  const removable = isMine && onRemove !== undefined
+  const chipText = getChipText(summary)
   function handlePress() {
-    if (ownReactionId) {
-      onRemove(ownReactionId)
-    }
+    onRemove?.(ownReactionIds)
   }
 
   return (
-    <Pressable
+    <SSPressable
       accessibilityLabel={
-        ownReactionId
+        removable
           ? t('nostrIdentity.chat.reactions.remove', { emoji: summary.emoji })
-          : summary.emoji
+          : chipText
       }
-      disabled={!ownReactionId}
+      accessibilityRole={removable ? 'button' : undefined}
+      activeOpacity={CHIP_PRESSED_OPACITY}
+      disabled={!removable}
       hitSlop={CHIP_HIT_SLOP}
       onPress={handlePress}
-      style={({ pressed }) => [
-        styles.chip,
-        ownReactionId ? styles.ownChip : null,
-        pressed && styles.pressed
-      ]}
+      style={[styles.chip, isMine ? styles.ownChip : null]}
     >
-      <SSText size="xs">
-        {summary.emoji}
-        {summary.count > 1 ? ` ${summary.count}` : ''}
-      </SSText>
-    </Pressable>
+      <SSText size="xs">{chipText}</SSText>
+    </SSPressable>
   )
 }
 
@@ -105,9 +107,6 @@ const styles = StyleSheet.create({
   },
   ownChip: {
     borderColor: Colors.gray[300]
-  },
-  pressed: {
-    opacity: 0.6
   },
   row: {
     flexWrap: 'wrap',

@@ -87,6 +87,7 @@ import {
 } from '@/utils/nostr'
 import { isInboundMessageAllowed } from '@/utils/nostrChatFilter'
 import {
+  buildChatReactionDeletionTags,
   buildChatReactionTags,
   getReactionTargetId,
   groupReactionsByMessage,
@@ -667,7 +668,12 @@ async function deleteChatMessageForEveryone(
 /**
  * NIP-25 reaction to a NIP-17 message: a kind 7 rumor sealed for the peer and
  * our own devices, as private as the message itself. Shown right away and
- * dropped again if no relay takes it.
+ * dropped again if no relay takes it. Only a delivered message takes one:
+ * the peer can't attach a reaction to a message they never got.
+ *
+ * The same emoji sent twice within a second is the same rumor; the attempt
+ * that finds it already stored leaves publishing (and any rollback) to the
+ * first one.
  */
 async function sendChatReaction(
   api: NostrAPI,
@@ -678,7 +684,12 @@ async function sendChatReaction(
 ): Promise<void> {
   const ownHex = getPubKeyHexFromNpub(identity.npub)
   const message = getChatMessage(identity.npub, messageId)
-  if (ownHex === null || !message || message.protocol !== 'nip17') {
+  if (
+    ownHex === null ||
+    !message ||
+    message.protocol !== 'nip17' ||
+    message.status !== 'sent'
+  ) {
     return
   }
   const delivery = resolveNip17Delivery(identity, peerNpub)
@@ -688,7 +699,7 @@ async function sendChatReaction(
     emoji,
     buildChatReactionTags(messageId)
   )
-  insertChatReaction({
+  const inserted = insertChatReaction({
     author: ownHex,
     created_at: rumor.created_at,
     emoji,
@@ -696,37 +707,57 @@ async function sendChatReaction(
     identityNpub: identity.npub,
     messageId
   })
+  if (!inserted) {
+    return
+  }
   invalidateChatQueries(identity.npub)
   try {
     await publishOrThrow(api, identity, delivery, rumor)
   } catch (error) {
     deleteChatReactions(identity.npub, ownHex, [rumor.id])
+    deleteMessageWraps(chatScope(identity.npub), [rumor.id])
     invalidateChatQueries(identity.npub)
     throw error
   }
 }
 
-/** Takes back one of our reactions with a gift-wrapped kind 5 naming it. */
-async function removeChatReaction(
+/**
+ * Takes back our reactions with one gift-wrapped kind 5 naming them. Once
+ * it is out, they are tombstoned and dropped here before the best-effort
+ * relay cleanup, so our own reaction copy arriving late can't restore them.
+ */
+async function removeChatReactions(
   api: NostrAPI,
   identity: ChatIdentity,
   peerNpub: string,
-  reactionId: string
+  reactionIds: string[]
 ): Promise<void> {
   const ownHex = getPubKeyHexFromNpub(identity.npub)
-  if (ownHex === null) {
+  if (ownHex === null || reactionIds.length === 0) {
     return
   }
+  const scope = chatScope(identity.npub)
   const delivery = resolveNip17Delivery(identity, peerNpub)
-  const rumor = createNip17Rumor(delivery, nostrKinds.EventDeletion, '', [
-    ['e', reactionId],
-    ['k', String(nostrKinds.Reaction)]
-  ])
+  const rumor = createNip17Rumor(
+    delivery,
+    nostrKinds.EventDeletion,
+    '',
+    buildChatReactionDeletionTags(reactionIds)
+  )
   await publishOrThrow(api, identity, delivery, rumor)
-  await requestChatWrapDeletion(api, identity, delivery, reactionId)
-  deleteChatReactions(identity.npub, ownHex, [reactionId])
-  deleteMessageWraps(chatScope(identity.npub), [reactionId])
+  tombstoneMessages(
+    scope,
+    reactionIds.map((messageId) => ({ author: ownHex, messageId })),
+    nowInSeconds()
+  )
+  deleteChatReactions(identity.npub, ownHex, reactionIds)
   invalidateChatQueries(identity.npub)
+  await Promise.all(
+    reactionIds.map((reactionId) =>
+      requestChatWrapDeletion(api, identity, delivery, reactionId)
+    )
+  )
+  deleteMessageWraps(scope, reactionIds)
 }
 
 /**
@@ -1451,6 +1482,11 @@ function toChatThreadItem(
   return { dm, failed: message.status === 'failed', reactions }
 }
 
+/** The peer has this message: it is neither still sending nor failed. */
+function isChatThreadItemDelivered(item: NostrChatThreadItem): boolean {
+  return !item.failed && !item.dm.pending
+}
+
 function getChatThreadAuthors(
   identityNpub: string,
   peerPubkey: string
@@ -1615,13 +1651,14 @@ export {
   getChatPipelineStatus,
   ingestChatMessage,
   invalidateChatQueries,
+  isChatThreadItemDelivered,
   listChatConversationItems,
   loadChatMessageDetail,
   loadChatPeerProfiles,
   loadChatThreadItems,
   loadOlderChatHistory,
   nostrChatQueryKeys,
-  removeChatReaction,
+  removeChatReactions,
   restartChatPipeline,
   sendNip04Chat,
   sendChatReaction,
