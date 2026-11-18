@@ -34,6 +34,35 @@ describe('parseMarkdownBlocks', () => {
     })
   })
 
+  it('keeps the language label of a fenced code block', () => {
+    const blocks = parseMarkdownBlocks('```ts\nconst a = 1\n```')
+    expect(blocks).toStrictEqual([
+      { language: 'ts', type: 'code', value: 'const a = 1' }
+    ])
+  })
+
+  it('reads the language label after a longer opening fence', () => {
+    const [block] = parseMarkdownBlocks('````ts\nconst a = 1\n````')
+    expect(block).toMatchObject({ language: 'ts', type: 'code' })
+  })
+
+  it('drops a fence label that is not a language name', () => {
+    const blocks = parseMarkdownBlocks('```<script>alert(1)</script>\nx\n```')
+    expect(blocks).toStrictEqual([{ type: 'code', value: 'x' }])
+  })
+
+  it('leaves html as literal text', () => {
+    const blocks = parseMarkdownBlocks('<img src="https://x" onerror="y">')
+    expect(blocks).toStrictEqual([
+      {
+        segments: [
+          { type: 'text', value: '<img src="https://x" onerror="y">' }
+        ],
+        type: 'paragraph'
+      }
+    ])
+  })
+
   it('parses ordered lists with or without space after the marker', () => {
     const blocks = parseMarkdownBlocks(
       '4. Lorem ipsum\n4)Lorem ipsum\n  10. Ten'

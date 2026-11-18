@@ -4,6 +4,28 @@ import {
 } from '@/constants/nostr'
 import type { NostrDM } from '@/types/models/Nostr'
 
+/**
+ * The text of a DM. Stored and live DMs keep it in content.description; a
+ * plain-string content is the legacy shape. Null when neither holds text.
+ */
+function getDmText(
+  dm: Pick<NostrDM, 'content'> | { content: unknown }
+): string | null {
+  const { content }: { content: unknown } = dm
+  if (typeof content === 'string') {
+    return content
+  }
+  if (
+    typeof content === 'object' &&
+    content !== null &&
+    'description' in content &&
+    typeof content.description === 'string'
+  ) {
+    return content.description
+  }
+  return null
+}
+
 function sortDmsByCreatedAt(dms: NostrDM[]): NostrDM[] {
   return dms.toSorted((a, b) => a.created_at - b.created_at)
 }
@@ -40,6 +62,7 @@ function findOptimisticEcho(
 }
 
 export {
+  getDmText,
   createOptimisticDmId,
   findOptimisticEcho,
   isOptimisticDmId,

@@ -2,6 +2,7 @@ import { t } from '@/locales'
 import type { ArkAccount } from '@/types/models/Ark'
 import type { NostrZapPreferences } from '@/types/models/Nostr'
 import type { PaymentMethod } from '@/types/models/PaymentMethod'
+import type { Network } from '@/types/settings/blockchain'
 
 export function buildPaymentMethods(
   lightningConfig: { url: string; alias?: string } | null,
@@ -42,6 +43,19 @@ export function buildPaymentMethods(
     })
   }
   return methods
+}
+
+/**
+ * Wallets that can pay this invoice. Ark accounts here are mainnet only and
+ * the Ark pay screen has no amount input, so it takes fixed-amount mainnet
+ * invoices only.
+ */
+export function getInvoicePaymentMethods(
+  methods: PaymentMethod[],
+  invoice: { amountSats: number; network: Network | null }
+): PaymentMethod[] {
+  const arkCanPay = invoice.amountSats > 0 && invoice.network === 'bitcoin'
+  return methods.filter((method) => method.type !== 'ark' || arkCanPay)
 }
 
 /**

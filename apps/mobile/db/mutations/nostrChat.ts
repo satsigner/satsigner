@@ -1,4 +1,4 @@
-import type { NostrChatMessage } from '@/types/models/Nostr'
+import type { NostrChatMessage, NostrChatReaction } from '@/types/models/Nostr'
 
 import { getDb, runTransaction } from '../connection'
 import { boolToInt } from '../mappers'
@@ -71,12 +71,51 @@ function markChatThreadRead(
   return rowsAffected ?? 0
 }
 
+/** A deleted message takes its reactions with it. */
 function deleteChatMessages(identityNpub: string, ids: string[]) {
   runTransaction((tx) => {
     for (const id of ids) {
       tx.execute(
         'DELETE FROM nostr_chat_messages WHERE identity_npub = ? AND id = ?',
         [identityNpub, id]
+      )
+      tx.execute(
+        'DELETE FROM nostr_chat_reactions WHERE identity_npub = ? AND message_id = ?',
+        [identityNpub, id]
+      )
+    }
+  })
+}
+
+/** INSERT OR IGNORE: relay redelivery must not duplicate a reaction. */
+function insertChatReaction(reaction: NostrChatReaction): boolean {
+  const { rowsAffected } = getDb().execute(
+    `INSERT OR IGNORE INTO nostr_chat_reactions (
+      id, identity_npub, message_id, author, emoji, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?)`,
+    [
+      reaction.id,
+      reaction.identityNpub,
+      reaction.messageId,
+      reaction.author,
+      reaction.emoji,
+      reaction.created_at
+    ]
+  )
+  return (rowsAffected ?? 0) > 0
+}
+
+/** Only the author can remove a reaction. */
+function deleteChatReactions(
+  identityNpub: string,
+  author: string,
+  ids: string[]
+): void {
+  runTransaction((tx) => {
+    for (const id of ids) {
+      tx.execute(
+        'DELETE FROM nostr_chat_reactions WHERE identity_npub = ? AND id = ? AND author = ?',
+        [identityNpub, id, author]
       )
     }
   })
@@ -91,6 +130,9 @@ function deleteChatMessagesForIdentity(identityNpub: string) {
   getDb().execute('DELETE FROM nostr_chat_messages WHERE identity_npub = ?', [
     identityNpub
   ])
+  getDb().execute('DELETE FROM nostr_chat_reactions WHERE identity_npub = ?', [
+    identityNpub
+  ])
   clearNostrProcessedEvents(chatProcessedScope(identityNpub))
   clearMessageState(chatProcessedScope(identityNpub))
 }
@@ -98,8 +140,10 @@ function deleteChatMessagesForIdentity(identityNpub: string) {
 export {
   deleteChatMessages,
   deleteChatMessagesForIdentity,
+  deleteChatReactions,
   failInterruptedChatSends,
   insertChatMessage,
+  insertChatReaction,
   markChatThreadRead,
   updateChatMessageStatus
 }

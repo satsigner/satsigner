@@ -8,6 +8,7 @@ import type { NostrDM } from '@/types/models/Nostr'
 import { formatDateShort } from '@/utils/date'
 import { formatNpub } from '@/utils/format'
 import { parseNostrTransaction, safeNpubEncode } from '@/utils/nostr'
+import { getDmText } from '@/utils/nostrDms'
 
 export type AuthorDisplayInfo = {
   displayName?: string
@@ -26,13 +27,7 @@ type UseNostrMessageParams = {
 }
 
 function getMessageContent(msg: NostrDM): string {
-  if (typeof msg.content === 'object' && 'description' in msg.content) {
-    return msg.content.description
-  }
-  if (typeof msg.content === 'string') {
-    return msg.content
-  }
-  return t('account.nostrSync.devicesGroupChat.displayError')
+  return getDmText(msg) ?? t('account.nostrSync.devicesGroupChat.displayError')
 }
 
 /** Callers that already hold npub authors (DM threads) skip the encode. */
