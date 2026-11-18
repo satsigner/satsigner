@@ -88,7 +88,7 @@ function listChatThread(
   const { rows } = getDb().execute<ChatMessageRow>(
     `SELECT * FROM nostr_chat_messages
       WHERE identity_npub = ? AND protocol = ? AND peer_pubkey = ?
-      ORDER BY created_at DESC LIMIT ?`,
+      ORDER BY created_at DESC, id DESC LIMIT ?`,
     [identityNpub, protocol, peerPubkey, limit]
   )
   return rows._array.map((row) => rowToChatMessage(row)).toReversed()
@@ -106,7 +106,7 @@ function listChatThreadReactions(
       WHERE r.identity_npub = ? AND r.message_id IN (
         SELECT id FROM nostr_chat_messages
          WHERE identity_npub = ? AND protocol = ? AND peer_pubkey = ?
-         ORDER BY created_at DESC LIMIT ?
+         ORDER BY created_at DESC, id DESC LIMIT ?
       )
       ORDER BY r.created_at ASC`,
     [identityNpub, identityNpub, protocol, peerPubkey, limit]
