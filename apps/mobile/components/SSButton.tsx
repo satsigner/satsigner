@@ -354,9 +354,12 @@ const styles = StyleSheet.create({
   buttonGradient: {
     alignItems: 'center',
     borderRadius: Sizes.button.borderRadius,
-    inset: 0,
+    bottom: 0,
     justifyContent: 'center',
-    position: 'absolute'
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0
   },
   buttonLabelSingleLine: {
     flexShrink: 1,

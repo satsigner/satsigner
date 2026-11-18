@@ -69,6 +69,8 @@ import SSPressable from '@/components/SSPressable'
 import SSSeparator from '@/components/SSSeparator'
 import SSSortDirectionToggle from '@/components/SSSortDirectionToggle'
 import SSStyledSatText from '@/components/SSStyledSatText'
+import SSSyncDetailsModal from '@/components/SSSyncDetailsModal'
+import SSSyncTicker from '@/components/SSSyncTicker'
 import SSText from '@/components/SSText'
 import SSTransactionCard from '@/components/SSTransactionCard'
 import SSUtxoCard from '@/components/SSUtxoCard'
@@ -143,6 +145,7 @@ import {
 import type { ScanThroughput } from '@/utils/scanThroughput'
 import { sortAddressesByIndex, sortTransactions } from '@/utils/sort'
 import type { TransactionSortField } from '@/utils/sort'
+import { syncTickerLabels } from '@/utils/syncLabels'
 import { getUtxoOutpoint } from '@/utils/utxo'
 import {
   DEFAULT_UTXO_LIST_FILTER,
@@ -512,43 +515,29 @@ type TotalTransactionsProps = {
   scanFromTimeSec?: number
 }
 
-function syncProgressLabel(tasksDone?: number, totalTasks?: number): string {
-  if (tasksDone === undefined || totalTasks === undefined || totalTasks === 0) {
-    return t('account.syncing')
-  }
-  const pct = Math.min(100, Math.round((tasksDone / totalTasks) * 100))
-  return t('account.syncProgressBlocks', {
-    current: tasksDone.toLocaleString(),
-    pct,
-    tip: totalTasks.toLocaleString()
-  })
-}
-
-type ActivityToolbarTitleParams = {
+type ActivityToolbarLabelsParams = {
   lastSyncedAt: Account['lastSyncedAt']
   nowMs: number
+  syncProgress: Account['syncProgress']
   syncStatus?: Account['syncStatus']
-  tasksDone?: number
-  totalTasks?: number
 }
 
-function activityToolbarTitle({
+function activityToolbarLabels({
   lastSyncedAt,
   nowMs,
-  syncStatus,
-  tasksDone,
-  totalTasks
-}: ActivityToolbarTitleParams): string {
+  syncProgress,
+  syncStatus
+}: ActivityToolbarLabelsParams): string[] {
   if (syncStatus === 'syncing') {
-    return syncProgressLabel(tasksDone, totalTasks)
+    return syncTickerLabels(syncProgress ?? {})
   }
   if (syncStatus === 'queued') {
-    return t('account.sync.status.queued')
+    return [t('account.sync.status.queued')]
   }
   if (syncStatus === 'timeout') {
-    return t('account.sync.status.timeout')
+    return [t('account.sync.status.timeout')]
   }
-  return lastSyncedLabel(lastSyncedAt, nowMs)
+  return [lastSyncedLabel(lastSyncedAt, nowMs)]
 }
 
 /** Toolbar title when idle — replaces static "Account activity". */
@@ -575,25 +564,58 @@ function lastSyncedLabel(
 
 function AccountActivityToolbar({
   isSyncing,
-  title,
+  labels,
+  lastSyncedAt,
+  nowMs,
+  onCheckAll,
+  onDeepRescan,
   leftActions,
   rightActions
 }: {
   isSyncing: boolean
-  title: string
+  labels: string[]
+  lastSyncedAt: Account['lastSyncedAt']
+  nowMs: number
+  onCheckAll: () => Promise<void>
+  onDeepRescan: () => Promise<void>
   leftActions: ReactNode
   rightActions: ReactNode
 }) {
+  const [detailsVisible, setDetailsVisible] = useState(false)
+
+  function handleCheckAll() {
+    setDetailsVisible(false)
+    void onCheckAll()
+  }
+
+  function handleDeepRescan() {
+    setDetailsVisible(false)
+    void onDeepRescan()
+  }
+
   return (
     <SSHStack justifyBetween style={styles.activityToolbar}>
       {leftActions}
-      <SSHStack gap="xs" style={styles.activityToolbarCenter}>
-        {isSyncing ? <SSLoader size={14} /> : null}
-        <SSText color="muted" size="xs" center numberOfLines={1}>
-          {title}
-        </SSText>
-      </SSHStack>
+      <SSPressable
+        accessibilityLabel={labels.join(', ')}
+        accessibilityRole="button"
+        onPress={() => setDetailsVisible(true)}
+        style={styles.activityToolbarCenter}
+      >
+        <SSHStack gap="xs">
+          {isSyncing ? <SSLoader size={14} /> : null}
+          <SSSyncTicker labels={labels} />
+        </SSHStack>
+      </SSPressable>
       {rightActions}
+      <SSSyncDetailsModal
+        visible={detailsVisible}
+        isSyncing={isSyncing}
+        lastSyncedLabel={lastSyncedLabel(lastSyncedAt, nowMs)}
+        onCheckAll={handleCheckAll}
+        onDeepRescan={handleDeepRescan}
+        onClose={() => setDetailsVisible(false)}
+      />
     </SSHStack>
   )
 }
@@ -826,12 +848,11 @@ function TotalTransactions({
 
   const [showHistoryChart, setShowHistoryChart] = useState<boolean>(false)
   const isSyncing = syncStatus === 'syncing'
-  const activityTitle = activityToolbarTitle({
+  const activityLabels = activityToolbarLabels({
     lastSyncedAt: account.lastSyncedAt,
     nowMs,
-    syncStatus,
-    tasksDone,
-    totalTasks
+    syncProgress: account.syncProgress,
+    syncStatus
   })
   const emptyListLabel = isTransactionHistoryLoading({ refreshing, syncStatus })
     ? t('account.transactions.loading')
@@ -841,7 +862,11 @@ function TotalTransactions({
     <View style={{ flex: 1, paddingHorizontal: '6%' }}>
       <AccountActivityToolbar
         isSyncing={isSyncing}
-        title={activityTitle}
+        labels={activityLabels}
+        lastSyncedAt={account.lastSyncedAt}
+        nowMs={nowMs}
+        onCheckAll={handleOnRefresh}
+        onDeepRescan={handleOnForceRescan}
         leftActions={
           <SSHStack>
             <SSIconButton
@@ -1609,12 +1634,11 @@ function SpendableOutputs({
   const excludedOutpoints = account.excludedUtxoOutpoints ?? []
   const excludedCount = excludedOutpoints.length
   const isSyncing = syncStatus === 'syncing'
-  const activityTitle = activityToolbarTitle({
+  const activityLabels = activityToolbarLabels({
     lastSyncedAt: account.lastSyncedAt,
     nowMs,
-    syncStatus,
-    tasksDone,
-    totalTasks
+    syncProgress: account.syncProgress,
+    syncStatus
   })
 
   const groups = prepareUtxoList({
@@ -1681,7 +1705,11 @@ function SpendableOutputs({
     <View style={{ flex: 1, paddingHorizontal: '6%', paddingTop: 0 }}>
       <AccountActivityToolbar
         isSyncing={isSyncing}
-        title={activityTitle}
+        labels={activityLabels}
+        lastSyncedAt={account.lastSyncedAt}
+        nowMs={nowMs}
+        onCheckAll={handleOnRefresh}
+        onDeepRescan={handleOnForceRescan}
         leftActions={
           <SSHStack>
             <SSIconButton
