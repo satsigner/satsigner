@@ -48,15 +48,15 @@ function loadPriceBundle(currency: Currency): PriceBundle {
   return parsed
 }
 
+function isUsablePrice(price: number | null | undefined): price is number {
+  return typeof price === 'number' && Number.isFinite(price) && price >= 0
+}
+
 /**
  * Closest bundled close at or before `timestamp`.
  * Returns null if the timestamp is before the first row or after the last
  * (newer than the dataset — do not clamp to last close).
  */
-function isUsablePrice(price: number | null | undefined): price is number {
-  return typeof price === 'number' && Number.isFinite(price) && price >= 0
-}
-
 function findClosestPrice(
   times: number[],
   prices: (number | null)[],
