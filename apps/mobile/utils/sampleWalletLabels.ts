@@ -13,6 +13,7 @@ import type { Label } from '@/types/bips/329'
 import type { Account } from '@/types/models/Account'
 import type { Address } from '@/types/models/Address'
 import type { Transaction } from '@/types/models/Transaction'
+import { getAccountAddressSets } from '@/utils/address'
 import { isDustReceive } from '@/utils/automaticTags'
 import { addLabelTag, parseLabel, parseLabelTags } from '@/utils/parse'
 import type { SampleWallet } from '@/utils/sampleWallet'
@@ -47,7 +48,7 @@ function createCycler(labels: string[]) {
 }
 
 function buildTransactionLabels(account: LabelSource) {
-  const ownAddresses = new Set(account.addresses.map(({ address }) => address))
+  const { ownAddresses } = getAccountAddressSets(account.addresses)
   const pickReceiveStory = createStoryPicker(SAMPLE_RECEIVE_BUCKETS)
   const pickSendStory = createStoryPicker(SAMPLE_SEND_BUCKETS)
   const nextDustLabel = createCycler(SAMPLE_DUST_LABELS)
