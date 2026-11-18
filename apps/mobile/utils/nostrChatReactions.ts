@@ -24,11 +24,12 @@ const AGENT_STATUS_BY_EMOJI = new Map<string, ChatAgentStatus>([
 
 /**
  * The emoji a reaction rumor carries, or null when it isn't a usable one:
- * "+" reads as 👍, "-" (dislike) and empty or oversized content are dropped.
+ * "+" and empty content read as 👍 (NIP-25), while "-" (dislike),
+ * whitespace-only and oversized content are dropped.
  */
 function parseReactionEmoji(content: string): string | null {
   const trimmed = content.trim()
-  if (trimmed === LIKE_CONTENT) {
+  if (content === '' || trimmed === LIKE_CONTENT) {
     return LIKE_EMOJI
   }
   if (
@@ -42,21 +43,20 @@ function parseReactionEmoji(content: string): string | null {
 }
 
 /**
- * NIP-25: the last `e` tag is the reacted-to event. Only valid 32-byte hex
- * ids count, so a malformed tag can't attach a reaction to anything.
+ * NIP-25: the last `e` tag is the reacted-to event. It must hold a valid
+ * 32-byte hex id; an invalid one never falls back to an earlier tag.
  */
 function getReactionTargetId(tags: unknown): string | null {
   if (!Array.isArray(tags)) {
     return null
   }
   const eventTags = tags.filter(
-    (tag): tag is string[] =>
-      Array.isArray(tag) &&
-      tag[0] === 'e' &&
-      typeof tag[1] === 'string' &&
-      NOSTR_HEX_PUBKEY_RE.test(tag[1])
+    (tag): tag is unknown[] => Array.isArray(tag) && tag[0] === 'e'
   )
-  return eventTags.at(-1)?.[1] ?? null
+  const targetId = eventTags.at(-1)?.[1]
+  return typeof targetId === 'string' && NOSTR_HEX_PUBKEY_RE.test(targetId)
+    ? targetId
+    : null
 }
 
 /** Tags for a reaction rumor to a chat message (peer `p` is added by the wrapper). */
@@ -101,9 +101,15 @@ function summarizeChatReactions(
     }))
 }
 
+function isWorkingStatus(reaction: NostrChatReaction): boolean {
+  return AGENT_STATUS_BY_EMOJI.get(reaction.emoji) === 'working'
+}
+
 /**
  * The newest status the peer signalled on one of my messages (👀 working,
- * ✅ answered, ⚠️ error), or null when they sent none.
+ * ✅ answered, ⚠️ error), or null when they sent none. Timestamps have
+ * one-second resolution, so on a tie an outcome wins over working: the work
+ * started before it ended.
  */
 function getChatAgentStatus(
   reactions: NostrChatReaction[],
@@ -114,7 +120,11 @@ function getChatAgentStatus(
       (reaction) =>
         reaction.author === peerHex && AGENT_STATUS_BY_EMOJI.has(reaction.emoji)
     )
-    .toSorted((a, b) => b.created_at - a.created_at)
+    .toSorted(
+      (a, b) =>
+        b.created_at - a.created_at ||
+        Number(isWorkingStatus(a)) - Number(isWorkingStatus(b))
+    )
   return newest ? (AGENT_STATUS_BY_EMOJI.get(newest.emoji) ?? null) : null
 }
 

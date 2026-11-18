@@ -27,13 +27,14 @@ function reaction(
 }
 
 describe('parseReactionEmoji', () => {
-  it('reads "+" as a thumbs up and keeps emoji as sent', () => {
+  it('reads "+" and empty content as a thumbs up and keeps emoji as sent', () => {
     expect(parseReactionEmoji('+')).toBe('👍')
+    expect(parseReactionEmoji('')).toBe('👍')
     expect(parseReactionEmoji(' 🔥 ')).toBe('🔥')
     expect(parseReactionEmoji('👨‍👩‍👧')).toBe('👨‍👩‍👧')
   })
 
-  it('drops dislikes, empty and oversized content', () => {
+  it('drops dislikes, whitespace-only and oversized content', () => {
     expect(parseReactionEmoji('-')).toBeNull()
     expect(parseReactionEmoji('   ')).toBeNull()
     expect(parseReactionEmoji('x'.repeat(33))).toBeNull()
@@ -41,7 +42,16 @@ describe('parseReactionEmoji', () => {
 })
 
 describe('getReactionTargetId', () => {
-  it('takes the last valid e tag (NIP-25)', () => {
+  it('rejects an invalid last e tag instead of an earlier valid one', () => {
+    expect(
+      getReactionTargetId([
+        ['e', MSG_1],
+        ['e', 'not-hex']
+      ])
+    ).toBeNull()
+  })
+
+  it('takes the last e tag (NIP-25)', () => {
     expect(
       getReactionTargetId([
         ['e', MSG_1],
@@ -123,6 +133,15 @@ describe('getChatAgentStatus', () => {
         PEER
       )
     ).toBeNull()
+  })
+
+  it('lets an outcome win over working within the same second', () => {
+    const reactions = [
+      reaction({ created_at: 10, emoji: '✅', id: 'r1' }),
+      reaction({ created_at: 10, emoji: '👀', id: 'r2' })
+    ]
+    expect(getChatAgentStatus(reactions, PEER)).toBe('answered')
+    expect(getChatAgentStatus(reactions.toReversed(), PEER)).toBe('answered')
   })
 
   it('ignores reactions named after object prototype keys', () => {
