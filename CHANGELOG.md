@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.9] - 2026-11-17
+
+### Added
+
+- Nostr DMs render markdown with copyable code blocks, and links ask before
+  opening.
+- Lightning invoices and bitcoin: payment requests in DMs show as cards with
+  the amount, label, expiry and network. Pay opens the wallet's pay screen or
+  the transaction preview; nothing is paid from the chat.
+- Invoice cards say where the invoice stands ("Expires in 2h", "pay soon" in
+  the last ten minutes, expired, or no expiry) and what to set up when no
+  wallet can pay it. A message carrying an invoice collapses its raw text
+  behind "Show more".
+- React to NIP-17 chat messages; a peer's 👀 ✅ ⚠️ on your message reads as
+  Working, Answered or Error.
+
+## [0.3.8] - 2026-11-16
+
 ### Added
 
 - **Payjoin** (BIP77 and BIP78) send and receive, with a manual offline PSBT
@@ -79,6 +97,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Account sync shows addresses checked ("2/45 addresses") alternating with
+  the check kind, and tapping it opens sync details with "Check all
+  addresses" and "Deep rescan".
 - **Breaking:** TLS certificates of `ssl://` Electrum servers are now verified,
   so servers with self-signed certificates fail. Install the CA on the device.
   `tcp://` still works on a trusted LAN, but it is unencrypted and does not
@@ -108,6 +129,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Android back closes select modals, and leaves User coin selection when no
+  inputs were picked.
 - Signing pasted or scanned PSBTs crashed on Hermes (`psbt.txid()` and
   `toReversed()` calls).
 - Multisig: each key keeps its own origin path, `sh(wsh())` descriptors parse,
