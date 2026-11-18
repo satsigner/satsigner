@@ -1,7 +1,7 @@
 import SSChatPaymentRequestCard from '@/components/chat/SSChatPaymentRequestCard'
 import type { DisplayPreferences } from '@/types/ui/displayPreferences'
 import {
-  getRequestKey,
+  getPaymentRequestText,
   isChatPaymentRequestExpired
 } from '@/utils/chatPaymentRequests'
 import type { ChatPaymentRequest } from '@/utils/chatPaymentRequests'
@@ -39,7 +39,7 @@ function SSChatPaymentRequests({
   }
   return requests.map((request) => (
     <SSChatPaymentRequestCard
-      key={getRequestKey(request)}
+      key={getPaymentRequestText(request)}
       request={request}
       displayPreferences={actions.displayPreferences}
       nowMs={actions.nowMs}

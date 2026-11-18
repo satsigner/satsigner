@@ -10,7 +10,10 @@ import { t } from '@/locales'
 import { Colors, Typography } from '@/styles'
 import type { Network } from '@/types/settings/blockchain'
 import type { DisplayPreferences } from '@/types/ui/displayPreferences'
-import { getChatInvoiceTiming } from '@/utils/chatPaymentRequests'
+import {
+  getChatInvoiceTiming,
+  getPaymentRequestText
+} from '@/utils/chatPaymentRequests'
 import type {
   ChatBitcoinRequest,
   ChatInvoice,
@@ -48,10 +51,6 @@ function shortenInvoice(invoice: string) {
     return invoice
   }
   return `${invoice.slice(0, INVOICE_PREVIEW_CHARS)}…${invoice.slice(-INVOICE_PREVIEW_CHARS)}`
-}
-
-function getCopyText(request: ChatPaymentRequest) {
-  return request.kind === 'lightning' ? request.invoice : request.uri
 }
 
 function getTitle(request: ChatPaymentRequest) {
@@ -257,7 +256,7 @@ function SSChatPaymentRequestCard({
   }
 
   function handleCopy() {
-    onCopy(getCopyText(request))
+    onCopy(getPaymentRequestText(request))
   }
 
   return (

@@ -143,7 +143,7 @@ function findInvoiceMatches(text: string, skip: TextMatch[]): TextMatch[] {
     }))
 }
 
-function getRequestKey(request: ChatPaymentRequest) {
+function getPaymentRequestText(request: ChatPaymentRequest) {
   return request.kind === 'lightning' ? request.invoice : request.uri
 }
 
@@ -163,7 +163,7 @@ function findChatPaymentRequests(text: string): ChatPaymentRequest[] {
   const seen = new Set<string>()
   const unique: ChatPaymentRequest[] = []
   for (const request of requests) {
-    const key = getRequestKey(request)
+    const key = getPaymentRequestText(request)
     if (!seen.has(key)) {
       seen.add(key)
       unique.push(request)
@@ -215,7 +215,7 @@ function isChatPaymentRequestExpired(
 export {
   findChatPaymentRequests,
   getChatInvoiceTiming,
-  getRequestKey,
+  getPaymentRequestText,
   hasChatInvoice,
   isChatInvoiceExpired,
   isChatPaymentRequestExpired
