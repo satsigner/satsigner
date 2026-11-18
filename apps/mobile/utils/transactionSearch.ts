@@ -2,6 +2,7 @@ import { t } from '@/locales'
 import type { Transaction } from '@/types/models/Transaction'
 import { formatDate } from '@/utils/format'
 import { parseLabel } from '@/utils/parse'
+import { sortTransactions } from '@/utils/sort'
 
 type TransactionDirection = Transaction['type']
 
@@ -94,17 +95,14 @@ function filterTransactions(
   { direction, query, tags, from, to }: TransactionSearchFilters,
   automaticTagsByTxid = NO_AUTOMATIC_TAGS
 ) {
-  return transactions
-    .filter(
-      (tx) =>
-        matchesDirection(tx, direction) &&
-        matchesQuery(tx, query) &&
-        matchesTags(tx, tags, automaticTagsByTxid) &&
-        matchesDateRange(tx, from, to)
-    )
-    .toSorted(
-      (a, b) => (b.timestamp?.getTime() ?? 0) - (a.timestamp?.getTime() ?? 0)
-    )
+  const matches = transactions.filter(
+    (tx) =>
+      matchesDirection(tx, direction) &&
+      matchesQuery(tx, query) &&
+      matchesTags(tx, tags, automaticTagsByTxid) &&
+      matchesDateRange(tx, from, to)
+  )
+  return sortTransactions(matches, 'desc', 'date')
 }
 
 function getTransactionDateBounds(
