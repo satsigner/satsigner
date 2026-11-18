@@ -45,5 +45,4 @@ function syncTickerLabels(progress: SyncProgressLabelParams): string[] {
   return scopeLabel ? [progressLabel, scopeLabel] : [progressLabel]
 }
 
-export { syncProgressLabel, syncScopeLabel, syncTickerLabels }
-export type { SyncProgressLabelParams }
+export { syncProgressLabel, syncTickerLabels }
