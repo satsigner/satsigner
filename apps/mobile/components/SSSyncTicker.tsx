@@ -33,14 +33,19 @@ type SyncTickerMarqueeProps = {
 // change width (live counts) without restarting the scroll. Unmounting cancels
 // the loop, so it only runs while there is more than one label.
 function SyncTickerMarquee({ interlude, lead }: SyncTickerMarqueeProps) {
-  const leadWidth = useSharedValue(0)
+  const leadSize = useSharedValue({ height: 0, width: 0 })
   const loopOffset = useSharedValue(0)
   const progress = useSharedValue(0)
 
-  const windowStyle = useAnimatedStyle(() =>
-    // Rounded up: a window a fraction narrower than the text clips its end.
-    leadWidth.get() > 0 ? { width: Math.ceil(leadWidth.get()) } : {}
-  )
+  // The track is absolutely positioned, so the window takes the lead's
+  // measured size, which also follows the system font scale. Rounded up: a
+  // window a fraction smaller than the text clips it.
+  const windowStyle = useAnimatedStyle(() => {
+    const { height, width } = leadSize.get()
+    return width > 0
+      ? { height: Math.ceil(height), width: Math.ceil(width) }
+      : {}
+  })
   const trackStyle = useAnimatedStyle(() => ({
     transform: [
       {
@@ -71,7 +76,8 @@ function SyncTickerMarquee({ interlude, lead }: SyncTickerMarqueeProps) {
   }
 
   function handleLeadLayout(event: LayoutChangeEvent) {
-    leadWidth.set(event.nativeEvent.layout.width)
+    const { height, width } = event.nativeEvent.layout
+    leadSize.set({ height, width })
     startLoop()
   }
 
@@ -139,8 +145,8 @@ const styles = StyleSheet.create({
   },
   window: {
     alignItems: 'center',
-    height: TICKER_HEIGHT,
     justifyContent: 'center',
+    minHeight: TICKER_HEIGHT,
     overflow: 'hidden'
   }
 })
