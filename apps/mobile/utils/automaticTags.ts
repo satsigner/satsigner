@@ -14,8 +14,8 @@ import {
   transactionSignalsRbf
 } from '@/utils/feeReplacement'
 import {
-  buildOwnedOutpoints,
-  isOwnedOutpoint
+  analyzePossiblePayjoin,
+  buildOwnedOutpoints
 } from '@/utils/sankeyInputOwnership'
 import { isSelfSend } from '@/utils/transaction'
 
@@ -43,16 +43,6 @@ function isConsolidation(tx: Transaction, ownAddresses: Set<string>) {
   )
 }
 
-// Inputs from both this wallet and someone else are the on-chain Payjoin tell.
-function isPayjoin(tx: Transaction, ownedOutpoints: Set<string>) {
-  const isOwnInput = ({ previousOutput }: Transaction['vin'][number]) =>
-    isOwnedOutpoint(ownedOutpoints, previousOutput.txid, previousOutput.vout)
-  return (
-    tx.vin.some((input) => isOwnInput(input) === true) &&
-    tx.vin.some((input) => isOwnInput(input) === false)
-  )
-}
-
 function isDustReceive(tx: Transaction) {
   return tx.sent === 0 && tx.received > 0 && tx.received <= DUST_ATTACK_MAX_SATS
 }
@@ -70,7 +60,10 @@ function getAutomaticTransactionTags(
 ) {
   const detected: [string, boolean][] = [
     [CONSOLIDATION_TAG, isConsolidation(tx, ownAddresses)],
-    [PAYJOIN_TAG, isPayjoin(tx, ownedOutpoints)],
+    [
+      PAYJOIN_TAG,
+      analyzePossiblePayjoin(tx.vin, ownedOutpoints).possiblePayjoin
+    ],
     [DUST_TAG, isDustReceive(tx)],
     [RBF_TAG, isReplaceable(tx)]
   ]
