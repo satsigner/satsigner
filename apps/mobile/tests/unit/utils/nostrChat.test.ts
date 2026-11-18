@@ -467,7 +467,11 @@ describe('nostrChat', () => {
     it('applies a reaction once its target message arrives', async () => {
       const { api, captured } = createFakeChatApi()
       await subscribeToIdentityChat(api, sender)
-      deliverRumor(captured.handlers, 'w-ahead', reactionRumor('a6', peerPubkey))
+      deliverRumor(
+        captured.handlers,
+        'w-ahead',
+        reactionRumor('a6', peerPubkey)
+      )
       deliverRumor(captured.handlers, 'w-msg', {
         content: 'from peer',
         created_at: 1,
@@ -615,11 +619,13 @@ describe('nostrChat', () => {
 
     it('does not react to a message the peer never got', async () => {
       const api = new NostrAPI([])
-      const publish = jest.spyOn(api, 'publishEvent').mockResolvedValue()
-      jest.spyOn(api, 'publishEvent').mockRejectedValueOnce(new Error('down'))
+      const publish = jest
+        .spyOn(api, 'publishEvent')
+        .mockRejectedValueOnce(new Error('down'))
+        .mockResolvedValue()
       await expect(
         sendNip17Chat(api, sender, peerNpub, 'never delivered')
-      ).rejects.toThrow()
+      ).rejects.toThrow('down')
       const [failed] = storedMessages()
       publish.mockClear()
 

@@ -17,12 +17,9 @@ const arkAccount = (overrides: Partial<ArkAccount> = {}): ArkAccount => ({
 })
 
 describe('getInvoicePaymentMethods', () => {
-  const methods = buildPaymentMethods(
-    { url: 'https://lnd.example' },
-    [],
-    {},
-    [arkAccount()]
-  )
+  const methods = buildPaymentMethods({ url: 'https://lnd.example' }, [], {}, [
+    arkAccount()
+  ])
 
   function types(invoice: { amountSats: number; network: 'bitcoin' | null }) {
     return getInvoicePaymentMethods(methods, invoice).map((m) => m.type)
