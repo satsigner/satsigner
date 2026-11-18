@@ -382,6 +382,7 @@ export default function SSChatThread({
         onSelect={selectMethod}
         methods={paymentMethods}
         amountSats={pendingInvoiceAmountSats}
+        privacyMode={displayPreferences.privacyMode}
       />
       <SSChatAccountPicker
         ref={accountSheetRef}
