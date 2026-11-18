@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { StyleSheet, View } from 'react-native'
 import type { LayoutChangeEvent } from 'react-native'
 import Animated, {
@@ -33,6 +34,7 @@ type SyncTickerMarqueeProps = {
 // change width (live counts) without restarting the scroll. Unmounting cancels
 // the loop, so it only runs while there is more than one label.
 function SyncTickerMarquee({ interlude, lead }: SyncTickerMarqueeProps) {
+  const hasStartedLoop = useRef(false)
   const leadSize = useSharedValue({ height: 0, width: 0 })
   const loopOffset = useSharedValue(0)
   const progress = useSharedValue(0)
@@ -55,9 +57,10 @@ function SyncTickerMarquee({ interlude, lead }: SyncTickerMarqueeProps) {
   }))
 
   function startLoop() {
-    if (progress.get() > 0) {
+    if (hasStartedLoop.current) {
       return
     }
+    hasStartedLoop.current = true
     progress.set(
       withRepeat(
         withSequence(
