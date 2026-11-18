@@ -119,15 +119,15 @@ function getLocalPriceSeries(
 function getLocalPriceCoverage(
   currency: Currency
 ): { first: Date; last: Date } | null {
-  const { times } = loadPriceBundle(currency)
-  const first = times.at(0)
-  const last = times.at(-1)
+  const series = getLocalPriceSeries(currency)
+  const first = series.at(0)
+  const last = series.at(-1)
   if (first === undefined || last === undefined) {
     return null
   }
   return {
-    first: new Date(first * MS_PER_SECOND),
-    last: new Date(last * MS_PER_SECOND)
+    first: new Date(first.time * MS_PER_SECOND),
+    last: new Date(last.time * MS_PER_SECOND)
   }
 }
 

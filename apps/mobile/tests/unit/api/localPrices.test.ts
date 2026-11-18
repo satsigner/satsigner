@@ -4,6 +4,7 @@ import {
   getLocalPriceCoverage,
   getLocalPricesAt
 } from '@/api/localPrices'
+import { MS_PER_SECOND } from '@/constants/time'
 import { CurrencySchema } from '@/types/models/Blockchain'
 
 describe('findClosestPrice', () => {
@@ -74,4 +75,17 @@ describe('getLocalPriceCoverage', () => {
     )
     expect(coverage?.first.getUTCFullYear()).toBeLessThanOrEqual(2011)
   })
+
+  it.each(CurrencySchema.options)(
+    'starts and ends on days with a %s price',
+    (currency) => {
+      const coverage = getLocalPriceCoverage(currency)
+      const first = (coverage?.first.getTime() ?? 0) / MS_PER_SECOND
+      const last = (coverage?.last.getTime() ?? 0) / MS_PER_SECOND
+
+      expect(getLocalPriceAt(currency, first)).not.toBeNull()
+      expect(getLocalPriceAt(currency, first - 1)).toBeNull()
+      expect(getLocalPriceAt(currency, last)).not.toBeNull()
+    }
+  )
 })
