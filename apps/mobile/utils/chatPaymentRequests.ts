@@ -22,8 +22,11 @@ const BOLT11_IN_TEXT_RE =
   /(?<![a-z0-9])(?:lightning:)?(ln(?:bcrt|bc|tbs|tb)[0-9a-z]{50,})/gi
 
 // A bitcoin: URI runs until whitespace or a character that can't appear
-// unencoded in a URI and usually closes markdown or prose around it.
-const BITCOIN_URI_IN_TEXT_RE = /(?<![a-z0-9])bitcoin:[^\s<>"'`()[\]{}]+/gi
+// unencoded in a URI and usually closes markdown or prose around it. BIP21
+// values may hold parentheses, so a balanced `(...)` group stays in the URI
+// while an unmatched `)` (a Markdown link or a parenthetical) ends it.
+const BITCOIN_URI_IN_TEXT_RE =
+  /(?<![a-z0-9])bitcoin:(?:[^\s<>"'`()[\]{}]|\([^\s<>"'`()[\]{}]*\))+/gi
 const URI_TRAILING_PUNCTUATION_RE = /[.,;:!?*_~]+$/
 
 type ChatInvoice = {

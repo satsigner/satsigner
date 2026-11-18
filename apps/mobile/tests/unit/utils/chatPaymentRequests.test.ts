@@ -19,6 +19,8 @@ const INVOICE_EXPIRY_SEC = 86_400
 const AMOUNTLESS_INVOICE =
   'lnbc1pvjluezsp5zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3zygspp5qqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqqqsyqcyq5rqwzqfqypqdpl2pkx2ctnv5sxxmmwwd5kgetjypeh2ursdae8g6twvus8g6rfwvs8qun0dfjkxaq9qrsgq357wnc5r2ueh7ck6q93dj32dlqnls087fxdwk8qakdyafkq3yap9us6v52vjjsrvywa6rt52cm9r9zqt8r2t7mlcwspyetp5h2tztugp9lfyql'
 
+const ADDRESS = 'bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4'
+
 describe('findChatPaymentRequests: lightning', () => {
   it('decodes the amount from the invoice, not the surrounding text', () => {
     const [found] = findChatPaymentRequests(`Pay 1 sat please:\n${INVOICE}`)
@@ -62,13 +64,19 @@ describe('findChatPaymentRequests: lightning', () => {
     expect(findChatPaymentRequests(corrupted)).toStrictEqual([])
   })
 
-  it('deduplicates and caps the number of invoices per message', () => {
-    const text = Array.from(
-      { length: CHAT_PAYMENT_REQUESTS_MAX + 2 },
-      (_, index) => (index % 2 === 0 ? INVOICE : AMOUNTLESS_INVOICE)
-    ).join(' ')
-    expect(findChatPaymentRequests(text)).toHaveLength(2)
-    expect(findChatPaymentRequests(`${INVOICE} ${INVOICE}`)).toHaveLength(1)
+  it('deduplicates and caps the number of requests per message', () => {
+    const distinct = [
+      INVOICE,
+      AMOUNTLESS_INVOICE,
+      `bitcoin:${ADDRESS}`,
+      `bitcoin:${ADDRESS}?amount=1`
+    ]
+    const text = [...distinct.slice(0, 3), INVOICE, distinct[3]].join(' ')
+    const found = findChatPaymentRequests(text).map((request) =>
+      request.kind === 'lightning' ? request.invoice : request.uri
+    )
+    expect(CHAT_PAYMENT_REQUESTS_MAX).toBe(3)
+    expect(found).toStrictEqual(distinct.slice(0, 3))
   })
 })
 
@@ -87,7 +95,6 @@ describe('isChatInvoiceExpired', () => {
   })
 })
 
-const ADDRESS = 'bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4'
 const BITCOIN_URI = `bitcoin:${ADDRESS}?amount=0.0021&label=Pizza%20night&message=Split%20for%20Friday`
 
 describe('findChatPaymentRequests: bitcoin URIs', () => {
@@ -122,6 +129,15 @@ describe('findChatPaymentRequests: bitcoin URIs', () => {
     )
     expect(fromLink?.kind === 'bitcoin' && fromLink.uri).toBe(BITCOIN_URI)
     expect(fromBold?.kind === 'bitcoin' && fromBold.uri).toBe(BITCOIN_URI)
+  })
+
+  it('keeps balanced parentheses inside the URI', () => {
+    const uri = `bitcoin:${ADDRESS}?label=Lunch(Friday)&amount=0.0021`
+    const [inProse] = findChatPaymentRequests(`Pay ${uri} today`)
+    const [inLink] = findChatPaymentRequests(`[pay](${uri})`)
+    expect(inProse?.amountSats).toBe(210_000)
+    expect(inProse?.kind === 'bitcoin' && inProse.uri).toBe(uri)
+    expect(inLink?.kind === 'bitcoin' && inLink.uri).toBe(uri)
   })
 
   it('shows a unified URI as one card with a lightning fallback', () => {
