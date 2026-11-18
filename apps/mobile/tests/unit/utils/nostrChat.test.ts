@@ -148,6 +148,7 @@ import {
   insertChatMessage,
   updateChatMessageStatus
 } from '@/db/mutations/nostrChat'
+import * as nostrMessageState from '@/db/nostrMessageState'
 import { clearNostrFollowCache, setNostrFollowCache } from '@/storage/mmkv'
 import { useNostrChatSettingsStore } from '@/store/nostrChatSettings'
 import type { NostrChatGiftWrap } from '@/types/models/Nostr'
@@ -483,6 +484,43 @@ describe('nostrChat', () => {
       deletionFrom(peerPubkey, 'w-del2')
       expect(reactionStore.size).toBe(0)
       expect(storedMessages()).toHaveLength(1)
+    })
+
+    it('keeps a reaction removed when its deletion arrives first', async () => {
+      const tombstones = new Map<string, string>()
+      jest
+        .spyOn(nostrMessageState, 'tombstoneMessages')
+        .mockImplementation((_scope, entries) => {
+          for (const { author, messageId: id } of entries) {
+            tombstones.set(id, author)
+          }
+        })
+      jest
+        .spyOn(nostrMessageState, 'getTombstoneAuthors')
+        .mockImplementation(
+          (_scope, ids) =>
+            new Map(
+              ids
+                .filter((id) => tombstones.has(id))
+                .map((id): [string, string] => [id, tombstones.get(id) ?? ''])
+            )
+        )
+      const captured = await subscribeWithPeerMessage()
+      const rumor = reactionRumor('a5', peerPubkey)
+
+      deliverRumor(captured.handlers, 'w-del5', {
+        id: 'w-del5'.padStart(64, 'd'),
+        kind: 5,
+        pubkey: peerPubkey,
+        tags: [
+          ['e', rumor.id],
+          ['k', '7']
+        ]
+      })
+      deliverRumor(captured.handlers, 'w-r5', rumor)
+
+      expect(reactionStore.size).toBe(0)
+      expect(processedWraps.has(`chat:${senderNpub}|w-r5`)).toBe(true)
     })
 
     it('sends a gift-wrapped kind 7 to the peer and keeps it locally', async () => {

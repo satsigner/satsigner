@@ -832,7 +832,8 @@ function applyChatDeletionRumor(
  *
  * Returns false when the target message isn't stored yet: wraps arrive in
  * random order, so the reaction stays unprocessed and a later fetch reads it
- * again once the message is in.
+ * again once the message is in. For the same reason a reaction can arrive
+ * after the kind 5 that took it back, which left a tombstone for it.
  */
 function applyChatReactionRumor(
   identityNpub: string,
@@ -842,7 +843,11 @@ function applyChatReactionRumor(
 ): boolean {
   const emoji = parseReactionEmoji(rumor.content)
   const messageId = getReactionTargetId(rumor.tags)
-  if (emoji === null || messageId === null) {
+  if (
+    emoji === null ||
+    messageId === null ||
+    isTombstoned(identityNpub, rumor.id, rumor.pubkey)
+  ) {
     return true
   }
   const message = getChatMessage(identityNpub, messageId)
