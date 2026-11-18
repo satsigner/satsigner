@@ -591,6 +591,20 @@ function deleteChatMessageForMe(identityNpub: string, messageId: string): void {
   forgetChatMessages(identityNpub, [{ author, messageId }])
 }
 
+async function publishOrThrow(
+  api: NostrAPI,
+  identity: ChatIdentity,
+  delivery: Nip17Delivery,
+  rumor: NostrRumor
+): Promise<void> {
+  const outcome = await publishNip17Rumor(api, identity, delivery, rumor)
+  if (!outcome.ok) {
+    throw outcome.error instanceof Error
+      ? outcome.error
+      : new NostrPublishError([])
+  }
+}
+
 /** NIP-09 for the gift wraps we published, signed by each wrap's own key. */
 async function requestChatWrapDeletion(
   api: NostrAPI,
@@ -644,28 +658,9 @@ async function deleteChatMessageForEveryone(
     '',
     buildMessageDeletionTags([messageId])
   )
-  const outcome = await publishNip17Rumor(api, identity, delivery, rumor)
-  if (!outcome.ok) {
-    throw outcome.error instanceof Error
-      ? outcome.error
-      : new NostrPublishError([])
-  }
+  await publishOrThrow(api, identity, delivery, rumor)
   await requestChatWrapDeletion(api, identity, delivery, messageId)
   forgetChatMessages(identity.npub, [{ author: ownHex, messageId }])
-}
-
-async function publishOrThrow(
-  api: NostrAPI,
-  identity: ChatIdentity,
-  delivery: Nip17Delivery,
-  rumor: NostrRumor
-): Promise<void> {
-  const outcome = await publishNip17Rumor(api, identity, delivery, rumor)
-  if (!outcome.ok) {
-    throw outcome.error instanceof Error
-      ? outcome.error
-      : new NostrPublishError([])
-  }
 }
 
 /**
