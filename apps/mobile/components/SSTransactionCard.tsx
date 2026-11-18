@@ -8,6 +8,7 @@ import { t } from '@/locales'
 import { Colors, Layout, Sizes, Typography } from '@/styles'
 import type { Transaction } from '@/types/models/Transaction'
 import type { DisplayPreferences } from '@/types/ui/displayPreferences'
+import { isAutomaticTag } from '@/utils/automaticTags'
 import {
   getConfirmations,
   getConfirmationsColorStyle
@@ -82,6 +83,7 @@ function HistoricalFiatUnavailable({
 
 type SSTransactionCardProps = DisplayPreferences & {
   transaction: Transaction
+  automaticTags?: string[]
   blockHeight: number
   walletBalance?: number
   onPress: () => void
@@ -91,9 +93,11 @@ type SSTransactionCardProps = DisplayPreferences & {
 }
 
 const DEFAULT_STYLE: ViewStyle = {}
+const NO_AUTOMATIC_TAGS: string[] = []
 
 function SSTransactionCard({
   transaction,
+  automaticTags = NO_AUTOMATIC_TAGS,
   blockHeight,
   fiatCurrency,
   btcPrice,
@@ -122,7 +126,9 @@ function SSTransactionCard({
   const confirmationColor = getConfirmationsColorStyle(confirmations)
 
   const { amount, type } = getWalletTransactionEffect(transaction)
-  const { label, tags } = parseLabel(transaction.label || '')
+  const parsedLabel = parseLabel(transaction.label || '')
+  const { label } = parsedLabel
+  const tags = [...new Set([...parsedLabel.tags, ...automaticTags])]
 
   const { prices } = transaction
   const oldPrice = historicalFiatEnabled && prices ? prices[fiatCurrency] : null
@@ -393,7 +399,10 @@ function SSTransactionCard({
                   <SSText
                     key={index}
                     size={smallView ? 'xxs' : 'xs'}
-                    style={styles.tag}
+                    style={[
+                      styles.tag,
+                      isAutomaticTag(tag) && styles.tagAutomatic
+                    ]}
                     uppercase
                     numberOfLines={1}
                   >
@@ -435,6 +444,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
     textAlign: 'right'
+  },
+  tagAutomatic: {
+    backgroundColor: Colors.transparent,
+    borderColor: Colors.gray[600],
+    borderWidth: 1,
+    paddingHorizontal: 5,
+    paddingVertical: 1
   },
   tagEmpty: {
     backgroundColor: Colors.gray[950],

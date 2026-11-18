@@ -345,6 +345,7 @@ export {
   getFeeReplacementOptions,
   getReplacementActions,
   getTransactionFeeRate,
+  isTransactionUnconfirmed,
   minimumChildFee,
   minimumReplacementFeeRate,
   parseFeeReplacementKind,

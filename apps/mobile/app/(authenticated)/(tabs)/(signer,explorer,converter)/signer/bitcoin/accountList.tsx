@@ -67,6 +67,7 @@ import {
   isSampleWalletLoaded
 } from '@/utils/sampleWallet'
 import type { SampleWallet } from '@/utils/sampleWallet'
+import { buildSampleWalletLabels } from '@/utils/sampleWalletLabels'
 import { createSyncFailureBatch } from '@/utils/syncFailureToasts'
 import { time } from '@/utils/time'
 
@@ -109,11 +110,12 @@ export default function AccountList() {
         state.configs[state.selectedNetwork].config.timeDiffBeforeAutoSync
       ])
     )
-  const [accounts, updateAccount, setAccounts] = useAccountsStore(
+  const [accounts, updateAccount, setAccounts, importLabels] = useAccountsStore(
     useShallow((state) => [
       state.accounts,
       state.updateAccount,
-      state.setAccounts
+      state.setAccounts,
+      state.importLabels
     ])
   )
   const { fiatPriceApiUrl, showCurrentFiat } = useFiatData()
@@ -538,6 +540,10 @@ export default function AccountList() {
         : await syncAccountWithAddress(data.accountWithEncryptedSecret)
       if (updatedAccount) {
         updateAccount(updatedAccount)
+        const sampleLabels = buildSampleWalletLabels(type, updatedAccount)
+        if (sampleLabels.length > 0) {
+          importLabels(updatedAccount.id, sampleLabels)
+        }
       }
     }
     toast.success('Sample wallet created successfully!')

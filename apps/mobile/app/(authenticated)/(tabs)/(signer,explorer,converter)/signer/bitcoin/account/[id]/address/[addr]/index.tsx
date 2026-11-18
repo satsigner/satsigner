@@ -27,6 +27,7 @@ import type { Address, AddressKeyPair } from '@/types/models/Address'
 import type { Utxo } from '@/types/models/Utxo'
 import type { AddrSearchParams } from '@/types/navigation/searchParams'
 import { getAccountFingerprint } from '@/utils/account'
+import { getAutomaticTagsByTxid } from '@/utils/automaticTags'
 import {
   bitcoinjsNetwork,
   getAddressDerivationPath,
@@ -144,6 +145,8 @@ function AddressDetails() {
     return <Redirect href="/" />
   }
 
+  const automaticTagsByTxid = getAutomaticTagsByTxid(account)
+
   if (!address) {
     router.back()
     return null
@@ -215,6 +218,7 @@ function AddressDetails() {
                           paddingHorizontal: 0
                         }}
                         transaction={tx}
+                        automaticTags={automaticTagsByTxid.get(tx.id)}
                         key={tx.id}
                         blockHeight={blockchainHeight}
                         onPress={() =>

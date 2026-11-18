@@ -115,6 +115,7 @@ import type { AccountSearchParams } from '@/types/navigation/searchParams'
 import type { PayjoinSession } from '@/types/payjoin'
 import { getAccountTotalBalance, isAutoSyncDue } from '@/utils/account'
 import { isTransactionHistoryLoading } from '@/utils/accountSync'
+import { getAutomaticTagsByTxid } from '@/utils/automaticTags'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { formatRelativeTime } from '@/utils/date'
 import {
@@ -754,6 +755,7 @@ function TotalTransactions({
   scanFromTimeSec
 }: TotalTransactionsProps) {
   const display = useDisplayPreferences()
+  const automaticTagsByTxid = getAutomaticTagsByTxid(account)
   const { width } = useWindowDimensions()
   const horizontalPaddingPx = width * 0.06
   const [sortField, setSortField] = useState<TransactionSortField>('date')
@@ -893,7 +895,11 @@ function TotalTransactions({
         }
         rightActions={
           <SSHStack>
-            <SSIconButton disabled style={styles.disabledIconButton}>
+            <SSIconButton
+              onPress={() =>
+                router.navigate(`/signer/bitcoin/account/${account.id}/search`)
+              }
+            >
               <SSIconSearch height={18} width={18} />
             </SSIconButton>
             <SSIconButton onPress={() => setShowHistoryChart((prev) => !prev)}>
@@ -997,6 +1003,7 @@ function TotalTransactions({
                   <SSTransactionCard
                     {...display}
                     transaction={item}
+                    automaticTags={automaticTagsByTxid.get(item.id)}
                     expand={expand}
                     walletBalance={balanceByTxId.get(item.id)}
                     blockHeight={blockchainHeight}
@@ -1902,6 +1909,7 @@ function SatsInMempool({
 }) {
   const display = useDisplayPreferences()
   const router = useRouter()
+  const automaticTagsByTxid = getAutomaticTagsByTxid(account)
 
   const mempoolTransactions = useMemo(
     () =>
@@ -1933,6 +1941,7 @@ function SatsInMempool({
             <SSTransactionCard
               {...display}
               transaction={item}
+              automaticTags={automaticTagsByTxid.get(item.id)}
               blockHeight={blockchainHeight}
               expand={false}
               onPress={() =>
@@ -2714,9 +2723,6 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
     width: 6
-  },
-  disabledIconButton: {
-    opacity: 0.3
   },
   excludeToolbarBadge: {
     alignItems: 'center',

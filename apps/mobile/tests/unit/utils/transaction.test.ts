@@ -15,6 +15,7 @@ import {
   getPreviewTransactionHex,
   getRawTransactionSizes,
   getTransactionIdDisplay,
+  isSelfSend,
   legacyEstimateTransactionSize,
   mapBuildTransactionError,
   recalculateDepthH,
@@ -982,5 +983,29 @@ describe('getRawTransactionSizes', () => {
       vsize: 0,
       weight: 0
     })
+  })
+})
+
+describe('isSelfSend', () => {
+  const own = new Set(['tb1qown'])
+  const tx = {
+    ...minimalTxProps,
+    id: 'tx',
+    received: 900,
+    sent: 1000,
+    vin: [],
+    vout: [{ address: 'tb1qown', script: '', value: 900 }]
+  }
+
+  it('is true when every output pays the wallet', () => {
+    expect(isSelfSend(tx, own)).toBe(true)
+  })
+
+  it('is false when an output pays someone else', () => {
+    const payment = {
+      ...tx,
+      vout: [...tx.vout, { address: 'tb1qother', script: '', value: 50 }]
+    }
+    expect(isSelfSend(payment, own)).toBe(false)
   })
 })

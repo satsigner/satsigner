@@ -155,6 +155,16 @@ function normalizeUtxoLabelForDisplay(rawLabel: string): string {
   return parseLabelTags(label, tags)
 }
 
+// Appends to the raw text: parseLabel drops everything after the first "#",
+// so rebuilding from it would lose text like "Invoice #12 from Bob".
+function addLabelTag(rawLabel: string, tag: string) {
+  if (parseLabel(rawLabel).tags.includes(tag)) {
+    return rawLabel
+  }
+  const trimmedLabel = rawLabel.trim()
+  return trimmedLabel ? `${trimmedLabel} #${tag}` : `#${tag}`
+}
+
 function parseLabelTags(label: string, tags: string[]) {
   const trimmedLabel = label.trim()
   if (tags.length === 0) {
@@ -454,6 +464,7 @@ export {
   isMalformedUriComponent,
   parseAccountAddressesDetails,
   parseAddressDescriptorToAddress,
+  addLabelTag,
   parseLabel,
   parseLabelTags,
   parseTXOutputs,
