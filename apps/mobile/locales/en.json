@@ -3463,7 +3463,7 @@
     "features.fiatData.historical.onDevice.title": "Source: on-device price history (private)",
     "features.fiatData.historical.title": "Historical prices",
     "features.fiatData.historical.toggle": "Show historical prices",
-    "features.fiatData.historicalUnavailable.body": "This date is not in the on-device price history. To look it up, turn on \"Ask the provider for missing dates\" in Fiat Data settings. That sends the date to the price provider.",
+    "features.fiatData.historicalUnavailable.body": "This date is not in the on-device price history. To look it up, let the price provider fill in missing dates under Historical prices in Fiat Data settings. That sends the date to the price provider.",
     "features.fiatData.historicalUnavailable.goToSettings": "Go to Fiat Data settings",
     "features.fiatData.historicalUnavailable.title": "Historical price unavailable",
     "features.fiatData.provider.custom": "Custom provider",
