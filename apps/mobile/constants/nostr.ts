@@ -111,6 +111,8 @@ export const NOSTR_CHAT_REACTION_CHOICES = [
 ] as const
 // Longest reaction kept: one emoji, possibly a ZWJ sequence or a short word.
 export const NOSTR_CHAT_REACTION_MAX_LENGTH = 32
+// Reactions kept in memory per identity until their target message arrives.
+export const NOSTR_CHAT_HELD_REACTIONS_MAX = 500
 export const NOSTR_PSBT_DETAILS_CACHE_MAX = 100
 // NIP-44 encrypts at most 65535 bytes; Bitcoin Safe chunks label sync at 60k.
 export const NOSTR_LABELS_MAX_CHUNK_BYTES = 60_000

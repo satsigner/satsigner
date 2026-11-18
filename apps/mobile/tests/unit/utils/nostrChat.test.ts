@@ -464,6 +464,24 @@ describe('nostrChat', () => {
       expect(processedWraps.has(`chat:${senderNpub}|w-early`)).toBe(false)
     })
 
+    it('applies a reaction once its target message arrives', async () => {
+      const { api, captured } = createFakeChatApi()
+      await subscribeToIdentityChat(api, sender)
+      deliverRumor(captured.handlers, 'w-ahead', reactionRumor('a6', peerPubkey))
+      deliverRumor(captured.handlers, 'w-msg', {
+        content: 'from peer',
+        created_at: 1,
+        id: messageId,
+        pubkey: peerPubkey,
+        tags: [['p', senderPubkey]]
+      })
+
+      expect([...reactionStore.values()]).toStrictEqual([
+        expect.objectContaining({ author: peerPubkey, messageId })
+      ])
+      expect(processedWraps.has(`chat:${senderNpub}|w-ahead`)).toBe(true)
+    })
+
     it('removes a reaction only when its author deletes it', async () => {
       const captured = await subscribeWithPeerMessage()
       const rumor = reactionRumor('a4', peerPubkey)

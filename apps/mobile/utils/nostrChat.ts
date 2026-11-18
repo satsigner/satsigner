@@ -14,6 +14,7 @@ import {
 import type { NostrRumor } from '@/api/nostrGiftWrap'
 import {
   NOSTR_CHAT_CATCH_UP_LIMIT,
+  NOSTR_CHAT_HELD_REACTIONS_MAX,
   NOSTR_CHAT_HISTORY_PAGE_LIMIT,
   NOSTR_CHAT_INITIAL_HISTORY_LIMIT,
   NOSTR_CHAT_KIND4_CLOCK_SKEW_SEC,
@@ -826,9 +827,9 @@ function applyChatDeletionRumor(
  * proof-of-work filter, which is about unsolicited messages.
  *
  * Returns false when the target message isn't stored yet: wraps arrive in
- * random order, so the reaction stays unprocessed and a later fetch reads it
- * again once the message is in. For the same reason a reaction can arrive
- * after the kind 5 that took it back, which left a tombstone for it.
+ * random order, so the reaction is held until the message comes in. For the
+ * same reason a reaction can arrive after the kind 5 that took it back, which
+ * left a tombstone for it.
  */
 function applyChatReactionRumor(
   identityNpub: string,
@@ -868,6 +869,54 @@ function applyChatReactionRumor(
   return true
 }
 
+type HeldChatReaction = { targetId: string; wrap: NostrChatGiftWrap }
+
+/**
+ * Reaction wraps that arrived before their target message, per identity.
+ * A history page moves its cursor past them, so no later page reads them
+ * again. They stay unprocessed, so a fetch that covers them again still can.
+ */
+const heldChatReactions = new Map<string, HeldChatReaction[]>()
+
+function holdChatReaction(
+  identityNpub: string,
+  targetId: string | null,
+  wrap: NostrChatGiftWrap
+): void {
+  const held = heldChatReactions.get(identityNpub) ?? []
+  if (targetId === null || held.some((item) => item.wrap.id === wrap.id)) {
+    return
+  }
+  heldChatReactions.set(
+    identityNpub,
+    [...held, { targetId, wrap }].slice(-NOSTR_CHAT_HELD_REACTIONS_MAX)
+  )
+}
+
+/** Applies the held reactions to a message that was just stored. */
+function applyHeldChatReactions(
+  identityNpub: string,
+  ownHex: string | null,
+  messageId: string
+): void {
+  const held = heldChatReactions.get(identityNpub) ?? []
+  const due = held.filter((item) => item.targetId === messageId)
+  if (due.length === 0) {
+    return
+  }
+  heldChatReactions.set(
+    identityNpub,
+    held.filter((item) => item.targetId !== messageId)
+  )
+  const applied = due.filter(({ wrap }) =>
+    ingestChatRumor(identityNpub, ownHex, wrap)
+  )
+  markNostrEventsProcessed(
+    chatProcessedScope(identityNpub),
+    applied.map(({ wrap }) => ({ createdAt: wrap.createdAt, id: wrap.id }))
+  )
+}
+
 /**
  * Other gift wraps (account label sync etc.) are not chat and are ignored.
  * Returns false for a message the inbound filter held back.
@@ -884,12 +933,20 @@ function ingestChatRumor(
   }
   const reaction = Nip17ReactionRumorSchema.safeParse(wrap.rumor)
   if (reaction.success) {
-    return applyChatReactionRumor(
+    const applied = applyChatReactionRumor(
       identityNpub,
       ownHex,
       reaction.data,
       wrap.createdAt
     )
+    if (!applied) {
+      holdChatReaction(
+        identityNpub,
+        getReactionTargetId(reaction.data.tags),
+        wrap
+      )
+    }
+    return applied
   }
   const parsedRumor = Nip17ChatRumorSchema.safeParse(wrap.rumor)
   if (!parsedRumor.success) {
@@ -919,6 +976,7 @@ function ingestChatRumor(
     replyToId: getReplyToId(rumor.tags),
     status: 'sent'
   })
+  applyHeldChatReactions(identityNpub, ownHex, rumor.id)
   return true
 }
 
@@ -1184,6 +1242,7 @@ function closeChatPipeline(pipeline: ChatPipeline): void {
 
 /** Tears down the active pipeline regardless of holders (logout, wipe, tests). */
 function closeActiveChatPipeline(): void {
+  heldChatReactions.clear()
   if (activeChatPipeline.current) {
     closeChatPipeline(activeChatPipeline.current)
   }
