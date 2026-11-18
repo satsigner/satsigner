@@ -12,7 +12,6 @@ import {
   HISTORICAL_PRICE_RESPONSE
 } from '@/constants/fiatPriceApi'
 import { useFiatData } from '@/hooks/useFiatData'
-import SSFormLayout from '@/layouts/SSFormLayout'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
@@ -133,67 +132,63 @@ export default function FiatData() {
                 </SSVStack>
               ) : null}
             </SSVStack>
-            <SSFormLayout>
-              <SSFormLayout.Item>
-                <SSVStack gap="sm">
-                  <SSText weight="medium">{tl('provider.title')}</SSText>
-                  <SSText color="muted" size="sm">
-                    {tl('provider.description')}
+            <SSVStack gap="sm">
+              <SSText weight="medium">{tl('provider.title')}</SSText>
+              <SSText color="muted" size="sm">
+                {tl('provider.description')}
+              </SSText>
+              <SSCheckbox
+                label={tl('provider.mempool')}
+                selected={isMempool}
+                onPress={selectMempool}
+              />
+              {isMempool ? (
+                <SSText color="muted" size="xs" style={styles.providerUrl}>
+                  {DEFAULT_FIAT_PRICE_API_URL}
+                </SSText>
+              ) : null}
+              <SSCheckbox
+                label={tl('provider.custom')}
+                selected={isCustom}
+                onPress={selectCustom}
+              />
+              {isCustom ? (
+                <SSVStack gap="sm" style={styles.customProvider}>
+                  <SSTextInput
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    keyboardType="url"
+                    onBlur={normalizeCustomUrl}
+                    onChangeText={setCustomFiatPriceApiUrl}
+                    placeholder={tl('provider.customPlaceholder')}
+                    value={customFiatPriceApiUrl}
+                  />
+                  <SSText color="muted" size="xs">
+                    {tl('apiUrlHint')}
                   </SSText>
-                  <SSCheckbox
-                    label={tl('provider.mempool')}
-                    selected={isMempool}
-                    onPress={selectMempool}
-                  />
-                  {isMempool ? (
-                    <SSText color="muted" size="xs" style={styles.providerUrl}>
-                      {DEFAULT_FIAT_PRICE_API_URL}
-                    </SSText>
-                  ) : null}
-                  <SSCheckbox
-                    label={tl('provider.custom')}
-                    selected={isCustom}
-                    onPress={selectCustom}
-                  />
-                  {isCustom ? (
-                    <SSVStack gap="sm" style={styles.customProvider}>
-                      <SSTextInput
-                        autoCapitalize="none"
-                        autoCorrect={false}
-                        keyboardType="url"
-                        onBlur={normalizeCustomUrl}
-                        onChangeText={setCustomFiatPriceApiUrl}
-                        placeholder={tl('provider.customPlaceholder')}
-                        value={customFiatPriceApiUrl}
-                      />
-                      <SSText color="muted" size="xs">
-                        {tl('apiUrlHint')}
-                      </SSText>
-                      <SSCollapsible>
-                        <SSVStack gap="md" style={styles.apiFormat}>
-                          <SSVStack gap="xs">
-                            <SSText size="sm">
-                              {tl('apiFormat.currentPrices')}
-                            </SSText>
-                            <SSText color="muted" size="xs" type="mono">
-                              {CURRENT_PRICES_RESPONSE}
-                            </SSText>
-                          </SSVStack>
-                          <SSVStack gap="xs">
-                            <SSText size="sm">
-                              {tl('apiFormat.historicalPrices')}
-                            </SSText>
-                            <SSText color="muted" size="xs" type="mono">
-                              {HISTORICAL_PRICE_RESPONSE}
-                            </SSText>
-                          </SSVStack>
-                        </SSVStack>
-                      </SSCollapsible>
+                  <SSCollapsible>
+                    <SSVStack gap="md" style={styles.apiFormat}>
+                      <SSVStack gap="xs">
+                        <SSText size="sm">
+                          {tl('apiFormat.currentPrices')}
+                        </SSText>
+                        <SSText color="muted" size="xs" type="mono">
+                          {CURRENT_PRICES_RESPONSE}
+                        </SSText>
+                      </SSVStack>
+                      <SSVStack gap="xs">
+                        <SSText size="sm">
+                          {tl('apiFormat.historicalPrices')}
+                        </SSText>
+                        <SSText color="muted" size="xs" type="mono">
+                          {HISTORICAL_PRICE_RESPONSE}
+                        </SSText>
+                      </SSVStack>
                     </SSVStack>
-                  ) : null}
+                  </SSCollapsible>
                 </SSVStack>
-              </SSFormLayout.Item>
-            </SSFormLayout>
+              ) : null}
+            </SSVStack>
           </SSVStack>
         </SSScrollView>
       </SSMainLayout>
