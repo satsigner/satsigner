@@ -67,6 +67,7 @@ import { formatDate, formatNumber } from '@/utils/format'
 import { formatPayjoinExpiringLabel } from '@/utils/payjoinExpiry'
 import { isPayjoinSuccess } from '@/utils/payjoinSessionStatus'
 import { preparePayjoinPsbtForWalletSign } from '@/utils/payjoinSign'
+import { isSamePriceDay } from '@/utils/priceAtDate'
 import { parsePayjoinUri } from '@/utils/payjoinUri'
 import { buildPayjoinWalletCallbacks } from '@/utils/payjoinWallet'
 import { appendLabelNote, buildPriceLabelNote } from '@/utils/receivePriceLabel'
@@ -263,6 +264,7 @@ export default function Receive() {
   const priceDateSheetRef = useRef<BottomSheetMethods>(null)
   const [priceDate, setPriceDate] = useState<Date>()
   const [pendingPriceDate, setPendingPriceDate] = useState(() => new Date())
+  const [priceDatePickerKey, setPriceDatePickerKey] = useState(0)
   const datedPrice = usePriceAtDate(priceDate, fiatCurrency)
   const pendingPrice = usePriceAtDate(pendingPriceDate, fiatCurrency)
   const conversionPrice = priceDate ? (datedPrice.price ?? 0) : btcPrice
@@ -607,7 +609,11 @@ export default function Receive() {
   }
 
   function handleOpenPriceDate() {
-    setPendingPriceDate(priceDate ?? new Date())
+    const openDate = priceDate ?? new Date()
+    if (!isSamePriceDay(openDate, pendingPriceDate)) {
+      setPendingPriceDate(openDate)
+      setPriceDatePickerKey((key) => key + 1)
+    }
     priceDateSheetRef.current?.expand()
   }
 
@@ -1181,6 +1187,7 @@ export default function Receive() {
       <SSPriceDateSheet
         ref={priceDateSheetRef}
         date={pendingPriceDate}
+        pickerKey={priceDatePickerKey}
         currency={fiatCurrency}
         price={pendingPrice.price}
         isLoading={pendingPrice.isLoading}

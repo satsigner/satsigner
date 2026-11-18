@@ -1,13 +1,28 @@
 import { useSettingsStore } from '@/store/settings'
 import {
   fetchPriceAtTimestamp,
-  getPriceDateTimestamp
+  getPriceDateTimestamp,
+  isSamePriceDay
 } from '@/utils/priceAtDate'
 
 describe('getPriceDateTimestamp', () => {
   it('uses the UTC midnight of the picked calendar day', () => {
     const picked = new Date(2025, 3, 11, 21, 45)
     expect(getPriceDateTimestamp(picked)).toBe(Date.UTC(2025, 3, 11) / 1000)
+  })
+})
+
+describe('isSamePriceDay', () => {
+  it('ignores the time of day', () => {
+    expect(
+      isSamePriceDay(new Date(2025, 3, 11, 0, 5), new Date(2025, 3, 11, 23, 55))
+    ).toBe(true)
+  })
+
+  it('tells different calendar days apart', () => {
+    expect(
+      isSamePriceDay(new Date(2025, 3, 11, 23, 55), new Date(2025, 3, 12, 0, 5))
+    ).toBe(false)
   })
 })
 
