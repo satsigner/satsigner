@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Reviews · satsigner</title>
+    <meta name="description" content="Reviews of satsigner from Zapstore.">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta property="og:title" content="satsigner reviews">
+    <meta property="og:image" content="https://satsigner.com/imgs/satSigner-og.jpg">
+    <link rel="apple-touch-icon" sizes="180x180" href="/favicon_io/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon_io/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon_io/favicon-16x16.png">
+    <script>try{if(localStorage.getItem("theme")==="light")document.documentElement.setAttribute("data-theme","light")}catch(e){}</script>
+    <link rel="stylesheet" href="/pages.css?v=17">
+  </head>
+  <body>
+    <nav class="page-nav">
+      <a class="page-nav-logo" href="/"><img src="/imgs/satSigner_symbol.png" alt=""><span>SATSIGNER</span></a>
+      <div class="page-nav-links">
+        <a href="/privacy-policy/">Privacy</a>
+        <a href="/terms/">Terms</a>
+        <a href="/reviews/" aria-current="page">Reviews</a>
+        <a href="/support/">Support</a>
+      </div>
+    </nav>
+
+    <main class="page">
+      <div class="reviews-head">
+        <div>
+          <h1>Reviews</h1>
+          <p class="lede" id="reviews-lede">What people have said about satsigner on Zapstore.</p>
+        </div>
+        <span class="review-cta">
+          <button type="button" class="review-button" title="Coming soon." aria-describedby="review-soon">Review</button>
+          <span class="review-tip" id="review-soon" role="tooltip">Coming soon.</span>
+        </span>
+      </div>
+      <div id="reviews-list" class="reviews-list" aria-live="polite">
+        <p class="reviews-status">Loading reviews…</p>
+      </div>
+    </main>
+
+    <dialog class="note-modal" id="note-modal">
+      <div class="note-modal-bar">
+        <p>Raw note</p>
+        <span class="note-modal-actions">
+          <span class="review-sig" id="note-sig" hidden></span>
+          <button type="button" class="note-modal-close" data-check-sig>Check signature</button>
+          <button type="button" class="note-modal-close" data-note-close>Close</button>
+        </span>
+      </div>
+      <pre class="note-json" id="note-json"></pre>
+    </dialog>
+
+    <footer class="page-footer">
+      <span>© 2026 satsigner</span>
+      <a href="/reviews/" aria-current="page">Reviews</a>
+      <a href="/support/">Support</a>
+      <a href="/privacy-policy/">Privacy</a>
+      <a href="/terms/">Terms</a>
+      <a href="https://github.com/satsigner/satsigner">GitHub</a>
+    </footer>
+
+    <script>
+      (function () {
+        var RELAY = 'wss://relay.zapstore.dev'
+        var DEFAULT_APP = 'satsigner'
+        var params = new URLSearchParams(location.search)
+        var requested = params.get('app') || ''
+        var appId = /^[a-zA-Z0-9._-]{1,120}$/.test(requested) ? requested : DEFAULT_APP
+        var testing = appId !== DEFAULT_APP
+        var list = document.getElementById('reviews-list')
+        var lede = document.getElementById('reviews-lede')
+
+        if (testing) {
+          document.title = 'Reviews · ' + appId
+          lede.textContent = 'Zapstore comments for ' + appId + ', loaded to check the feed.'
+        }
+
+        function esc(value) {
+          return String(value == null ? '' : value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+        }
+
+        function tag(event, name) {
+          var found = (event.tags || []).filter(function (item) { return item[0] === name && item[1] })
+          return found.length ? found[found.length - 1][1] : ''
+        }
+
+        function shortKey(pubkey) {
+          if (!pubkey || pubkey.length < 12) return 'Anonymous'
+          return pubkey.slice(0, 8) + '…' + pubkey.slice(-4)
+        }
+
+        function profileOf(profile) {
+          if (!profile || !profile.content) return { name: '', picture: '' }
+          try {
+            var data = JSON.parse(profile.content)
+            var picture = data.picture || ''
+            if (!/^https?:\/\//i.test(picture)) picture = ''
+            return { name: data.display_name || data.name || '', picture: picture, nip05: data.nip05 || '' }
+          } catch (e) {
+            return { name: '', picture: '', nip05: '' }
+          }
+        }
+
+        function nip05Address(value) {
+          if (typeof value !== 'string') return null
+          var trimmed = value.trim()
+          var at = trimmed.lastIndexOf('@')
+          if (at < 1 || at === trimmed.length - 1) return null
+          var name = trimmed.slice(0, at).toLowerCase()
+          var domain = trimmed.slice(at + 1).toLowerCase()
+          if (!/^[a-z0-9._-]+$/.test(name)) return null
+          if (!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/.test(domain)) return null
+          return { name: name, domain: domain, text: name === '_' ? domain : name + '@' + domain }
+        }
+
+        var nip05Checks = {}
+
+        function verifyNip05() {
+          var nodes = list.querySelectorAll('[data-nip05]')
+          nodes.forEach(function (node) {
+            var address = nip05Address(node.getAttribute('data-nip05'))
+            var pubkey = (node.getAttribute('data-pubkey') || '').toLowerCase()
+            if (!address || !/^[0-9a-f]{64}$/.test(pubkey)) {
+              node.classList.add('is-invalid')
+              node.textContent = node.getAttribute('data-nip05') || ''
+              return
+            }
+            node.textContent = address.text
+            var key = address.text + ' ' + pubkey
+            if (!nip05Checks[key]) {
+              var url = 'https://' + address.domain + '/.well-known/nostr.json?name=' + encodeURIComponent(address.name)
+              nip05Checks[key] = fetch(url).then(function (response) {
+                if (!response.ok) return false
+                return response.json()
+              }).then(function (body) {
+                var names = body && body.names
+                if (!names) return false
+                var match = Object.keys(names).find(function (item) { return item.toLowerCase() === address.name })
+                return !!(match && String(names[match]).toLowerCase() === pubkey)
+              }).catch(function () { return false })
+            }
+            nip05Checks[key].then(function (ok) {
+              node.classList.add(ok ? 'is-valid' : 'is-invalid')
+            })
+          })
+        }
+
+        function when(seconds) {
+          var then = new Date(seconds * 1000)
+          var delta = Date.now() - then.getTime()
+          var minute = 60 * 1000
+          var hour = 60 * minute
+          var day = 24 * hour
+          if (delta < hour) return Math.max(1, Math.round(delta / minute)) + 'm ago'
+          if (delta < day) return Math.round(delta / hour) + 'h ago'
+          if (delta < 30 * day) return Math.round(delta / day) + 'd ago'
+          return then.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+        }
+
+        function status(text) {
+          list.innerHTML = '<p class="reviews-status">' + esc(text) + '</p>'
+        }
+
+        function empty() {
+          var who = testing ? appId : 'satsigner'
+          list.innerHTML = '<p class="reviews-empty">Be the first to review ' + esc(who) + '.</p>'
+        }
+
+        var notes = {}
+        var openNote = null
+        var noteModal = document.getElementById('note-modal')
+        var noteJson = document.getElementById('note-json')
+        var noteSig = document.getElementById('note-sig')
+        var cryptoLibs = null
+
+        function loadCrypto() {
+          if (!cryptoLibs) {
+            cryptoLibs = Promise.all([
+              import('https://esm.sh/@noble/hashes@1.8.0/sha2.js'),
+              import('https://esm.sh/@noble/curves@1.6.0/secp256k1.js')
+            ]).then(function (mods) {
+              return { sha256: mods[0].sha256, schnorr: mods[1].schnorr }
+            })
+          }
+          return cryptoLibs
+        }
+
+        function bytesToHex(bytes) {
+          var hex = ''
+          for (var i = 0; i < bytes.length; i++) hex += bytes[i].toString(16).padStart(2, '0')
+          return hex
+        }
+
+        function signatureOk(event) {
+          return loadCrypto().then(function (libs) {
+            var canonical = JSON.stringify([0, event.pubkey, event.created_at, event.kind, event.tags, event.content])
+            var id = bytesToHex(libs.sha256(new TextEncoder().encode(canonical)))
+            if (id !== event.id) return false
+            return libs.schnorr.verify(event.sig, event.id, event.pubkey)
+          }).catch(function () { return null })
+        }
+
+        function markSig(id, slot, result) {
+          var button = list.querySelector('[data-sig="' + CSS.escape(id) + '"]')
+          if (button) button.hidden = result !== null
+          slot.hidden = false
+          slot.className = 'review-sig' + (result === true ? ' is-valid' : result === false ? ' is-invalid' : '')
+          slot.textContent = result === true ? 'Valid' : result === false ? 'Invalid' : 'Could not check'
+        }
+
+        function checkNote(id, slot) {
+          var note = notes[id]
+          if (!note || !slot) return
+          var button = list.querySelector('[data-sig="' + CSS.escape(id) + '"]')
+          if (button) button.hidden = true
+          slot.hidden = false
+          slot.className = 'review-sig'
+          slot.textContent = 'Checking…'
+          signatureOk(note).then(function (result) { markSig(id, slot, result) })
+        }
+
+        list.addEventListener('click', function (event) {
+          var sigButton = event.target.closest('[data-sig]')
+          if (sigButton) {
+            var id = sigButton.getAttribute('data-sig')
+            checkNote(id, list.querySelector('[data-sig-for="' + CSS.escape(id) + '"]'))
+            return
+          }
+          var button = event.target.closest('[data-note]')
+          if (!button) return
+          var note = notes[button.getAttribute('data-note')]
+          if (!note) return
+          openNote = note
+          noteSig.hidden = true
+          noteSig.textContent = ''
+          noteSig.className = 'review-sig'
+          noteJson.textContent = JSON.stringify(note, null, 2)
+          noteModal.showModal()
+        })
+
+        noteModal.addEventListener('click', function (event) {
+          if (event.target.closest('[data-check-sig]')) {
+            if (openNote) checkNote(openNote.id, noteSig)
+            return
+          }
+          if (event.target === noteModal || event.target.closest('[data-note-close]')) noteModal.close()
+        })
+
+        noteModal.addEventListener('click', function (event) {
+          if (event.target === noteModal || event.target.closest('[data-note-close]')) noteModal.close()
+        })
+
+        function render(comments, profiles) {
+          notes = {}
+          var byId = {}
+          comments.forEach(function (event) { byId[event.id] = event })
+          var replies = {}
+          var roots = []
+          comments.forEach(function (event) {
+            var parentKind = tag(event, 'k')
+            var parentId = tag(event, 'e')
+            if (parentKind === '1111' && parentId && byId[parentId]) {
+              (replies[parentId] || (replies[parentId] = [])).push(event)
+            } else {
+              roots.push(event)
+            }
+          })
+          roots.sort(function (a, b) { return b.created_at - a.created_at })
+          if (!roots.length) {
+            empty()
+            return
+          }
+          function block(event, nested) {
+            var repliesHere = (replies[event.id] || []).slice().sort(function (a, b) { return a.created_at - b.created_at })
+            var info = profileOf(profiles[event.pubkey])
+            var author = info.name || shortKey(event.pubkey)
+            var initial = (author.match(/[a-z0-9]/i) || ['?'])[0].toUpperCase()
+            var avatar = info.picture
+              ? '<img class="review-avatar" src="' + esc(info.picture) + '" alt="" data-initial="' + esc(initial) + '" onerror="this.outerHTML=\'<span class=&quot;review-avatar is-fallback&quot;>\'+this.dataset.initial+\'</span>\'">'
+              : '<span class="review-avatar is-fallback">' + esc(initial) + '</span>'
+            var nip = info.nip05 ? '<span class="review-nip05" data-nip05="' + esc(info.nip05) + '" data-pubkey="' + esc(event.pubkey) + '"></span>' : ''
+            notes[event.id] = event
+            var html = '<article class="review' + (nested ? ' is-reply' : '') + '">' +
+              '<header class="review-meta"><span class="review-who">' + avatar + '<span class="review-id"><span class="review-author">' + esc(author) + '</span>' + nip + '</span></span>' +
+              '<span class="review-aside"><span class="review-actions">' +
+              '<button type="button" class="review-raw" data-note="' + esc(event.id) + '">Raw note</button>' +
+              '<button type="button" class="review-raw" data-sig="' + esc(event.id) + '">Check signature</button></span>' +
+              '<span class="review-sig" data-sig-for="' + esc(event.id) + '" hidden></span>' +
+              '<time datetime="' + esc(new Date(event.created_at * 1000).toISOString()) + '">' + esc(when(event.created_at)) + '</time></span></header>' +
+              '<p class="review-body">' + esc(event.content || '') + '</p>'
+            if (repliesHere.length && !nested) {
+              html += '<div class="review-replies">' + repliesHere.map(function (reply) { return block(reply, true) }).join('') + '</div>'
+            }
+            return html + '</article>'
+          }
+          list.innerHTML = roots.map(function (event) { return block(event, false) }).join('')
+          verifyNip05()
+        }
+
+        var socket
+        var appEvent = null
+        var comments = []
+        var triedIdentifier = false
+        var profiles = {}
+        var closed = false
+
+        function sub(id, filter) {
+          socket.send(JSON.stringify(['REQ', id, filter]))
+        }
+
+        function finish(message) {
+          if (closed) return
+          closed = true
+          try { socket.close() } catch (e) {}
+          if (message) status(message)
+        }
+
+        function loadProfiles() {
+          var authors = []
+          comments.forEach(function (event) {
+            if (authors.indexOf(event.pubkey) === -1) authors.push(event.pubkey)
+          })
+          if (!authors.length) {
+            empty()
+            finish()
+            return
+          }
+          pendingProfiles = authors.slice()
+          sub('profiles', { kinds: [0], authors: authors, limit: authors.length })
+        }
+
+        function onCommentsDone() {
+          if (!comments.length && !triedIdentifier) {
+            triedIdentifier = true
+            sub('by-id', { kinds: [1111], '#i': [appId], limit: 200 })
+            return
+          }
+          loadProfiles()
+        }
+
+        try {
+          socket = new WebSocket(RELAY)
+        } catch (e) {
+          status('Reviews could not be loaded.')
+          return
+        }
+
+        var timer = setTimeout(function () {
+          finish('Reviews could not be loaded.')
+        }, 12000)
+
+        socket.addEventListener('open', function () {
+          sub('app', { kinds: [32267], '#d': [appId], limit: 20 })
+        })
+
+        socket.addEventListener('message', function (message) {
+          var frame
+          try { frame = JSON.parse(message.data) } catch (e) { return }
+          if (frame[0] === 'EVENT' && frame[2]) {
+            var event = frame[2]
+            if (frame[1] === 'app' && event.kind === 32267) {
+              if (!appEvent || event.created_at > appEvent.created_at) appEvent = event
+            } else if ((frame[1] === 'comments' || frame[1] === 'by-id') && event.kind === 1111) {
+              if (!comments.some(function (item) { return item.id === event.id })) comments.push(event)
+            } else if (frame[1] === 'profiles' && event.kind === 0) {
+              var current = profiles[event.pubkey]
+              if (!current || event.created_at > current.created_at) profiles[event.pubkey] = event
+            }
+            return
+          }
+          if (frame[0] !== 'EOSE') return
+          if (frame[1] === 'app') {
+            if (!appEvent) {
+              triedIdentifier = true
+              sub('by-id', { kinds: [1111], '#i': [appId], limit: 200 })
+              return
+            }
+            var coordinate = '32267:' + appEvent.pubkey + ':' + (tag(appEvent, 'd') || appId)
+            sub('comments', { kinds: [1111], '#A': [coordinate], limit: 200 })
+            return
+          }
+          if (frame[1] === 'comments' || frame[1] === 'by-id') {
+            onCommentsDone()
+            return
+          }
+          if (frame[1] === 'profiles') {
+            clearTimeout(timer)
+            render(comments, profiles)
+            finish()
+          }
+        })
+
+        socket.addEventListener('error', function () {
+          clearTimeout(timer)
+          finish('Reviews could not be loaded.')
+        })
+
+        socket.addEventListener('close', function () {
+          clearTimeout(timer)
+          if (!closed && !list.querySelector('.review, .reviews-empty')) {
+            status('Reviews could not be loaded.')
+          }
+          closed = true
+        })
+      })()
+    </script>
+  </body>
+</html>

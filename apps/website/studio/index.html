@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <style>html,body{background:#000}html[data-theme="light"],html[data-theme="light"] body{background:#f4f4f4}</style>
+  <script>if (new URLSearchParams(location.search).has('embed')) document.documentElement.classList.add('is-embed');if (new URLSearchParams(location.search).has('still')) document.documentElement.classList.add('is-still');if (localStorage.getItem('studio-theme') === 'light') document.documentElement.dataset.theme = 'light'</script>
+  <title>SatSigner Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/fonts/inter.css">
+  <link rel="stylesheet" href="/studio/generated/tokens.css">
+  <link rel="stylesheet" href="/studio/tokens.css">
+  <link rel="stylesheet" href="/studio/components.css">
+  <link rel="stylesheet" href="/studio/screen.css?v=2">
+  <link rel="stylesheet" href="/studio/catalog.css?v=36">
+  <link rel="stylesheet" href="/studio/dashboard.css?v=8">
+  <link rel="stylesheet" href="/studio/distribution.css?v=39">
+</head>
+<body>
+  <div class="view-toggle" role="group" aria-label="Catalog layout">
+    <span class="studio-brand"><a href="/" aria-label="SatSigner"><img src="/imgs/satSigner_symbol.png" alt=""></a><a href="/studio/"><span>SATSIGNER STUDIO</span></a></span>
+    <button type="button" data-view="dashboard">Dashboard</button>
+    <button type="button" data-view="prototype">Prototype</button>
+    <button type="button" data-view="personas">Personas</button>
+    <button type="button" data-view="screens">Screens</button>
+    <button type="button" data-view="table">Table</button>
+    <button type="button" data-view="map">Map</button>
+    <button type="button" data-view="components">Components</button>
+    <button type="button" data-view="distribution">Distribution</button>
+    <button type="button" id="card-height" aria-pressed="false">Expand</button>
+    <button type="button" id="theme-toggle" aria-label="Toggle color theme" aria-pressed="false">
+      <svg viewBox="0 0 16 16" aria-hidden="true">
+        <circle cx="8" cy="8" r="6.25" fill="none" stroke="currentColor" stroke-width="1.25"></circle>
+        <path d="M8 1.75a6.25 6.25 0 0 0 0 12.5z" fill="currentColor"></path>
+      </svg>
+    </button>
+  </div>
+  <main class="stage" id="phone-view">
+    <div class="phone" aria-label="SatSigner">
+      <span class="phone-key phone-key-silent" aria-hidden="true"></span>
+      <span class="phone-key phone-key-up" aria-hidden="true"></span>
+      <span class="phone-key phone-key-down" aria-hidden="true"></span>
+      <span class="phone-key phone-key-power" aria-hidden="true"></span>
+      <span class="phone-island" aria-hidden="true"></span>
+      <div class="phone-status" aria-hidden="true">
+        <span class="phone-time">9:41</span>
+        <span class="phone-signals">
+          <svg viewBox="0 0 18 12" width="17" height="12" aria-hidden="true"><rect x="0" y="7" width="3" height="5" rx="0.6" fill="currentColor"/><rect x="5" y="4.5" width="3" height="7.5" rx="0.6" fill="currentColor"/><rect x="10" y="2" width="3" height="10" rx="0.6" fill="currentColor"/><rect x="15" y="0" width="3" height="12" rx="0.6" fill="currentColor" opacity="0.35"/></svg>
+          <svg viewBox="0 0 16 12" width="16" height="12" aria-hidden="true"><path d="M8 9.6a1.35 1.35 0 1 1 0 2.7 1.35 1.35 0 0 1 0-2.7Z" fill="currentColor"/><path d="M4.2 7.4a5.4 5.4 0 0 1 7.6 0" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M1.6 4.7a9 9 0 0 1 12.8 0" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+          <svg viewBox="0 0 27 12" width="25" height="12" aria-hidden="true"><rect x="0.6" y="0.6" width="22" height="10.8" rx="2.4" fill="none" stroke="currentColor" stroke-width="1.2"/><rect x="2.2" y="2.2" width="16" height="7.6" rx="1.2" fill="currentColor"/><path d="M24.2 4.2v3.6c.9-.3 1.6-1.2 1.6-1.8s-.7-1.5-1.6-1.8Z" fill="currentColor"/></svg>
+        </span>
+      </div>
+      <div class="phone-screen">
+        <aside class="drawer" id="drawer" aria-label="Navigation" aria-hidden="true"></aside>
+        <section id="view-intro">
+          <div class="intro" id="intro"></div>
+        </section>
+        <section id="view-menu" hidden>
+          <header class="menu-header">
+            <button type="button" class="nav-toggle" id="nav-toggle" aria-label="Menu" aria-expanded="false"></button>
+            <button type="button" class="settings" data-settings aria-label="Settings"></button>
+            <p class="menu-title" id="menu-title">Signer</p>
+          </header>
+          <div class="menu-list" id="menu-list"></div>
+          <nav class="tab-bar" aria-label="Sections">
+            <button type="button" class="tab" data-tab="explorer" data-label="Explorer"></button>
+            <button type="button" class="tab is-active" data-tab="signer" data-label="Signer"></button>
+            <button type="button" class="tab" data-tab="converter" data-label="Converter"></button>
+          </nav>
+        </section>
+
+        <section id="view-accounts" hidden>
+          <header class="stack-header">
+            <button type="button" class="back" data-back="menu" aria-label="Back"></button>
+            <p>Bitcoin</p>
+          </header>
+          <div class="accounts-body">
+            <p class="connection"><span class="dot"></span><span id="network-label">Signet</span> — Default <span>mempool.space</span></p>
+            <p class="totals"><span>Total balance <strong id="total-balance">22,240,000</strong></span><span>Mempool <strong id="total-mempool">50,000</strong></span></p>
+            <button type="button" class="menu-button add-account"><span class="edge-left"></span><span class="edge-right"></span>Add account</button>
+            <nav class="network-tabs" aria-label="Networks">
+              <button type="button" class="network-tab" data-network="bitcoin">Bitcoin</button>
+              <button type="button" class="network-tab" data-network="testnet">Testnet</button>
+              <button type="button" class="network-tab is-active" data-network="signet">Signet</button>
+            </nav>
+            <div id="account-list"></div>
+          </div>
+        </section>
+
+        <section id="view-converter" hidden>
+          <header class="stack-header">
+            <button type="button" class="back" data-back="menu" aria-label="Back"></button>
+            <p>Converter</p>
+          </header>
+          <div class="converter-body">
+            <label class="currency-field">
+              <span>Bitcoin</span>
+              <input id="btc-input" inputmode="decimal" value="0.0124">
+            </label>
+            <div class="currency-row">
+              <label class="currency-field">
+                <span>Sats</span>
+                <input id="sats-input" readonly>
+              </label>
+              <label class="currency-field">
+                <span>USD</span>
+                <input id="usd-input" readonly>
+              </label>
+            </div>
+            <div class="currency-row">
+              <label class="currency-field">
+                <span>EUR</span>
+                <input value="11,470.00" readonly>
+              </label>
+              <label class="currency-field">
+                <span>GBP</span>
+                <input value="9,820.00" readonly>
+              </label>
+            </div>
+          </div>
+        </section>
+
+        <section id="view-account" hidden>
+          <header class="stack-header">
+            <button type="button" class="back" data-back="accounts" aria-label="Back"></button>
+            <p id="account-title">Spending</p>
+            <button type="button" class="settings" data-account-settings aria-label="Account settings"></button>
+          </header>
+          <div class="account-landing" id="account-landing"></div>
+        </section>
+
+        <section id="view-account-settings" hidden>
+          <header class="stack-header">
+            <button type="button" class="back" data-back="account" aria-label="Back"></button>
+            <p id="account-settings-title">Spending</p>
+            <button type="button" class="settings" data-settings aria-label="Settings"></button>
+          </header>
+          <div class="accounts-body" id="account-settings"></div>
+        </section>
+
+        <section id="view-tx" hidden>
+          <header class="stack-header">
+            <button type="button" class="back" data-back="account" aria-label="Back"></button>
+            <p>Transaction details</p>
+          </header>
+          <div class="accounts-body" id="tx-body"></div>
+        </section>
+
+        <section id="view-send" hidden>
+          <header class="stack-header">
+            <button type="button" class="back" data-back="account" aria-label="Back"></button>
+            <p id="send-title">Outputs</p>
+          </header>
+          <div class="accounts-body">
+            <!-- Payjoin flag for the send flow (payjoin route turns it on) -->
+            <input type="checkbox" id="payjoin-toggle" checked hidden>
+          </div>
+          <!-- apps/mobile/.../signAndSend/ioPreview.tsx, rendered by renderIo() -->
+          <div class="io-preview" id="io-preview" hidden></div>
+          <div id="io-overlays"></div>
+        </section>
+
+        <section id="view-preview" hidden>
+          <header class="stack-header">
+            <button type="button" class="back" data-back="send" aria-label="Back"></button>
+            <p id="preview-title">Transaction</p>
+          </header>
+          <div class="accounts-body" id="preview-body"></div>
+        </section>
+
+
+
+        <section id="view-psbt-qr" hidden>
+          <header class="stack-header">
+            <button type="button" class="back" data-back="preview" aria-label="Back"></button>
+            <p>UQR</p>
+          </header>
+          <div class="accounts-body psbt-qr" id="psbt-qr"></div>
+        </section>
+
+        <section id="view-sign" hidden>
+          <header class="stack-header">
+            <button type="button" class="back" data-back="preview" aria-label="Back"></button>
+            <p id="sign-title">Spending</p>
+          </header>
+          <!-- apps/mobile/.../signAndSend/signTransaction.tsx, rendered by renderSign() -->
+          <div class="accounts-body ss-screen" id="sign-body"></div>
+        </section>
+
+        <section id="view-sent" hidden>
+          <header class="stack-header">
+            <button type="button" class="back" data-back="account" aria-label="Back" style="visibility:hidden"></button>
+            <p id="sent-title">Spending</p>
+          </header>
+          <!-- apps/mobile/.../signAndSend/transactionConfirmation.tsx, rendered by renderSent() -->
+          <div class="accounts-body ss-screen" id="sent-body"></div>
+        </section>
+        <!-- Shared section for screens registered in screens.js -->
+        <section id="view-kit" hidden>
+          <header class="stack-header">
+            <button type="button" class="back" id="kit-back" aria-label="Back"></button>
+            <p id="kit-title"></p>
+          </header>
+          <div class="accounts-body ss-screen" id="kit-body"></div>
+          <div id="kit-overlays"></div>
+        </section>
+
+
+
+
+
+
+
+
+
+
+
+
+        <section id="view-difficulty" hidden>
+          <header class="stack-header">
+            <button type="button" class="back" data-back="explorer" aria-label="Back"></button>
+            <p>Difficulty</p>
+          </header>
+          <div class="accounts-body" id="difficulty"></div>
+        </section>
+
+        <section id="view-new-account" hidden>
+          <header class="stack-header">
+            <button type="button" class="back" data-back="accounts" aria-label="Back"></button>
+            <p>New account</p>
+          </header>
+          <div class="accounts-body section-body" id="new-account"></div>
+        </section>
+        <section id="view-new-singlesig" hidden>
+          <header class="stack-header">
+            <button type="button" class="back" data-back="new-account" aria-label="Back"></button>
+            <p id="new-singlesig-title">Spending</p>
+          </header>
+          <div class="accounts-body section-body" id="new-singlesig"></div>
+        </section>
+        <section id="view-entropy-dice" hidden>
+          <header class="stack-header">
+            <button type="button" class="back" data-back="new-singlesig" aria-label="Back"></button>
+            <p>Dice</p>
+          </header>
+          <div class="accounts-body section-body" id="entropy-dice"></div>
+        </section>
+        <section id="view-entropy-coin" hidden>
+          <header class="stack-header">
+            <button type="button" class="back" data-back="new-singlesig" aria-label="Back"></button>
+            <p>Coin flips</p>
+          </header>
+          <div class="accounts-body section-body" id="entropy-coin"></div>
+        </section>
+        <section id="view-entropy-drawing" hidden>
+          <header class="stack-header">
+            <button type="button" class="back" data-back="new-singlesig" aria-label="Back"></button>
+            <p>Drawing</p>
+          </header>
+          <div class="accounts-body section-body" id="entropy-drawing"></div>
+        </section>
+        <section id="view-multisig-setup" hidden>
+          <header class="stack-header">
+            <button type="button" class="back" data-back="accounts" aria-label="Back"></button>
+            <p>Vault</p>
+          </header>
+          <div class="accounts-body section-body" id="multisig-setup"></div>
+        </section>
+        <section id="view-multisig-keys" hidden>
+          <header class="stack-header">
+            <button type="button" class="back" data-back="multisig-setup" aria-label="Back"></button>
+            <p>Vault</p>
+          </header>
+          <div class="accounts-body section-body" id="multisig-keys"></div>
+        </section>
+        <section id="view-multisig-key" hidden>
+          <header class="stack-header">
+            <button type="button" class="back" data-back="multisig-keys" aria-label="Back"></button>
+            <p>Vault</p>
+          </header>
+          <div class="accounts-body section-body" id="multisig-key"></div>
+        </section>
+        <section id="view-multisig-settings" hidden>
+          <header class="stack-header">
+            <button type="button" class="back" data-back="account" aria-label="Back"></button>
+            <p>Multisig</p>
+          </header>
+          <div class="accounts-body section-body" id="multisig-settings"></div>
+        </section>
+        <section id="view-multisig-sign" hidden>
+          <header class="stack-header">
+            <button type="button" class="back" data-back="account" aria-label="Back"></button>
+            <p>Transaction</p>
+          </header>
+          <div class="accounts-body section-body" id="multisig-sign"></div>
+        </section>
+        <div id="sheet" class="sheet" hidden></div>
+        <span class="demo-cursor" id="demo-cursor" hidden aria-hidden="true"></span>
+      </div>
+    </div>
+    <div class="stage-controls">
+      <div class="stage-play-wrap">
+        <button type="button" class="stage-home" id="stage-play" aria-pressed="false" aria-haspopup="menu">Play</button>
+        <div class="stage-flows" role="menu" aria-label="Demo flows">
+          <button type="button" role="menuitem" data-flow="send">Send transaction</button>
+          <button type="button" role="menuitem" data-flow="account">Create account</button>
+          <button type="button" role="menuitem" data-flow="import">Import from seed</button>
+          <button type="button" role="menuitem" data-flow="multisig">Multisig 2-of-3</button>
+          <button type="button" role="menuitem" data-flow="nostr">Nostr sync</button>
+          <button type="button" role="menuitem" data-flow="ecash">Receive ecash</button>
+          <button type="button" role="menuitem" data-flow="ark">Board Ark</button>
+        </div>
+      </div>
+      <button type="button" class="stage-home" id="stage-home">Home</button>
+      <label class="persona-picker" id="persona-picker-wrap">
+        <select id="persona-picker" aria-label="Demo persona"></select>
+      </label>
+    </div>
+  </main>
+  <div class="catalog" id="catalog-views" hidden>
+    <div class="dashboard" id="dashboard-view" hidden></div>
+    <div class="dashboard" id="personas-view" hidden></div>
+    <div class="flow" id="flow-view" hidden></div>
+    <div class="screen-grid" id="list-view"></div>
+    <div class="component-grid" id="components-view" hidden></div>
+    <div class="distribution" id="distribution-view" hidden></div>
+    <table class="screen-table" id="table-view" hidden>
+      <thead>
+        <tr>
+          <th>Preview</th>
+          <th aria-sort="ascending"><button type="button" data-sort="n">#</button></th>
+          <th><button type="button" data-sort="name">Screen</button></th>
+          <th><button type="button" data-sort="theme">Theme</button></th>
+          <th><button type="button" data-sort="route">Route</button></th>
+          <th><button type="button" data-sort="markup">Markup</button></th>
+          <th><button type="button" data-sort="source">What it is</button></th>
+        </tr>
+      </thead>
+      <tbody id="screen-rows"></tbody>
+    </table>
+  </div>
+  <script src="/studio/icons.js"></script>
+  <script src="/studio/generated/icons.js"></script>
+  <script src="/studio/generated/strings.js?v=2"></script>
+  <script src="/studio/components.js?v=3"></script>
+  <script src="/studio/screen.js?v=23"></script>
+  <script src="/studio/screens.js?v=2"></script>
+  <script src="/studio/screens/settings.js"></script>
+  <script src="/studio/screens/settings-network.js"></script>
+  <script src="/studio/screens/settings-features.js?v=3"></script>
+  <script src="/studio/screens/settings-system.js"></script>
+  <script src="/studio/screens/explorer-tx.js"></script>
+  <script src="/studio/screens/explorer-chain.js?v=2"></script>
+  <script src="/studio/screens/bitcoin-account.js?v=2"></script>
+  <script src="/studio/screens/bitcoin-settings.js?v=3"></script>
+  <script src="/studio/screens/bitcoin-add.js?v=3"></script>
+  <script src="/studio/screens/nostr.js?v=3"></script>
+  <script src="/studio/personas.js?v=13"></script>
+  <script src="/studio/screens/ark-lightning.js?v=2"></script>
+  <script src="/studio/screens/ecash-shell.js?v=2"></script>
+  <script src="/studio/screens/legacy-bitcoin.js?v=7"></script>
+  <script src="/studio/screens/legacy-add.js"></script>
+  <script src="/studio/screens/legacy-hubs.js"></script>
+  <script src="/studio/screens/legacy-tools.js?v=2"></script>
+  <script src="/studio/generated/routes.js"></script>
+  <script src="/studio/generated/coverage.js"></script>
+  <script src="/studio/generated/meta.js"></script>
+  <script src="/studio/catalog.js?v=33"></script>
+  <script src="/studio/dashboard.js?v=3"></script>
+  <script src="/release/data.js?v=4"></script>
+  <script src="/studio/distribution.js?v=80"></script>
+  <script src="/studio/market.js?v=4"></script>
+</body>
+</html>

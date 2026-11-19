@@ -1,0 +1,97 @@
+.shots-page { max-width: 1280px; }
+.shots-formats { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 24px; }
+.shots-formats button[aria-selected="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+
+.shots-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; }
+.shots-grid.is-wide { grid-template-columns: 1fr; }
+.shots-cell a { display: block; font-size: 12px; color: var(--muted); margin-top: 6px; text-decoration: none; }
+.shots-fit { position: relative; overflow: hidden; border-radius: 10px; }
+.shots-fit > .slide { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+
+/* A slide is laid out at its exact export size. Units below are px at that size. */
+.slide {
+  --w: 1320px;
+  --h: 2868px;
+  width: var(--w);
+  height: var(--h);
+  position: relative;
+  overflow: hidden;
+  color: #fff;
+  font-family: "Geist", "Inter", system-ui, sans-serif;
+  background:
+    radial-gradient(120% 60% at 50% 100%, #1e1e1e 0%, #050505 60%),
+    #000;
+}
+
+.slide-copy {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: 6.5%;
+  text-align: center;
+}
+
+.slide .slide-title {
+  margin: 0;
+  font-size: calc(var(--w) * 0.083);
+  line-height: 1.04;
+  font-weight: 600;
+  letter-spacing: -0.035em;
+}
+
+.slide .slide-sub {
+  margin: 0.6em 0 0;
+  font-size: calc(var(--w) * 0.039);
+  font-weight: 400;
+  color: #9a9a9a;
+  letter-spacing: -0.01em;
+}
+
+.slide-phone {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--h) * -0.08);
+  width: calc(var(--w) * 0.84);
+  aspect-ratio: 390 / 844;
+  transform: translateX(-50%);
+  border-radius: calc(var(--w) * 0.1);
+  padding: calc(var(--w) * 0.018);
+  background: #0b0b0b;
+  box-shadow:
+    0 0 0 calc(var(--w) * 0.003) rgba(255, 255, 255, 0.22),
+    0 calc(var(--w) * 0.04) calc(var(--w) * 0.12) rgba(0, 0, 0, 0.8);
+}
+
+.slide-phone iframe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: calc(var(--w) * 0.083);
+  background: #0a0a0a;
+}
+
+/* iPad: the phone sits smaller in a taller canvas. */
+.slide.is-ipad .slide-phone { width: calc(var(--w) * 0.56); bottom: calc(var(--h) * -0.08); }
+.slide.is-ipad .slide-title { font-size: calc(var(--w) * 0.06); }
+.slide.is-ipad .slide-sub { font-size: calc(var(--w) * 0.028); }
+
+/* Header: wordmark on the left, three phones on the right. */
+.slide.is-header .slide-copy { left: 6%; right: auto; top: 50%; width: 38%; transform: translateY(-50%); text-align: left; }
+.slide.is-header .slide-title { font-size: calc(var(--h) * 0.1); }
+.slide.is-header .slide-sub { font-size: calc(var(--h) * 0.036); }
+.slide.is-header .slide-mark { width: calc(var(--h) * 0.12); margin-bottom: calc(var(--h) * 0.04); display: block; }
+.slide.is-header .slide-phone {
+  left: auto;
+  width: calc(var(--h) * 0.46);
+  border-radius: calc(var(--h) * 0.06);
+  padding: calc(var(--h) * 0.011);
+  transform: none;
+}
+.slide.is-header .slide-phone iframe { border-radius: calc(var(--h) * 0.05); }
+.slide.is-header .slide-phone:nth-of-type(2) { right: 33%; bottom: -24%; }
+.slide.is-header .slide-phone:nth-of-type(3) { right: 18.5%; bottom: -8%; z-index: 1; }
+.slide.is-header .slide-phone:nth-of-type(4) { right: 4%; bottom: -24%; }
+
+/* Export mode: one slide, no page chrome. */
+html.is-export, html.is-export body { background: #000; margin: 0; overflow: hidden; }
