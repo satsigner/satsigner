@@ -1,12 +1,8 @@
 import * as Clipboard from 'expo-clipboard'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
 import { useRef, useState } from 'react'
-import {
-  Pressable,
-  StyleSheet,
-  useWindowDimensions,
-  type ViewInstance
-} from 'react-native'
+import { Pressable, StyleSheet, useWindowDimensions } from 'react-native'
+import type { ViewInstance } from 'react-native'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -233,7 +229,7 @@ export default function EcashProofDetailPage() {
                 currency={currencyUnit}
                 textSize="4xl"
                 weight="ultralight"
-                letterSpacing={-1}
+                letterSpacing={Typography.amountLetterSpacing.header}
                 unitSize="xl"
               />
             </SSHStack>

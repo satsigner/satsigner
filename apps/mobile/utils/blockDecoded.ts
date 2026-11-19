@@ -3,7 +3,8 @@ import { hex } from '@scure/base'
 import * as bitcoinjs from 'bitcoinjs-lib'
 import varuint from 'varuint-bitcoin'
 
-import { TxDecoded, type TxDecodedField, TxField } from '@/utils/txDecoded'
+import type { TxDecodedField, TxField } from '@/utils/txDecoded'
+import { TxDecoded } from '@/utils/txDecoded'
 
 bitcoinjs.initEccLib(ecc)
 

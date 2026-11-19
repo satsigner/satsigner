@@ -1,12 +1,12 @@
 import { useAccountsStore } from '@/store/accounts'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
-import { type Network } from '@/types/settings/blockchain'
+import type { Network } from '@/types/settings/blockchain'
 import {
   addSentTransactionToAccount,
   buildSentTransactionLabels,
-  getSentOutputVouts,
-  type SentTransaction
+  getSentOutputVouts
 } from '@/utils/sentTransaction'
+import type { SentTransaction } from '@/utils/sentTransaction'
 
 function readSentTransaction(txid: string, network: Network): SentTransaction {
   const builder = useTransactionBuilderStore.getState()

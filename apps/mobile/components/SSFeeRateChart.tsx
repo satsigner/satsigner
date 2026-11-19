@@ -5,7 +5,7 @@ import { CartesianChart, StackedArea } from 'victory-native'
 
 import { MS_PER_SECOND } from '@/constants/time'
 import { Colors } from '@/styles'
-import { type MempoolStatistics } from '@/types/models/Blockchain'
+import type { MempoolStatistics } from '@/types/models/Blockchain'
 import { bytes } from '@/utils/bytes'
 
 const sansSerif = require('@/assets/fonts/Geist-Medium.ttf')

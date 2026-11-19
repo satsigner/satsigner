@@ -1,7 +1,7 @@
-import { type DevConsoleEntry } from '@/types/models/DevConsole'
-import { type Transaction } from '@/types/models/Transaction'
-import { type Utxo } from '@/types/models/Utxo'
-import { type LightningBubbleChannelRow } from '@/utils/lightningChannelsBubbleLayout'
+import type { DevConsoleEntry } from '@/types/models/DevConsole'
+import type { Transaction } from '@/types/models/Transaction'
+import type { Utxo } from '@/types/models/Utxo'
+import type { LightningBubbleChannelRow } from '@/utils/lightningChannelsBubbleLayout'
 
 export const DESIGN_FEATURE_IDS = [
   'sankey',

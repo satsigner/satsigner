@@ -1,10 +1,5 @@
-import {
-  type Event,
-  generateSecretKey,
-  getPublicKey,
-  nip19,
-  nip59
-} from 'nostr-tools'
+import { generateSecretKey, getPublicKey, nip19, nip59 } from 'nostr-tools'
+import type { Event } from 'nostr-tools'
 
 import { compressMessage } from '@/utils/nostr'
 

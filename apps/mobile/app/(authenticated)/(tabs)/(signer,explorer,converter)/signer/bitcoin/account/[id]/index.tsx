@@ -7,15 +7,8 @@ import {
   useRouter
 } from 'expo-router'
 import { useFocusEffect } from 'expo-router/react-navigation'
-import {
-  type Dispatch,
-  type ReactNode,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState
-} from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { Dispatch, ReactNode } from 'react'
 import {
   RefreshControl,
   ScrollView,
@@ -29,7 +22,8 @@ import Animated, {
   useSharedValue,
   withTiming
 } from 'react-native-reanimated'
-import { type SceneRendererProps, TabView } from 'react-native-tab-view'
+import { TabView } from 'react-native-tab-view'
+import type { SceneRendererProps } from 'react-native-tab-view'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -75,6 +69,8 @@ import SSPressable from '@/components/SSPressable'
 import SSSeparator from '@/components/SSSeparator'
 import SSSortDirectionToggle from '@/components/SSSortDirectionToggle'
 import SSStyledSatText from '@/components/SSStyledSatText'
+import SSSyncDetailsModal from '@/components/SSSyncDetailsModal'
+import SSSyncTicker from '@/components/SSSyncTicker'
 import SSText from '@/components/SSText'
 import SSTransactionCard from '@/components/SSTransactionCard'
 import SSUtxoCard from '@/components/SSUtxoCard'
@@ -110,24 +106,25 @@ import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import { useUtxoListControlsStore } from '@/store/utxoListControls'
-import { Colors, Sizes } from '@/styles'
-import { type Direction } from '@/types/logic/sort'
-import { type Account } from '@/types/models/Account'
-import { type Address } from '@/types/models/Address'
-import { type Utxo } from '@/types/models/Utxo'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
-import { type PayjoinSession } from '@/types/payjoin'
+import { Colors, Sizes, Typography } from '@/styles'
+import type { Direction } from '@/types/logic/sort'
+import type { Account } from '@/types/models/Account'
+import type { Address } from '@/types/models/Address'
+import type { Utxo } from '@/types/models/Utxo'
+import type { AccountSearchParams } from '@/types/navigation/searchParams'
+import type { PayjoinSession } from '@/types/payjoin'
 import { getAccountTotalBalance, isAutoSyncDue } from '@/utils/account'
 import { isTransactionHistoryLoading } from '@/utils/accountSync'
+import { getAutomaticTagsByTxid } from '@/utils/automaticTags'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { formatRelativeTime } from '@/utils/date'
 import {
-  type DraftResumeStep,
   getDraftIoCounts,
   getDraftLabel,
   getDraftPaymentAmount,
   getDraftResumeStep
 } from '@/utils/draftSelection'
+import type { DraftResumeStep } from '@/utils/draftSelection'
 import { toggleUtxoExcluded } from '@/utils/excludeUtxo'
 import { satsToFiat } from '@/utils/fiat'
 import {
@@ -144,25 +141,25 @@ import { parsePayjoinUri } from '@/utils/payjoinUri'
 import {
   createScanThroughputTracker,
   formatBlocksPerSec,
-  formatScanDuration,
-  type ScanThroughput
+  formatScanDuration
 } from '@/utils/scanThroughput'
-import {
-  sortAddressesByIndex,
-  sortTransactions,
-  type TransactionSortField
-} from '@/utils/sort'
+import type { ScanThroughput } from '@/utils/scanThroughput'
+import { sortAddressesByIndex, sortTransactions } from '@/utils/sort'
+import type { TransactionSortField } from '@/utils/sort'
+import { syncTickerLabels } from '@/utils/syncLabels'
 import { getUtxoOutpoint } from '@/utils/utxo'
 import {
   DEFAULT_UTXO_LIST_FILTER,
   isUtxoExcluded,
-  prepareUtxoList,
-  type UtxoKeychainFilter,
-  type UtxoLabelFilter,
-  type UtxoListFilter,
-  type UtxoScriptFilter,
-  type UtxoSortField,
-  type UtxoTagFilter
+  prepareUtxoList
+} from '@/utils/utxoList'
+import type {
+  UtxoKeychainFilter,
+  UtxoLabelFilter,
+  UtxoListFilter,
+  UtxoScriptFilter,
+  UtxoSortField,
+  UtxoTagFilter
 } from '@/utils/utxoList'
 import {
   groupDisplayTitle,
@@ -325,7 +322,7 @@ function PayjoinSessionCard({
               weight="light"
               style={{
                 color: Colors.gray[400],
-                letterSpacing: -0.5,
+                letterSpacing: Typography.amountLetterSpacing.header,
                 lineHeight: Sizes.text.fontSize['4xl']
               }}
             >
@@ -448,7 +445,7 @@ function DraftTransactionCard({ accountId }: { accountId: string }) {
               weight="light"
               style={{
                 color: Colors.gray[400],
-                letterSpacing: -0.5,
+                letterSpacing: Typography.amountLetterSpacing.header,
                 lineHeight: Sizes.text.fontSize['4xl']
               }}
             >
@@ -519,43 +516,29 @@ type TotalTransactionsProps = {
   scanFromTimeSec?: number
 }
 
-function syncProgressLabel(tasksDone?: number, totalTasks?: number): string {
-  if (tasksDone === undefined || totalTasks === undefined || totalTasks === 0) {
-    return t('account.syncing')
-  }
-  const pct = Math.min(100, Math.round((tasksDone / totalTasks) * 100))
-  return t('account.syncProgressBlocks', {
-    current: tasksDone.toLocaleString(),
-    pct,
-    tip: totalTasks.toLocaleString()
-  })
-}
-
-type ActivityToolbarTitleParams = {
+type ActivityToolbarLabelsParams = {
   lastSyncedAt: Account['lastSyncedAt']
   nowMs: number
+  syncProgress: Account['syncProgress']
   syncStatus?: Account['syncStatus']
-  tasksDone?: number
-  totalTasks?: number
 }
 
-function activityToolbarTitle({
+function activityToolbarLabels({
   lastSyncedAt,
   nowMs,
-  syncStatus,
-  tasksDone,
-  totalTasks
-}: ActivityToolbarTitleParams): string {
+  syncProgress,
+  syncStatus
+}: ActivityToolbarLabelsParams): string[] {
   if (syncStatus === 'syncing') {
-    return syncProgressLabel(tasksDone, totalTasks)
+    return syncTickerLabels(syncProgress ?? {})
   }
   if (syncStatus === 'queued') {
-    return t('account.sync.status.queued')
+    return [t('account.sync.status.queued')]
   }
   if (syncStatus === 'timeout') {
-    return t('account.sync.status.timeout')
+    return [t('account.sync.status.timeout')]
   }
-  return lastSyncedLabel(lastSyncedAt, nowMs)
+  return [lastSyncedLabel(lastSyncedAt, nowMs)]
 }
 
 /** Toolbar title when idle — replaces static "Account activity". */
@@ -582,25 +565,58 @@ function lastSyncedLabel(
 
 function AccountActivityToolbar({
   isSyncing,
-  title,
+  labels,
+  lastSyncedAt,
+  nowMs,
+  onCheckAll,
+  onDeepRescan,
   leftActions,
   rightActions
 }: {
   isSyncing: boolean
-  title: string
+  labels: string[]
+  lastSyncedAt: Account['lastSyncedAt']
+  nowMs: number
+  onCheckAll: () => Promise<void>
+  onDeepRescan: () => Promise<void>
   leftActions: ReactNode
   rightActions: ReactNode
 }) {
+  const [detailsVisible, setDetailsVisible] = useState(false)
+
+  function handleCheckAll() {
+    setDetailsVisible(false)
+    void onCheckAll()
+  }
+
+  function handleDeepRescan() {
+    setDetailsVisible(false)
+    void onDeepRescan()
+  }
+
   return (
     <SSHStack justifyBetween style={styles.activityToolbar}>
       {leftActions}
-      <SSHStack gap="xs" style={styles.activityToolbarCenter}>
-        {isSyncing ? <SSLoader size={14} /> : null}
-        <SSText color="muted" size="xs" center numberOfLines={1}>
-          {title}
-        </SSText>
-      </SSHStack>
+      <SSPressable
+        accessibilityLabel={labels.join(', ')}
+        accessibilityRole="button"
+        onPress={() => setDetailsVisible(true)}
+        style={styles.activityToolbarCenter}
+      >
+        <SSHStack gap="xs">
+          {isSyncing ? <SSLoader size={14} /> : null}
+          <SSSyncTicker labels={labels} />
+        </SSHStack>
+      </SSPressable>
       {rightActions}
+      <SSSyncDetailsModal
+        visible={detailsVisible}
+        isSyncing={isSyncing}
+        lastSyncedLabel={lastSyncedLabel(lastSyncedAt, nowMs)}
+        onCheckAll={handleCheckAll}
+        onDeepRescan={handleDeepRescan}
+        onClose={() => setDetailsVisible(false)}
+      />
     </SSHStack>
   )
 }
@@ -739,6 +755,7 @@ function TotalTransactions({
   scanFromTimeSec
 }: TotalTransactionsProps) {
   const display = useDisplayPreferences()
+  const automaticTagsByTxid = getAutomaticTagsByTxid(account)
   const { width } = useWindowDimensions()
   const horizontalPaddingPx = width * 0.06
   const [sortField, setSortField] = useState<TransactionSortField>('date')
@@ -833,12 +850,11 @@ function TotalTransactions({
 
   const [showHistoryChart, setShowHistoryChart] = useState<boolean>(false)
   const isSyncing = syncStatus === 'syncing'
-  const activityTitle = activityToolbarTitle({
+  const activityLabels = activityToolbarLabels({
     lastSyncedAt: account.lastSyncedAt,
     nowMs,
-    syncStatus,
-    tasksDone,
-    totalTasks
+    syncProgress: account.syncProgress,
+    syncStatus
   })
   const emptyListLabel = isTransactionHistoryLoading({ refreshing, syncStatus })
     ? t('account.transactions.loading')
@@ -848,7 +864,11 @@ function TotalTransactions({
     <View style={{ flex: 1, paddingHorizontal: '6%' }}>
       <AccountActivityToolbar
         isSyncing={isSyncing}
-        title={activityTitle}
+        labels={activityLabels}
+        lastSyncedAt={account.lastSyncedAt}
+        nowMs={nowMs}
+        onCheckAll={handleOnRefresh}
+        onDeepRescan={handleOnForceRescan}
         leftActions={
           <SSHStack>
             <SSIconButton
@@ -875,7 +895,11 @@ function TotalTransactions({
         }
         rightActions={
           <SSHStack>
-            <SSIconButton disabled style={styles.disabledIconButton}>
+            <SSIconButton
+              onPress={() =>
+                router.navigate(`/signer/bitcoin/account/${account.id}/search`)
+              }
+            >
               <SSIconSearch height={18} width={18} />
             </SSIconButton>
             <SSIconButton onPress={() => setShowHistoryChart((prev) => !prev)}>
@@ -979,6 +1003,7 @@ function TotalTransactions({
                   <SSTransactionCard
                     {...display}
                     transaction={item}
+                    automaticTags={automaticTagsByTxid.get(item.id)}
                     expand={expand}
                     walletBalance={balanceByTxId.get(item.id)}
                     blockHeight={blockchainHeight}
@@ -1616,12 +1641,11 @@ function SpendableOutputs({
   const excludedOutpoints = account.excludedUtxoOutpoints ?? []
   const excludedCount = excludedOutpoints.length
   const isSyncing = syncStatus === 'syncing'
-  const activityTitle = activityToolbarTitle({
+  const activityLabels = activityToolbarLabels({
     lastSyncedAt: account.lastSyncedAt,
     nowMs,
-    syncStatus,
-    tasksDone,
-    totalTasks
+    syncProgress: account.syncProgress,
+    syncStatus
   })
 
   const groups = prepareUtxoList({
@@ -1688,7 +1712,11 @@ function SpendableOutputs({
     <View style={{ flex: 1, paddingHorizontal: '6%', paddingTop: 0 }}>
       <AccountActivityToolbar
         isSyncing={isSyncing}
-        title={activityTitle}
+        labels={activityLabels}
+        lastSyncedAt={account.lastSyncedAt}
+        nowMs={nowMs}
+        onCheckAll={handleOnRefresh}
+        onDeepRescan={handleOnForceRescan}
         leftActions={
           <SSHStack>
             <SSIconButton
@@ -1881,6 +1909,7 @@ function SatsInMempool({
 }) {
   const display = useDisplayPreferences()
   const router = useRouter()
+  const automaticTagsByTxid = getAutomaticTagsByTxid(account)
 
   const mempoolTransactions = useMemo(
     () =>
@@ -1912,6 +1941,7 @@ function SatsInMempool({
             <SSTransactionCard
               {...display}
               transaction={item}
+              automaticTags={automaticTagsByTxid.get(item.id)}
               blockHeight={blockchainHeight}
               expand={false}
               onPress={() =>
@@ -2518,7 +2548,7 @@ export default function AccountView() {
                     currency={currencyUnit}
                     textSize={balanceTextSize}
                     weight="ultralight"
-                    letterSpacing={-1}
+                    letterSpacing={Typography.amountLetterSpacing.header}
                     unitSize="xl"
                   />
                 </SSHStack>
@@ -2693,9 +2723,6 @@ const styles = StyleSheet.create({
     right: 0,
     top: 0,
     width: 6
-  },
-  disabledIconButton: {
-    opacity: 0.3
   },
   excludeToolbarBadge: {
     alignItems: 'center',

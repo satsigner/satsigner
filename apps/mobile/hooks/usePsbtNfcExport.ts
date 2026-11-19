@@ -1,7 +1,7 @@
 import { useState } from 'react'
 
 import { useNFCEmitter } from '@/hooks/useNFCEmitter'
-import { type Notice } from '@/types/ui/notice'
+import type { Notice } from '@/types/ui/notice'
 import { getNfcErrorKey } from '@/utils/nfcError'
 
 type UsePsbtNfcExportParams = {

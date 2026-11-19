@@ -3,12 +3,8 @@ import { pbkdf2Async } from '@noble/hashes/pbkdf2'
 import { sha512 } from '@noble/hashes/sha512'
 import { hex } from '@scure/base'
 import { HDKey } from '@scure/bip32'
-import {
-  type KeychainKind,
-  Language,
-  Mnemonic,
-  Network
-} from 'react-native-bdk-sdk'
+import { Language, Mnemonic, Network } from 'react-native-bdk-sdk'
+import type { KeychainKind } from 'react-native-bdk-sdk'
 
 import {
   BIP44_PURPOSE,
@@ -16,16 +12,15 @@ import {
   BIP84_PURPOSE,
   BIP86_PURPOSE
 } from '@/constants/derivation'
+import type { MnemonicWordCount, WordListName } from '@/types/bips/39'
 import {
   BIP39_ENTROPY_STEP_BITS,
   BIP39_MAX_ENTROPY_BITS,
   BIP39_MIN_ENTROPY_BITS,
   DEFAULT_WORD_LIST,
   LANGUAGE_MAP,
-  MnemonicWordCount,
   WORD_COUNT_MAP,
   WORD_COUNT_TO_ENTROPY_BYTES,
-  WordListName,
   WORDLISTS
 } from '@/types/bips/39'
 import type { Secret } from '@/types/models/Account'

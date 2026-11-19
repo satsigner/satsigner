@@ -1,3 +1,4 @@
+import { DESIGN_NOSTR_CHAT_SETS } from '@/constants/designNostrSamples'
 import {
   DESIGN_SAMPLE_BLOCK_HEIGHT,
   DESIGN_SAMPLE_DEV_CONSOLE_ENTRIES,
@@ -7,9 +8,9 @@ import {
   DESIGN_SAMPLE_SANKEY_OUTPUTS,
   DESIGN_SAMPLE_TAGS,
   DESIGN_SAMPLE_TRANSACTIONS,
-  DESIGN_SAMPLE_UTXOS,
-  type DesignFeatureId
+  DESIGN_SAMPLE_UTXOS
 } from '@/constants/designSystem'
+import type { DesignFeatureId } from '@/constants/designSystem'
 import type { DevConsoleEntry } from '@/types/models/DevConsole'
 import type { Transaction } from '@/types/models/Transaction'
 import type { Utxo } from '@/types/models/Utxo'
@@ -20,10 +21,12 @@ import {
   buildSampleTags,
   buildSampleUtxos,
   buildSampleWallet,
-  type SampleChartTransaction,
-  type SampleSankey,
-  type SampleWallet,
   toSampleSankey
+} from '@/utils/designSamples'
+import type {
+  SampleChartTransaction,
+  SampleSankey,
+  SampleWallet
 } from '@/utils/designSamples'
 import type { LightningBubbleChannelRow } from '@/utils/lightningChannelsBubbleLayout'
 import { getTransactionRunningBalances } from '@/utils/walletOwnership'
@@ -37,6 +40,7 @@ export type DesignSampleSetName =
   | 'manySmall'
   | 'minimal'
   | 'payjoin'
+  | 'payments'
   | 'short'
   | 'standard'
 
@@ -50,6 +54,7 @@ export const DESIGN_SAMPLE_SET_LABEL_KEYS: Record<DesignSampleSetName, string> =
     manySmall: 'setManySmall',
     minimal: 'setMinimal',
     payjoin: 'setPayjoin',
+    payments: 'setPayments',
     short: 'setShort',
     standard: 'setStandard'
   }
@@ -282,7 +287,7 @@ export const DESIGN_FEATURE_SET_NAMES: Partial<
   devConsole: DESIGN_LOG_SETS.map((set) => set.name),
   historyChart: DESIGN_HISTORY_SETS.map((set) => set.name),
   lightningNode: DESIGN_CHANNEL_SETS.map((set) => set.name),
-  nostrChat: ['standard', 'minimal', 'heavy'],
+  nostrChat: DESIGN_NOSTR_CHAT_SETS.map((set) => set.name),
   nostrMessageDetail: ['standard', 'minimal', 'heavy'],
   nostrReactions: ['standard', 'minimal', 'heavy'],
   sankey: DESIGN_SANKEY_SETS.map((set) => set.name),

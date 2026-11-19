@@ -1,5 +1,6 @@
-import NetInfo from '@react-native-community/netinfo'
-import { type Event, getPublicKey, nip17, nip19, nip59 } from 'nostr-tools'
+import { fetch as fetchNetInfo } from '@react-native-community/netinfo'
+import { getPublicKey, nip17, nip19, nip59 } from 'nostr-tools'
+import type { Event } from 'nostr-tools'
 import * as nostrKinds from 'nostr-tools/kinds'
 
 import { NostrAPI } from '@/api/nostr'
@@ -267,7 +268,7 @@ export async function checkRelayPersistence(
   const lines: string[] = []
 
   const ok = await runGuarded(lines, async () => {
-    const netState = await NetInfo.fetch()
+    const netState = await fetchNetInfo()
     if (netState.isConnected === false) {
       throw new Error('device is offline')
     }
@@ -358,7 +359,7 @@ export async function checkNip17LiveRoundtrip(
   const lines: string[] = []
 
   const ok = await runGuarded(lines, async () => {
-    const netState = await NetInfo.fetch()
+    const netState = await fetchNetInfo()
     if (netState.isConnected === false) {
       throw new Error('device is offline')
     }
@@ -384,12 +385,12 @@ export async function checkNip17LiveRoundtrip(
     // The wrap to the project npub proves the security-report delivery path;
     // the self wrap is retrievable AND decryptable by us, proving retrieval
     // and NIP-59 decryption of relay-served bytes.
-    const reportWrap = api.createKind1059(
+    const reportWrap = NostrAPI.createKind1059(
       nsec,
       NOSTR_SECURITY_REPORT_NPUB,
       probe
     )
-    const selfWrap = api.createKind1059(nsec, npub, probe)
+    const selfWrap = NostrAPI.createKind1059(nsec, npub, probe)
 
     // nip17.wrapEvent signs internally, so publishEvent needs no signer.
     await api.publishEvent(reportWrap)

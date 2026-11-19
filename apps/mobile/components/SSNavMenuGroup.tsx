@@ -2,7 +2,7 @@ import { usePathname } from 'expo-router'
 import { StyleSheet } from 'react-native'
 
 import SSVStack from '@/layouts/SSVStack'
-import { type NavMenuGroup } from '@/types/navigation/navMenu'
+import type { NavMenuGroup } from '@/types/navigation/navMenu'
 
 import SSNavItem from './SSNavMenuItem'
 import SSText from './SSText'

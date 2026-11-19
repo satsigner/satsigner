@@ -1,4 +1,4 @@
-import { type Key } from '@/types/models/Account'
+import type { Key } from '@/types/models/Account'
 import { createResetKey } from '@/utils/account'
 import {
   extractPublicKeyFromKey,

@@ -202,15 +202,16 @@ test('fails the debug key, a missing arm64 build and an empty listing', () => {
   }
 })
 
+const assetEvent = (code, cert) => ({
+  tags: [
+    ['version_code', String(code)],
+    ['version', `v${code}`],
+    ['apk_certificate_hash', cert]
+  ]
+})
+
 test('picks the highest published version code', () => {
-  const event = (code, cert) => ({
-    tags: [
-      ['version_code', String(code)],
-      ['version', `v${code}`],
-      ['apk_certificate_hash', cert]
-    ]
-  })
-  assert.deepEqual(latestAsset([event(2, 'AA'), event(5, 'BB')]), {
+  assert.deepEqual(latestAsset([assetEvent(2, 'AA'), assetEvent(5, 'BB')]), {
     certificateHash: 'bb',
     versionCode: 5,
     versionName: 'v5'

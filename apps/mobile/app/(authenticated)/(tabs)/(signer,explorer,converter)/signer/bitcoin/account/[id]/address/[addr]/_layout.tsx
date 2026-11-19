@@ -4,7 +4,7 @@ import { SSIconEyeOn } from '@/components/icons'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import { useAccountsStore } from '@/store/accounts'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import type { AccountSearchParams } from '@/types/navigation/searchParams'
 
 function resolveParamId(id: string | string[] | undefined): string | undefined {
   if (Array.isArray(id)) {

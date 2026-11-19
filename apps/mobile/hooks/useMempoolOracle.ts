@@ -3,7 +3,7 @@ import { useMemo } from 'react'
 import { MempoolOracle } from '@/api/blockchain'
 import { MempoolServers } from '@/constants/servers'
 import { useBlockchainStore } from '@/store/blockchain'
-import { type Network } from '@/types/settings/blockchain'
+import type { Network } from '@/types/settings/blockchain'
 
 function normalizeMempoolApiUrl(url: string, network: Network): string {
   const trimmed = url.trim().replace(/\/+$/, '')

@@ -1,5 +1,5 @@
 import type { BottomSheetMethods } from '@gorhom/bottom-sheet/lib/typescript/types'
-import { type RefObject } from 'react'
+import type { RefObject } from 'react'
 import { StyleSheet, View } from 'react-native'
 
 import SSBottomSheet from '@/components/SSBottomSheet'
@@ -9,8 +9,8 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
-import { type PaymentMethod } from '@/types/models/PaymentMethod'
-import { formatFiatPrice } from '@/utils/format'
+import type { PaymentMethod } from '@/types/models/PaymentMethod'
+import { formatFiatPrice, formatMaskedSats } from '@/utils/format'
 
 import SSPressable from './SSPressable'
 
@@ -21,6 +21,13 @@ type SSPaymentMethodPickerProps = {
   amountSats: number
   btcPrice?: number
   fiatCurrency?: string
+  privacyMode?: boolean
+}
+
+function formatPickerSats(sats: number, privacyMode: boolean) {
+  return privacyMode
+    ? formatMaskedSats(sats, privacyMode)
+    : `${sats.toLocaleString()} sats`
 }
 
 function SSPaymentMethodPicker({
@@ -29,11 +36,15 @@ function SSPaymentMethodPicker({
   methods,
   amountSats,
   btcPrice = 0,
-  fiatCurrency = ''
+  fiatCurrency = '',
+  privacyMode = false
 }: SSPaymentMethodPickerProps) {
-  const hasFiatPrice = btcPrice > 0 && fiatCurrency.length > 0
+  const hasFiatPrice = btcPrice > 0 && fiatCurrency.length > 0 && !privacyMode
   return (
-    <SSBottomSheet ref={ref} title={`Pay ${amountSats.toLocaleString()} sats`}>
+    <SSBottomSheet
+      ref={ref}
+      title={`Pay ${formatPickerSats(amountSats, privacyMode)}`}
+    >
       <SSVStack gap="md" style={styles.content}>
         {methods.map((method) => (
           <SSPressable
@@ -55,7 +66,7 @@ function SSPaymentMethodPicker({
               </SSHStack>
               {method.balanceSats !== undefined && (
                 <SSText size="xs" color="muted">
-                  {method.balanceSats.toLocaleString()} sats
+                  {formatPickerSats(method.balanceSats, privacyMode)}
                   {hasFiatPrice
                     ? ` · ${fiatCurrency} ${formatFiatPrice(method.balanceSats, btcPrice)}`
                     : ''}

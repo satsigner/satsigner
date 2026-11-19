@@ -6,7 +6,7 @@ import {
   NOSTR_LIST_ITEM_GAP,
   NOSTR_LIST_PADDING_VERTICAL
 } from '@/constants/nostr'
-import { type NostrContactItem } from '@/types/models/Nostr'
+import type { NostrContactItem } from '@/types/models/Nostr'
 import { contactToIdentity } from '@/utils/nostrContacts'
 
 type SSNostrContactListProps = {
@@ -37,13 +37,13 @@ function NostrContactRow({ item, onPress }: NostrContactRowProps) {
   )
 }
 
+function keyExtractor(item: NostrContactItem) {
+  return item.pubkey
+}
+
 function SSNostrContactList({ contacts, onPress }: SSNostrContactListProps) {
   function renderItem({ item }: { item: NostrContactItem }) {
     return <NostrContactRow item={item} onPress={onPress} />
-  }
-
-  function keyExtractor(item: NostrContactItem) {
-    return item.pubkey
   }
 
   return (

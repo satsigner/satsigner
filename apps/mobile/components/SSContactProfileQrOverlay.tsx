@@ -1,12 +1,9 @@
 import { useRef, useState } from 'react'
-import {
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  View,
-  type ViewInstance
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import type {
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  ViewInstance
 } from 'react-native'
 
 import SSClipboardCopy from '@/components/SSClipboardCopy'
@@ -23,7 +20,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
-import { type NostrContactQrSlide } from '@/types/models/Nostr'
+import type { NostrContactQrSlide } from '@/types/models/Nostr'
 import { buildContactQrSlides } from '@/utils/nostrContactProfile'
 
 const QR_CONTAINER_SIZE =

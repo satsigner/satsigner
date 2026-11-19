@@ -1,7 +1,7 @@
 import { FlashList } from '@shopify/flash-list'
 import { nip19 } from 'nostr-tools'
 import * as nostrKinds from 'nostr-tools/kinds'
-import { type ReactElement } from 'react'
+import type { ReactElement } from 'react'
 import { ActivityIndicator, StyleSheet, View } from 'react-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -16,14 +16,11 @@ import { NOSTR_FEED_END_REACHED_THRESHOLD } from '@/constants/nostr'
 import { useNostrNoteEngagement } from '@/hooks/useNostrNoteEngagement'
 import { useNostrVideoAutoplay } from '@/hooks/useNostrVideoAutoplay'
 import { useNostrVisibleItemsTrack } from '@/hooks/useNostrVisibleItemsTrack'
-import { type NostrZapTarget } from '@/hooks/useNostrZapFlow'
+import type { NostrZapTarget } from '@/hooks/useNostrZapFlow'
 import SSHStack from '@/layouts/SSHStack'
 import { t } from '@/locales'
-import {
-  type NostrProfilesRecord,
-  pickNostrProfiles,
-  useNostrProfilesStore
-} from '@/store/nostrProfiles'
+import { pickNostrProfiles, useNostrProfilesStore } from '@/store/nostrProfiles'
+import type { NostrProfilesRecord } from '@/store/nostrProfiles'
 import { Colors, Layout } from '@/styles'
 import type {
   NostrEngagementSigner,

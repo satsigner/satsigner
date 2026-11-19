@@ -1,6 +1,8 @@
-import { type ComponentProps } from 'react'
-import { Linking, StyleSheet, View } from 'react-native'
+import type { ComponentProps } from 'react'
+import { Alert, Linking, ScrollView, StyleSheet, View } from 'react-native'
+import { toast } from 'sonner-native'
 
+import SSPressable from '@/components/SSPressable'
 import SSText from '@/components/SSText'
 import {
   NOSTR_MARKDOWN_BODY_LINE_HEIGHT,
@@ -11,13 +13,16 @@ import {
   NOSTR_MARKDOWN_LIST_MARKER_PADDING,
   NOSTR_MARKDOWN_PARAGRAPH_BREAK_MARGIN
 } from '@/constants/nostrMarkdown'
+import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
+import { t } from '@/locales'
 import { Colors } from '@/styles'
-import { type TextFontSize, type TextFontWeight } from '@/styles/sizes'
-import {
-  type MarkdownBlock,
-  type MarkdownInlineSegment
+import type { TextFontSize, TextFontWeight } from '@/styles/sizes'
+import type {
+  MarkdownBlock,
+  MarkdownInlineSegment
 } from '@/types/models/NostrMarkdown'
+import { setClipboard } from '@/utils/clipboard'
 import {
   collapseMarkdownSpacers,
   isSafeHttpUrl,
@@ -26,6 +31,8 @@ import {
 
 type SSMarkdownProps = {
   content: string
+  /** Ask before opening a link, showing its full URL (untrusted content such as DMs). */
+  confirmLinks?: boolean
 }
 
 type InlineSegmentsProps = {
@@ -39,7 +46,7 @@ type InlineSegmentsProps = {
 type InlineFormat = Required<
   Pick<InlineSegmentsProps, 'color' | 'size' | 'weight'>
 > &
-  Pick<InlineSegmentsProps, 'style'>
+  Pick<InlineSegmentsProps, 'style'> & { confirmLinks: boolean }
 
 type HeadingStyle = {
   size: TextFontSize
@@ -50,6 +57,8 @@ type HeadingStyle = {
 
 const BODY_SIZE: TextFontSize = 'md'
 const BOLD_WEIGHT: TextFontWeight = 'medium'
+const CODE_COPY_HIT_SLOP = 8
+const CODE_COPY_PRESSED_OPACITY = 0.6
 
 async function openLink(url: string) {
   if (!isSafeHttpUrl(url)) {
@@ -58,8 +67,27 @@ async function openLink(url: string) {
   try {
     await Linking.openURL(url)
   } catch {
-    // Ignore invalid or unsupported links.
+    toast.error(t('common.openLinkFailed'))
   }
+}
+
+function confirmOpenLink(url: string) {
+  if (!isSafeHttpUrl(url)) {
+    return
+  }
+  Alert.alert(t('nostrIdentity.chat.openLinkTitle'), url, [
+    { style: 'cancel', text: t('common.cancel') },
+    { onPress: () => void openLink(url), text: t('common.open') }
+  ])
+}
+
+async function copyCode(code: string) {
+  const copied = await setClipboard(code)
+  if (copied) {
+    toast.success(t('common.copiedToClipboard'))
+    return
+  }
+  toast.error(t('common.copyFailed'))
 }
 
 function getOrderedListMarker(index: number): string {
@@ -93,17 +121,23 @@ function getHeadingStyle(level: number): HeadingStyle {
 }
 
 function MarkdownLinkSegment({
+  confirm,
   label,
   size,
   style,
   url
 }: {
+  confirm: boolean
   label: string
   size: TextFontSize
   style?: ComponentProps<typeof SSText>['style']
   url: string
 }) {
   function handlePress() {
+    if (confirm) {
+      confirmOpenLink(url)
+      return
+    }
     void openLink(url)
   }
 
@@ -153,6 +187,7 @@ function InlineSegment({
   if (segment.type === 'link') {
     return (
       <MarkdownLinkSegment
+        confirm={format.confirmLinks}
         label={segment.label}
         size={format.size}
         style={format.style}
@@ -192,26 +227,69 @@ function InlineSegmentGroup({
 
 function InlineSegments({
   segments,
+  confirmLinks,
   size = BODY_SIZE,
   weight = 'regular',
   color = 'white',
   style
-}: InlineSegmentsProps) {
+}: InlineSegmentsProps & { confirmLinks: boolean }) {
   return (
     <InlineSegmentGroup
-      format={{ color, size, style, weight }}
+      format={{ color, confirmLinks, size, style, weight }}
       segments={segments}
     />
+  )
+}
+
+function MarkdownCodeBlock({
+  code,
+  language,
+  style
+}: {
+  code: string
+  language?: string
+  style: ComponentProps<typeof View>['style']
+}) {
+  function handleCopy() {
+    void copyCode(code)
+  }
+
+  return (
+    <View style={[styles.codeBlock, style]}>
+      <SSHStack style={styles.codeHeader}>
+        <SSText size="xxs" color="muted" type="mono">
+          {language ?? ''}
+        </SSText>
+        <SSPressable
+          accessibilityLabel={t('common.copyToClipboard')}
+          accessibilityRole="button"
+          activeOpacity={CODE_COPY_PRESSED_OPACITY}
+          hitSlop={CODE_COPY_HIT_SLOP}
+          onPress={handleCopy}
+        >
+          <SSText size="xxs" color="muted" uppercase>
+            {t('common.copy')}
+          </SSText>
+        </SSPressable>
+      </SSHStack>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <SSText type="mono" size="xs" style={styles.codeBlockText}>
+          {code}
+        </SSText>
+      </ScrollView>
+    </View>
   )
 }
 
 function MarkdownBlockView({
   afterBreak,
   block,
+  confirmLinks,
   isFirst
 }: {
   afterBreak: boolean
   block: MarkdownBlock
+  confirmLinks: boolean
   isFirst: boolean
 }) {
   const breakStyle = afterBreak ? styles.afterBreak : undefined
@@ -223,11 +301,11 @@ function MarkdownBlockView({
 
   if (block.type === 'code') {
     return (
-      <View style={[styles.codeBlock, breakStyle, firstBlockStyle]}>
-        <SSText type="mono" size="xs" style={styles.codeBlockText}>
-          {block.value}
-        </SSText>
-      </View>
+      <MarkdownCodeBlock
+        code={block.value}
+        language={block.language}
+        style={[breakStyle, firstBlockStyle]}
+      />
     )
   }
 
@@ -236,6 +314,7 @@ function MarkdownBlockView({
     return (
       <InlineSegments
         segments={block.segments}
+        confirmLinks={confirmLinks}
         size={heading.size}
         weight={heading.weight}
         color={heading.color}
@@ -253,6 +332,7 @@ function MarkdownBlockView({
       <View style={[styles.quote, breakStyle, firstBlockStyle]}>
         <InlineSegments
           segments={block.segments}
+          confirmLinks={confirmLinks}
           color="muted"
           style={styles.quoteText}
         />
@@ -276,7 +356,10 @@ function MarkdownBlockView({
           {marker}
         </SSText>
         <View style={styles.listContent}>
-          <InlineSegments segments={block.segments} />
+          <InlineSegments
+            segments={block.segments}
+            confirmLinks={confirmLinks}
+          />
         </View>
       </View>
     )
@@ -288,12 +371,12 @@ function MarkdownBlockView({
 
   return (
     <View style={[styles.paragraph, breakStyle, firstBlockStyle]}>
-      <InlineSegments segments={block.segments} />
+      <InlineSegments segments={block.segments} confirmLinks={confirmLinks} />
     </View>
   )
 }
 
-function SSMarkdown({ content }: SSMarkdownProps) {
+function SSMarkdown({ content, confirmLinks = false }: SSMarkdownProps) {
   const visibleBlocks = collapseMarkdownSpacers(parseMarkdownBlocks(content))
 
   return (
@@ -303,6 +386,7 @@ function SSMarkdown({ content }: SSMarkdownProps) {
           key={`${block.type}-${index}`}
           afterBreak={afterBreak}
           block={block}
+          confirmLinks={confirmLinks}
           isFirst={index === 0}
         />
       ))}
@@ -328,6 +412,10 @@ const styles = StyleSheet.create({
   },
   codeBlockText: {
     lineHeight: 20
+  },
+  codeHeader: {
+    justifyContent: 'space-between',
+    marginBottom: 6
   },
   container: {
     width: '100%'

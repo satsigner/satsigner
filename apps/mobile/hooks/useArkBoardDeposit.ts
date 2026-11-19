@@ -1,8 +1,9 @@
-import { type Href, useRouter } from 'expo-router'
+import { useRouter } from 'expo-router'
+import type { Href } from 'expo-router'
 
 import { useAccountsStore } from '@/store/accounts'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
-import { type ArkAccount } from '@/types/models/Ark'
+import type { ArkAccount } from '@/types/models/Ark'
 
 function linkedSignTransactionHref(accountId: string): Href {
   return `/signer/bitcoin/account/${accountId}/signAndSend/signTransaction`

@@ -1,15 +1,17 @@
-import Animated, {
+import {
+  createAnimatedComponent,
   useAnimatedProps,
   useSharedValue,
   withDelay,
   withTiming
 } from 'react-native-reanimated'
-import Svg, { Circle, G, Path, type SvgProps } from 'react-native-svg'
+import Svg, { Circle, G, Path } from 'react-native-svg'
+import type { SvgProps } from 'react-native-svg'
 
 import { useMountEffect } from '@/hooks/useMountEffect'
 
-const AnimatedCircle = Animated.createAnimatedComponent(Circle)
-const AnimatedPath = Animated.createAnimatedComponent(Path)
+const AnimatedCircle = createAnimatedComponent(Circle)
+const AnimatedPath = createAnimatedComponent(Path)
 
 const CHECK_PATH_LENGTH = 22
 

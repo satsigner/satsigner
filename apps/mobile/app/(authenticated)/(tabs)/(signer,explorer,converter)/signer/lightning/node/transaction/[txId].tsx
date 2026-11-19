@@ -26,7 +26,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
-import { Colors } from '@/styles'
+import { Colors, Typography } from '@/styles'
 import type {
   LNDInvoice,
   LNDOnchainTransaction,
@@ -744,7 +744,7 @@ export default function LndTransactionDetailPage() {
                         weight="ultralight"
                         style={{
                           color: heroAmountColor(tx),
-                          letterSpacing: -1,
+                          letterSpacing: Typography.amountLetterSpacing.header,
                           marginLeft: tx.amount < 0 ? -5 : 0
                         }}
                       >

@@ -87,6 +87,7 @@ function importDescriptorIntoBuilder(descriptor: string) {
     builder.setFingerprint(key.fingerprint)
     builder.setExtendedPublicKey(key.extendedPublicKey)
     builder.setKey(index)
+    builder.setKeyDerivationPath(index, `m/${key.derivationPath}`)
   }
   return useAccountBuilderStore.getState().getAccountData()
 }
@@ -169,7 +170,7 @@ describe('multisig key origins', () => {
       )
     }
     expect(data?.keyDerivationPaths?.[0]).toBe(OWN_ORIGIN)
-    expect(data?.keyDerivationPaths?.[1]).toBe(DEFAULT_ORIGIN)
+    expect(data?.keyDerivationPaths?.[1]).toBe('m/48h/1h/0h/2h')
   })
 
   it('keeps the descriptor of keys stored at the default origin', async () => {
@@ -179,6 +180,28 @@ describe('multisig key origins', () => {
     )
 
     expect(withDefaultPaths).toBe(withoutPaths)
+  })
+
+  it('keeps the origins written in an imported descriptor', async () => {
+    const descriptor = P2WSH_MULTISIG_DESCRIPTOR.replaceAll(
+      '48h/1h/0h/2h',
+      '48h/1h/3h/2h'
+    )
+    MockBdkWallet.mockClear()
+    const data = await getWalletData(
+      importDescriptorIntoBuilder(descriptor),
+      Network.Signet
+    )
+    const [[receive]] = MockBdkWallet.mock.calls
+
+    for (const cosigner of COSIGNERS) {
+      expect(receive).toContain(
+        `[${cosigner.fingerprint}/48h/1h/3h/2h]${cosigner.p2wsh}`
+      )
+    }
+    expect(data?.keyDerivationPaths).toStrictEqual(
+      COSIGNERS.map(() => 'm/48h/1h/3h/2h')
+    )
   })
 
   it('falls back to the default origin for a malformed path', async () => {

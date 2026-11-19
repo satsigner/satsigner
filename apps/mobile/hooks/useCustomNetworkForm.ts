@@ -15,11 +15,11 @@ import {
   RPC_DEFAULT_PORT_SIGNET,
   RPC_DEFAULT_PORT_TESTNET
 } from '@/constants/rpc'
-import {
-  type Backend,
-  type Network,
-  type ProxyConfig,
-  type Server
+import type {
+  Backend,
+  Network,
+  ProxyConfig,
+  Server
 } from '@/types/settings/blockchain'
 import { trimOnionAddress } from '@/utils/format'
 import { isValidDomainName, isValidIPAddress } from '@/utils/url'

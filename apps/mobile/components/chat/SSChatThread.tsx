@@ -1,37 +1,63 @@
-import { FlashList, type ListRenderItemInfo } from '@shopify/flash-list'
+import { FlashList } from '@shopify/flash-list'
+import type { ListRenderItemInfo } from '@shopify/flash-list'
 import { useHeaderHeight } from 'expo-router/react-navigation'
 import { createContext, use, useState } from 'react'
 import { ActivityIndicator, StyleSheet, View } from 'react-native'
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller'
 
-import SSChatComposer, {
-  type SSChatComposerReply
-} from '@/components/chat/SSChatComposer'
+import SSChatAccountPicker from '@/components/chat/SSChatAccountPicker'
+import SSChatComposer from '@/components/chat/SSChatComposer'
+import type { SSChatComposerReply } from '@/components/chat/SSChatComposer'
 import SSChatDaySeparator from '@/components/chat/SSChatDaySeparator'
+import SSChatPaymentRequests from '@/components/chat/SSChatPaymentRequests'
+import type { ChatPaymentActions } from '@/components/chat/SSChatPaymentRequests'
+import SSChatReactions from '@/components/chat/SSChatReactions'
 import SSNewMessagesPill from '@/components/chat/SSNewMessagesPill'
 import SSNostrMessage from '@/components/SSNostrMessage'
+import SSPaymentMethodPicker from '@/components/SSPaymentMethodPicker'
 import SSText from '@/components/SSText'
-import { NOSTR_GROUP_CHAT_AUTOSCROLL_THRESHOLD } from '@/constants/nostr'
+import {
+  NOSTR_DM_MESSAGE_MAX_LENGTH,
+  NOSTR_GROUP_CHAT_AUTOSCROLL_THRESHOLD
+} from '@/constants/nostr'
+import { useChatBitcoinRequestPay } from '@/hooks/useChatBitcoinRequestPay'
+import { useChatInvoicePay } from '@/hooks/useChatInvoicePay'
+import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import { useLocalDayStart } from '@/hooks/useLocalDayStart'
 import { useNostrChatScroll } from '@/hooks/useNostrChatScroll'
-import { type AuthorDisplayInfo, getAuthorLabel } from '@/hooks/useNostrMessage'
+import { getAuthorLabel } from '@/hooks/useNostrMessage'
+import type { AuthorDisplayInfo } from '@/hooks/useNostrMessage'
+import { useNow } from '@/hooks/useNow'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
-import { type Account } from '@/types/models/Account'
-import { type NostrChatThreadItem, type NostrDM } from '@/types/models/Nostr'
+import type { Account } from '@/types/models/Account'
+import type { NostrChatThreadItem, NostrDM } from '@/types/models/Nostr'
+import {
+  findChatPaymentRequests,
+  hasChatInvoice
+} from '@/utils/chatPaymentRequests'
+import type { ChatPaymentRequest } from '@/utils/chatPaymentRequests'
+import { getPubKeyHexFromNpub } from '@/utils/nostr'
+import {
+  getChatAgentStatus,
+  summarizeChatReactions
+} from '@/utils/nostrChatReactions'
 import {
   buildChatRows,
   buildReplyPreview,
-  type ChatRow,
   findRowIndex,
   formatChatDayLabel
 } from '@/utils/nostrChatRows'
-
-const MESSAGE_MAX_LENGTH = 500
+import type { ChatRow } from '@/utils/nostrChatRows'
+import { getDmText } from '@/utils/nostrDms'
 
 type VisibleComponents = Map<string, { sankey: boolean; status: boolean }>
 
 type ChatThreadRowContext = {
+  paymentActions: ChatPaymentActions
+  ownHex: string | null
+  peerHex: string | null
+  onRemoveReaction?: (reactionIds: string[]) => void
   formattedNpubs: Map<string, AuthorDisplayInfo>
   messagesById: ReadonlyMap<string, NostrDM>
   todayStart: number
@@ -69,10 +95,16 @@ function ChatThreadRow({ row }: { row: ChatRow<NostrChatThreadItem> }) {
       />
     )
   }
-  const { dm, failed } = row.item
+  const { dm, failed, reactions } = row.item
+  // The status line only makes sense on my messages: the peer is answering them.
+  const agentStatus =
+    dm.author === context.ownNpub && context.peerHex
+      ? getChatAgentStatus(reactions, context.peerHex)
+      : null
   const preview = dm.replyToId
     ? buildReplyPreview(dm.replyToId, context.messagesById)
     : undefined
+  const paymentRequests = findChatPaymentRequests(getDmText(dm) ?? '')
   return (
     <SSNostrMessage
       item={dm}
@@ -99,6 +131,21 @@ function ChatThreadRow({ row }: { row: ChatRow<NostrChatThreadItem> }) {
       }
       onReplyPreviewPress={context.onReplyPreviewPress}
       onLongPress={context.onLongPress}
+      renderMarkdown
+      collapseText={hasChatInvoice(paymentRequests)}
+      attachments={
+        <>
+          <SSChatPaymentRequests
+            actions={context.paymentActions}
+            requests={paymentRequests}
+          />
+          <SSChatReactions
+            summaries={summarizeChatReactions(reactions, context.ownHex)}
+            agentStatus={agentStatus}
+            onRemove={context.onRemoveReaction}
+          />
+        </>
+      }
     />
   )
 }
@@ -138,6 +185,10 @@ type SSChatThreadProps = {
   onOpenMessage?: (msgId: string) => void
   replyTo?: SSChatComposerReply
   onCancelReply?: () => void
+  /** Hex pubkey of the peer, whose 👀 ✅ ⚠️ reactions read as agent status. */
+  peerHex?: string
+  /** Lets my reaction chips take my reactions back; without it they are read-only. */
+  onRemoveReaction?: (reactionIds: string[]) => void
 }
 
 /**
@@ -160,7 +211,9 @@ export default function SSChatThread({
   onMessageLongPress,
   onOpenMessage,
   replyTo,
-  onCancelReply
+  onCancelReply,
+  peerHex,
+  onRemoveReaction
 }: SSChatThreadProps) {
   const [visibleComponents, setVisibleComponents] = useState(
     NO_VISIBLE_COMPONENTS
@@ -175,6 +228,25 @@ export default function SSChatThread({
     showNewMessages
   } = useNostrChatScroll<ChatRow<NostrChatThreadItem>>(items.at(-1)?.dm.id)
   const todayStart = useLocalDayStart()
+  const displayPreferences = useDisplayPreferences()
+  const nowMs = useNow()
+  const {
+    canPay: canPayInvoice,
+    copy: copyPaymentRequest,
+    pay: payInvoice,
+    paymentMethods,
+    paymentSheetRef,
+    pendingAmountSats: pendingInvoiceAmountSats,
+    selectMethod
+  } = useChatInvoicePay()
+  const {
+    accountSheetRef,
+    canPay: canPayBitcoinRequest,
+    pay: payBitcoinRequest,
+    pendingAccounts,
+    pendingAmountSats: pendingBitcoinAmountSats,
+    selectAccount
+  } = useChatBitcoinRequestPay()
 
   function handleSend() {
     const text = inputValue.trim()
@@ -205,14 +277,41 @@ export default function SSChatThread({
     })
   }
 
+  function handlePaymentCopy(text: string) {
+    void copyPaymentRequest(text)
+  }
+
+  function handlePaymentPay(request: ChatPaymentRequest) {
+    if (request.kind === 'lightning') {
+      payInvoice(request)
+      return
+    }
+    payBitcoinRequest(request)
+  }
+
+  function canPayBitcoin(request: ChatPaymentRequest) {
+    return request.kind === 'bitcoin' && canPayBitcoinRequest(request)
+  }
+
   const rowContext: ChatThreadRowContext = {
     formattedNpubs,
     messagesById: new Map(items.map(({ dm }) => [dm.id, dm])),
     onAuthorPress,
     onLongPress: onMessageLongPress,
+    onRemoveReaction,
     onReplyPreviewPress: handleReplyPreviewPress,
     onToggleVisibility: handleToggleVisibility,
+    ownHex: getPubKeyHexFromNpub(ownNpub),
     ownNpub,
+    paymentActions: {
+      canPayBitcoin,
+      canPayInvoice,
+      displayPreferences,
+      nowMs,
+      onCopy: handlePaymentCopy,
+      onPay: handlePaymentPay
+    },
+    peerHex: peerHex ?? null,
     todayStart,
     visibleComponents
   }
@@ -270,11 +369,25 @@ export default function SSChatThread({
         onSend={handleSend}
         placeholder={t('nostrIdentity.chat.messagePlaceholder')}
         sendLabel={t('nostrIdentity.chat.send')}
-        maxLength={MESSAGE_MAX_LENGTH}
+        maxLength={NOSTR_DM_MESSAGE_MAX_LENGTH}
         disabled={sending}
         loading={sending}
         replyTo={replyTo}
         onCancelReply={onCancelReply}
+      />
+      <SSPaymentMethodPicker
+        ref={paymentSheetRef}
+        onSelect={selectMethod}
+        methods={paymentMethods}
+        amountSats={pendingInvoiceAmountSats}
+        privacyMode={displayPreferences.privacyMode}
+      />
+      <SSChatAccountPicker
+        ref={accountSheetRef}
+        accounts={pendingAccounts}
+        amountSats={pendingBitcoinAmountSats}
+        privacyMode={displayPreferences.privacyMode}
+        onSelect={selectAccount}
       />
     </KeyboardAvoidingView>
   )

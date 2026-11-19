@@ -18,7 +18,8 @@ import {
   SSIconTriangle
 } from '@/components/icons'
 import { t } from '@/locales'
-import { type NavMenuGroup, PLATFORM } from '@/types/navigation/navMenu'
+import { PLATFORM } from '@/types/navigation/navMenu'
+import type { NavMenuGroup } from '@/types/navigation/navMenu'
 
 export const navMenuGroups: NavMenuGroup[] = [
   {

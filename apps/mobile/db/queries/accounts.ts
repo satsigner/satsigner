@@ -1,16 +1,13 @@
-import { type Account } from '@/types/models/Account'
+import type { Account } from '@/types/models/Account'
 
 import { getDb } from '../connection'
-import {
-  type AccountRow,
-  type AddressRow,
-  type NostrDmRow,
-  type TransactionRow,
-  type UtxoRow,
-  rowToAccount,
-  rowToAddress,
-  rowToNostrDm,
-  rowToUtxo
+import { rowToAccount, rowToAddress, rowToNostrDm, rowToUtxo } from '../mappers'
+import type {
+  AccountRow,
+  AddressRow,
+  NostrDmRow,
+  TransactionRow,
+  UtxoRow
 } from '../mappers'
 import {
   getAddressTxIdsByAccount,

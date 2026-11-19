@@ -1,9 +1,10 @@
-import { type BdkWallet, KeychainKind } from 'react-native-bdk-sdk'
+import { KeychainKind } from 'react-native-bdk-sdk'
+import type { BdkWallet } from 'react-native-bdk-sdk'
 
-import { type Account } from '@/types/models/Account'
-import { type Address } from '@/types/models/Address'
-import { type Transaction } from '@/types/models/Transaction'
-import { type Utxo } from '@/types/models/Utxo'
+import type { Account } from '@/types/models/Account'
+import type { Address } from '@/types/models/Address'
+import type { Transaction } from '@/types/models/Transaction'
+import type { Utxo } from '@/types/models/Utxo'
 import { getAccountAddressSets } from '@/utils/address'
 import { peekDerivedAddress } from '@/utils/derivedAddress'
 import {

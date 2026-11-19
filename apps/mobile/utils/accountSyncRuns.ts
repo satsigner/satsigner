@@ -1,7 +1,7 @@
 import { SYNC_CONCURRENCY } from '@/constants/sync'
 import { createSyncQueue } from '@/services/syncQueue'
 import { useAccountsStore } from '@/store/accounts'
-import { type Account } from '@/types/models/Account'
+import type { Account } from '@/types/models/Account'
 import { toRestoredSyncStatus } from '@/utils/accountSync'
 import { withTimeout } from '@/utils/time'
 

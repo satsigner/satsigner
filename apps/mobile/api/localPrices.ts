@@ -1,6 +1,8 @@
-import z from 'zod'
+import { z } from 'zod'
 
-import { type Currency, CurrencySchema } from '@/types/models/Blockchain'
+import { MS_PER_SECOND } from '@/constants/time'
+import { CurrencySchema } from '@/types/models/Blockchain'
+import type { Currency } from '@/types/models/Blockchain'
 
 const FIAT_CURRENCIES: Currency[] = [
   'AUD',
@@ -46,15 +48,15 @@ function loadPriceBundle(currency: Currency): PriceBundle {
   return parsed
 }
 
+function isUsablePrice(price: number | null | undefined): price is number {
+  return typeof price === 'number' && Number.isFinite(price) && price >= 0
+}
+
 /**
  * Closest bundled close at or before `timestamp`.
  * Returns null if the timestamp is before the first row or after the last
  * (newer than the dataset — do not clamp to last close).
  */
-function isUsablePrice(price: number | null | undefined): price is number {
-  return typeof price === 'number' && Number.isFinite(price) && price >= 0
-}
-
 function findClosestPrice(
   times: number[],
   prices: (number | null)[],
@@ -114,6 +116,28 @@ function getLocalPriceSeries(
   return series
 }
 
+// Rows are UTC days. A local date on the same calendar day formats as that
+// day in every time zone.
+function getCalendarDay(timestamp: number) {
+  const date = new Date(timestamp * MS_PER_SECOND)
+  return new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
+}
+
+function getLocalPriceCoverage(
+  currency: Currency
+): { first: Date; last: Date } | null {
+  const series = getLocalPriceSeries(currency)
+  const first = series.at(0)
+  const last = series.at(-1)
+  if (first === undefined || last === undefined) {
+    return null
+  }
+  return {
+    first: getCalendarDay(first.time),
+    last: getCalendarDay(last.time)
+  }
+}
+
 /** Every bundled timestamp, including days whose close is missing. */
 function getLocalPriceCloses(currency: Currency) {
   const bundle = loadPriceBundle(currency)
@@ -159,6 +183,7 @@ export {
   getLocalLatestPrices,
   getLocalPriceAt,
   getLocalPriceCloses,
+  getLocalPriceCoverage,
   getLocalPricesAt,
   getLocalPriceSeries,
   isUsablePrice

@@ -1,5 +1,6 @@
 import { router } from 'expo-router'
-import { type SetStateAction, useState } from 'react'
+import { useState } from 'react'
+import type { SetStateAction } from 'react'
 import { toast } from 'sonner-native'
 
 import { DURESS_PIN_KEY, SALT_KEY } from '@/config/auth'

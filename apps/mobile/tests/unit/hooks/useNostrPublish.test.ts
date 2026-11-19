@@ -1,5 +1,5 @@
 import { sendDeviceDM, sendDevicePSBT } from '@/hooks/useNostrPublish'
-import { type Account } from '@/types/models/Account'
+import type { Account } from '@/types/models/Account'
 import { NostrNoRelaysError, NostrPartialSendError } from '@/utils/errors'
 
 const mockPublishFailures = new Set<string>()

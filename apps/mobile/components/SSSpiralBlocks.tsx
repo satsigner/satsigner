@@ -10,13 +10,8 @@ import {
   TextAlign
 } from '@shopify/react-native-skia'
 import { memo, useCallback, useMemo } from 'react'
-import {
-  Dimensions,
-  Platform,
-  StyleSheet,
-  View,
-  type ViewStyle
-} from 'react-native'
+import { Dimensions, Platform, StyleSheet, View } from 'react-native'
+import type { ViewStyle } from 'react-native'
 import { GestureDetector } from 'react-native-gesture-handler'
 import Animated from 'react-native-reanimated'
 
@@ -25,7 +20,7 @@ import { useGeistFonts } from '@/hooks/useGeistFonts'
 import { useGestures } from '@/hooks/useGestures'
 import { useLayout } from '@/hooks/useLayout'
 import { Colors, Typography } from '@/styles'
-import { type BlockDifficulty } from '@/types/models/Blockchain'
+import type { BlockDifficulty } from '@/types/models/Blockchain'
 
 import SSPressable from './SSPressable'
 
@@ -332,6 +327,14 @@ function SSSpiralBlocks({
   )
 }
 
+function newtonResidual(t: number, L: number, k: number): number {
+  return t ** 2 - L * k
+}
+
+function newtonDerivative(t: number): number {
+  return 2 * t
+}
+
 /**
  * Newton-Raphson method to find roots of a function
  */
@@ -344,17 +347,9 @@ function newtonRaphson(
 ): number {
   let t = initialGuess
 
-  function f(t: number, L: number, k: number): number {
-    return t ** 2 - L * k
-  }
-
-  function df(t: number): number {
-    return 2 * t
-  }
-
   for (let i = 0; i < maxIterations; i += 1) {
-    const f_t = f(t, L, k)
-    const df_t = df(t)
+    const f_t = newtonResidual(t, L, k)
+    const df_t = newtonDerivative(t)
     if (Math.abs(f_t) < tolerance) {
       return t
     }

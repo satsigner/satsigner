@@ -3,10 +3,7 @@ import { useMutation } from '@tanstack/react-query'
 import { NostrAPI } from '@/api/nostr'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { useNostrProfilesStore } from '@/store/nostrProfiles'
-import {
-  type NostrIdentity,
-  type NostrKind0Profile
-} from '@/types/models/Nostr'
+import type { NostrIdentity, NostrKind0Profile } from '@/types/models/Nostr'
 import { getChangedProfileFields, getPubKeyHexFromNpub } from '@/utils/nostr'
 import { getNostrIdentityRelays } from '@/utils/nostrContacts'
 

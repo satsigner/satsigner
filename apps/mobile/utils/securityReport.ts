@@ -2,7 +2,7 @@ import { NostrAPI } from '@/api/nostr'
 import { SHORT_MNEMONIC_WORD_COUNT } from '@/constants/bip39'
 import { NOSTR_SECURITY_REPORT_NPUB } from '@/constants/nostr'
 import { MS_PER_SECOND } from '@/constants/time'
-import { type NostrChatMessage } from '@/types/models/Nostr'
+import type { NostrChatMessage } from '@/types/models/Nostr'
 import { generateMnemonic } from '@/utils/bip39'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
 import { ingestChatMessage, resolveRecipientRelays } from '@/utils/nostrChat'
@@ -53,7 +53,7 @@ export async function sendSecurityReport({
   }
 
   const api = new NostrAPI(relays)
-  const wrap = api.createKind1059(
+  const wrap = NostrAPI.createKind1059(
     senderIdentity.nsec,
     NOSTR_SECURITY_REPORT_NPUB,
     text

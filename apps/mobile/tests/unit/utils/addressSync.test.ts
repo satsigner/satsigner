@@ -1,7 +1,7 @@
-import { type AddressSnapshot } from '@/api/addressSync'
-import { type Account } from '@/types/models/Account'
-import { type Transaction } from '@/types/models/Transaction'
-import { type Utxo } from '@/types/models/Utxo'
+import type { AddressSnapshot } from '@/api/addressSync'
+import type { Account } from '@/types/models/Account'
+import type { Transaction } from '@/types/models/Transaction'
+import type { Utxo } from '@/types/models/Utxo'
 import { applyAddressSnapshot } from '@/utils/addressSync'
 
 const ADDRESS = 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq'

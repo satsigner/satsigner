@@ -10,12 +10,9 @@ import {
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
-import { type DetectedContent } from '@/utils/contentDetector'
-import {
-  formatNostrKey,
-  getNostrKeyQr,
-  type NostrKeyQrFormat
-} from '@/utils/nostr'
+import type { DetectedContent } from '@/utils/contentDetector'
+import { formatNostrKey, getNostrKeyQr } from '@/utils/nostr'
+import type { NostrKeyQrFormat } from '@/utils/nostr'
 import { nostrScannedContentHref } from '@/utils/nostrNavigation'
 
 import SSCameraModal from './SSCameraModal'

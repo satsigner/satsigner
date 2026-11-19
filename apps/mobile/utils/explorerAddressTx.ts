@@ -1,8 +1,8 @@
 import { hex } from '@scure/base'
 
 import { MS_PER_SECOND } from '@/constants/time'
-import { type EsploraTx } from '@/types/models/Esplora'
-import { type Transaction } from '@/types/models/Transaction'
+import type { EsploraTx } from '@/types/models/Esplora'
+import type { Transaction } from '@/types/models/Transaction'
 import { weightToVsize } from '@/utils/transaction'
 
 function mapEsploraTxToAddressTransaction(
@@ -26,19 +26,17 @@ function mapEsploraTxToAddressTransaction(
     value: output.value
   }))
 
-  const sent = tx.vin.reduce((sum, input) => {
-    if (input.prevout?.scriptpubkey_address === address) {
-      return sum + input.prevout.value
-    }
-    return sum
-  }, 0)
+  const sent = tx.vin
+    .flatMap((input) =>
+      input.prevout?.scriptpubkey_address === address
+        ? [input.prevout.value]
+        : []
+    )
+    .reduce((sum, value) => sum + value, 0)
 
-  const received = tx.vout.reduce((sum, output) => {
-    if (output.scriptpubkey_address === address) {
-      return sum + output.value
-    }
-    return sum
-  }, 0)
+  const received = tx.vout
+    .filter((output) => output.scriptpubkey_address === address)
+    .reduce((sum, output) => sum + output.value, 0)
 
   return {
     address,

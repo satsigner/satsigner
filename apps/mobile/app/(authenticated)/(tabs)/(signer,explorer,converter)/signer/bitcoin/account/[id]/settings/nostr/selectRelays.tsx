@@ -16,7 +16,7 @@ import { t, tn } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { Colors } from '@/styles'
 import type { NostrRelay } from '@/types/models/Nostr'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import type { AccountSearchParams } from '@/types/navigation/searchParams'
 
 type SSNostrRelayProps = {
   relay: NostrRelay

@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { createArkBolt11Invoice, newArkAddress } from '@/api/ark'
 import { getArkAccountOrThrow } from '@/store/ark'
-import { ArkBolt11Invoice } from '@/types/models/Ark'
+import type { ArkBolt11Invoice } from '@/types/models/Ark'
 
 import { useArkWallet } from './useArkWallet'
 

@@ -4,9 +4,9 @@ import {
   processMessage,
   registerHandler
 } from '@/hooks/useNostrHandlersRegistry'
-import {
-  type NostrMsgHandler,
-  type NostrMsgHandlerContext
+import type {
+  NostrMsgHandler,
+  NostrMsgHandlerContext
 } from '@/types/models/Nostr'
 
 import { accountIds, nostrKeys, nostrMessages } from '../utils/nostrSamples'

@@ -70,6 +70,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   screens; wallets can be reordered.
 - QR scanning on Android without Google ML Kit.
 - Android builds are published on Zapstore.
+- Transaction search: filter by label or txid, sent or received, tags, and a
+  date range on a calendar or a two-thumb slider.
+- The sample segwit wallet labels every transaction, UTXO and address, for
+  demos.
+- Receive: "Set date" converts the fiat amount at the price on a chosen day,
+  from bundled price history or the network when allowed in settings.
 
 ### Changed
 
@@ -89,6 +95,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Launcher and store icons fill the whole shape instead of a round logo with
   white corners.
 - Dev and branch builds carry a coloured badge on the icon.
+- Self-sends are tagged `#selfsend` on sync.
+- Fiat Data settings are split into current price, historical prices and
+  price provider, and say where each price comes from and what is sent.
+- Transactions show automatic `#consolidation`, `#payjoin`, `#dust` and `#rbf`
+  tags, worked out from the transaction and drawn as outlines.
 
 ### Removed
 

@@ -2,29 +2,29 @@ import * as nostrKinds from 'nostr-tools/kinds'
 
 import { NostrAPI } from '@/api/nostr'
 import {
-  type NostrRumor,
   createDerivedWrapDeletion,
   parseStoredRumor,
   toNdkEvent
 } from '@/api/nostrGiftWrap'
+import type { NostrRumor } from '@/api/nostrGiftWrap'
 import { MS_PER_SECOND } from '@/constants/time'
 import {
   deleteMessageWraps,
   getMessageWraps,
-  type NostrMessageTombstone,
   tombstoneMessages
 } from '@/db/nostrMessageState'
+import type { NostrMessageTombstone } from '@/db/nostrMessageState'
 import {
-  type NostrDeviceSendResult,
   buildDeviceRumor,
   buildDmPayload,
   buildPayloadRumor,
   sendDeviceDM,
   sendRumorToDevices
 } from '@/hooks/useNostrPublish'
+import type { NostrDeviceSendResult } from '@/hooks/useNostrPublish'
 import { useAccountsStore } from '@/store/accounts'
-import { type Account } from '@/types/models/Account'
-import { type NostrDM, type NostrUnwrappedEvent } from '@/types/models/Nostr'
+import type { Account } from '@/types/models/Account'
+import type { NostrDM, NostrUnwrappedEvent } from '@/types/models/Nostr'
 import { NostrPartialSendError } from '@/utils/errors'
 import { getPubKeyHexFromNpub, getSecretFromNsec } from '@/utils/nostr'
 import {

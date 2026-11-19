@@ -1,11 +1,8 @@
 import { useEffect, useState } from 'react'
-import {
-  type AddressInfo,
-  KeychainKind,
-  type BdkWallet
-} from 'react-native-bdk-sdk'
+import { KeychainKind } from 'react-native-bdk-sdk'
+import type { AddressInfo, BdkWallet } from 'react-native-bdk-sdk'
 
-import { type Account } from '@/types/models/Account'
+import type { Account } from '@/types/models/Account'
 import { peekDerivedAddress } from '@/utils/derivedAddress'
 
 function useGetFirstUnusedAddress(wallet: BdkWallet, account: Account) {

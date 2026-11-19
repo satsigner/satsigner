@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-import { type Account } from '@/types/models/Account'
+import type { Account } from '@/types/models/Account'
 import { getAccountFingerprintWithDecryption } from '@/utils/account'
 
 type FingerprintMap = Record<string, string>

@@ -2,12 +2,12 @@ import ElectrumClient, { closeElectrumClientQuietly } from '@/api/electrum'
 import Esplora from '@/api/esplora'
 import BitcoinRpc from '@/api/rpc'
 import { CONNECTION_TEST_TIMEOUT_MS } from '@/constants/connectionTest'
-import {
-  type ConnectionTestFailure,
-  type ConnectionTestSuccess,
-  type ProbeParams
+import type {
+  ConnectionTestFailure,
+  ConnectionTestSuccess,
+  ProbeParams
 } from '@/types/models/ConnectionTest'
-import { type Backend, type ProxyConfig } from '@/types/settings/blockchain'
+import type { Backend, ProxyConfig } from '@/types/settings/blockchain'
 import { formatRpcBanner } from '@/utils/rpcBanner'
 import { expectedCoreChain, formatChainMismatchError } from '@/utils/rpcNetwork'
 import { withTimeout } from '@/utils/time'

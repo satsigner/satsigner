@@ -7,8 +7,7 @@ import { useShallow } from 'zustand/react/shallow'
 import {
   SSIconCheckCircle,
   SSIconCircleX,
-  SSIconHideWarning,
-  SSIconWarning
+  SSIconHideWarning
 } from '@/components/icons'
 import SSButton from '@/components/SSButton'
 import SSCheckbox from '@/components/SSCheckbox'
@@ -24,7 +23,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useAccountBuilderStore } from '@/store/accountBuilder'
 import { useSettingsStore } from '@/store/settings'
-import { type ConfirmWordSearchParams } from '@/types/navigation/searchParams'
+import type { ConfirmWordSearchParams } from '@/types/navigation/searchParams'
 import { getConfirmWordCandidates } from '@/utils/seed'
 
 // A failed account creation must leave the screen usable, not spinning.
@@ -274,13 +273,9 @@ export default function Confirm() {
         onClose={() => setSkipModalVisible(false)}
       >
         <SSVStack style={styles.skipModalContainer} itemsCenter>
-          <SSHStack>
-            <SSIconWarning height={22} width={22} />
-            <SSText uppercase size="xl" weight="bold">
-              {t('common.warning')}
-            </SSText>
-            <SSIconWarning height={22} width={22} />
-          </SSHStack>
+          <SSText uppercase size="xl" weight="bold">
+            {t('common.warning')}
+          </SSText>
           <SSText>{t('account.confirmSeed.confirmSkip')}</SSText>
           <SSButton
             label={t('common.yes')}

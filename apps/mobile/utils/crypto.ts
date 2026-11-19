@@ -1,4 +1,6 @@
-import QuickCrypto from 'react-native-quick-crypto'
+import QuickCrypto, {
+  Buffer as QuickCryptoBuffer
+} from 'react-native-quick-crypto'
 import uuid from 'react-native-uuid'
 
 const UINT32_RANGE = 0x1_00_00_00_00 // 2^32
@@ -202,7 +204,7 @@ function aesGcmDecrypt(ciphertext: AesGcmCiphertext, key: string): string {
     new Uint8Array(Buffer.from(key, 'hex')),
     new Uint8Array(Buffer.from(ciphertext.iv, 'hex'))
   )
-  decipher.setAuthTag(QuickCrypto.Buffer.from(ciphertext.tag, 'hex'))
+  decipher.setAuthTag(QuickCryptoBuffer.from(ciphertext.tag, 'hex'))
   const result = runCipher(
     decipher,
     new Uint8Array(Buffer.from(ciphertext.cipher, 'base64'))

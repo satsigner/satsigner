@@ -1,10 +1,9 @@
 import {
   DIAGNOSTIC_CHECKS,
   FULL_RUN_CHECKS,
-  type DiagnosticCheck,
-  type DiagnosticsContext,
   runDiagnostics
 } from '@/utils/diagnostics'
+import type { DiagnosticCheck, DiagnosticsContext } from '@/utils/diagnostics'
 
 const ONLINE: DiagnosticsContext = {
   identityRelays: [],

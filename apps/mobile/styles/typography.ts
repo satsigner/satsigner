@@ -11,3 +11,8 @@ export const geistMonoMedium = 'GeistMono-Medium'
 export const geistMonoBold = 'GeistMono-Bold'
 
 export const geistSkiaFamily = 'Geist'
+
+export const amountLetterSpacing = {
+  card: 0.25,
+  header: 0.5
+}

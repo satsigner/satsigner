@@ -1,4 +1,4 @@
-import { MempoolOracle } from '@/api/blockchain'
+import type { MempoolOracle } from '@/api/blockchain'
 import ElectrumClient, { closeElectrumClientQuietly } from '@/api/electrum'
 import Esplora from '@/api/esplora'
 import BitcoinRpc from '@/api/rpc'
@@ -20,11 +20,11 @@ import type {
 } from '@/types/settings/blockchain'
 import { feesFromUnknownEsploraEstimates } from '@/utils/esploraFees'
 import {
-  type FeeHistogramBand,
   feesFromProjectedBlocks,
   normalizeHistogram,
   projectedBlocksFromHistogram
 } from '@/utils/mempoolHistogram'
+import type { FeeHistogramBand } from '@/utils/mempoolHistogram'
 import {
   feesFromBtcPerKb,
   feesFromSmartFeeTargets,

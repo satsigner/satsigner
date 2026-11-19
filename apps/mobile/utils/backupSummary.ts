@@ -89,29 +89,19 @@ function countBitcoinLabels(accounts: unknown): number {
   if (!Array.isArray(accounts)) {
     return 0
   }
-  return accounts.reduce<number>((total, account) => {
-    if (!isRecord(account)) {
-      return total
-    }
-    return total + countKeys(account.labels)
-  }, 0)
+  return accounts
+    .filter(isRecord)
+    .reduce<number>((total, account) => total + countKeys(account.labels), 0)
 }
 
 function countBitcoinSecrets(accounts: unknown): number {
   if (!Array.isArray(accounts)) {
     return 0
   }
-  return accounts.reduce<number>((total, account) => {
-    if (!isRecord(account) || !Array.isArray(account.keys)) {
-      return total
-    }
-    return (
-      total +
-      account.keys.filter(
-        (key) => isRecord(key) && isNonEmptyString(key.seedWords)
-      ).length
-    )
-  }, 0)
+  return accounts
+    .filter(isRecord)
+    .flatMap((account) => (Array.isArray(account.keys) ? account.keys : []))
+    .filter((key) => isRecord(key) && isNonEmptyString(key.seedWords)).length
 }
 
 function countNostrSecrets(identities: unknown): number {

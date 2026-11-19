@@ -1,9 +1,6 @@
 import { Colors } from '@/styles'
-import {
-  getDigitLineHeight,
-  type TextFontSize,
-  type TextFontWeight
-} from '@/styles/sizes'
+import { getDigitLineHeight } from '@/styles/sizes'
+import type { TextFontSize, TextFontWeight } from '@/styles/sizes'
 import { formatNumber } from '@/utils/format'
 
 import SSText from './SSText'

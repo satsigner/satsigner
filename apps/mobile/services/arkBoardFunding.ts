@@ -13,9 +13,9 @@ import {
 import { prefillSendFromAccount } from '@/services/transactionBuilderPrefill'
 import { getArkAccountOrThrow, useArkStore } from '@/store/ark'
 import { useArkSwapsStore } from '@/store/arkSwaps'
-import { type Account } from '@/types/models/Account'
-import { type ArkBoardIntent, type ArkPendingBoard } from '@/types/models/Ark'
-import { type Network } from '@/types/settings/blockchain'
+import type { Account } from '@/types/models/Account'
+import type { ArkBoardIntent, ArkPendingBoard } from '@/types/models/Ark'
+import type { Network } from '@/types/settings/blockchain'
 import {
   buildArkBoardCosignPsbt,
   canAccountFundArkBoard,

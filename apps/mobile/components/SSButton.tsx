@@ -1,13 +1,6 @@
 import { LinearGradient } from 'expo-linear-gradient'
-import {
-  ActivityIndicator,
-  type StyleProp,
-  StyleSheet,
-  type TextStyle,
-  type ViewStyle,
-  View,
-  type ViewProps
-} from 'react-native'
+import { ActivityIndicator, StyleSheet, View } from 'react-native'
+import type { StyleProp, TextStyle, ViewStyle, ViewProps } from 'react-native'
 
 import { Colors, Sizes } from '@/styles'
 import { isSizedByContent } from '@/utils/buttonLayout'
@@ -15,7 +8,8 @@ import { isSizedByContent } from '@/utils/buttonLayout'
 import { SSIconChevronDown } from './icons'
 import SSBackgroundGradient from './SSBackgroundGradient'
 import SSPressable from './SSPressable'
-import SSText, { type SSTextProps } from './SSText'
+import SSText from './SSText'
+import type { SSTextProps } from './SSText'
 
 const TOP_LIGHT_PEAK = 0.04
 const TOP_LIGHT_TAIL = 0.03
@@ -360,10 +354,12 @@ const styles = StyleSheet.create({
   buttonGradient: {
     alignItems: 'center',
     borderRadius: Sizes.button.borderRadius,
-    height: '100%',
+    bottom: 0,
     justifyContent: 'center',
+    left: 0,
     position: 'absolute',
-    width: '100%'
+    right: 0,
+    top: 0
   },
   buttonLabelSingleLine: {
     flexShrink: 1,

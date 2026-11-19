@@ -4,7 +4,10 @@ import {
 } from 'nostr-tools/nip04'
 
 import { NOSTR_EVENT_ID_HEX_LENGTH } from '@/constants/nostr'
-import { NostrParsedBookmark, NostrBookmarkSource } from '@/types/models/Nostr'
+import type {
+  NostrParsedBookmark,
+  NostrBookmarkSource
+} from '@/types/models/Nostr'
 
 export function parsePublicBookmarks(tags: string[][]): NostrParsedBookmark[] {
   const result: NostrParsedBookmark[] = []

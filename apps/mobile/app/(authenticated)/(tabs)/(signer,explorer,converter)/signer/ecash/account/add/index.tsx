@@ -16,7 +16,7 @@ import SSScrollView from '@/layouts/SSScrollView'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors, Typography } from '@/styles'
-import { type DetectedContent } from '@/utils/contentDetector'
+import type { DetectedContent } from '@/utils/contentDetector'
 
 type Step = 'name' | 'generate' | 'import' | 'confirm'
 

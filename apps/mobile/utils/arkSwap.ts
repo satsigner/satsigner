@@ -16,20 +16,20 @@ import {
   BOLT11_PAYMENT_HASH_HEX_PATTERN,
   LIGHTNING_CHANNEL_THRESHOLD
 } from '@/constants/lightning'
-import {
-  type ArkLightningSendState,
-  type ArkMovement,
-  type ArkMovementEvent
+import type {
+  ArkLightningSendState,
+  ArkMovement,
+  ArkMovementEvent
 } from '@/types/models/Ark'
-import {
-  type ArkLightningToOnchainJob,
-  type ArkOnchainToLightningJob,
-  type ArkSwapEndpointKind,
-  type ArkSwapJob,
-  type ArkSwapRequest,
-  type ArkSwapRoute
+import type {
+  ArkLightningToOnchainJob,
+  ArkOnchainToLightningJob,
+  ArkSwapEndpointKind,
+  ArkSwapJob,
+  ArkSwapRequest,
+  ArkSwapRoute
 } from '@/types/models/ArkSwap'
-import { type Network } from '@/types/settings/blockchain'
+import type { Network } from '@/types/settings/blockchain'
 import { getBolt11Network } from '@/utils/bolt11Network'
 import {
   bolt11AmountSats,

@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 
-import { type Direction } from '@/types/logic/sort'
-import { type UtxoGroupMode, type UtxoSortField } from '@/utils/utxoList'
+import type { Direction } from '@/types/logic/sort'
+import type { UtxoGroupMode, UtxoSortField } from '@/utils/utxoList'
 
 type UtxoListControlsState = {
   groupMode: UtxoGroupMode

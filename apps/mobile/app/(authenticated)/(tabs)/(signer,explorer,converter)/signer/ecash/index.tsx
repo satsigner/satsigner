@@ -16,7 +16,7 @@ import { t } from '@/locales'
 import { useEcashStore } from '@/store/ecash'
 import { usePriceStore } from '@/store/price'
 import { useSettingsStore } from '@/store/settings'
-import { Colors, Sizes } from '@/styles'
+import { Colors, Sizes, Typography } from '@/styles'
 import type { EcashAccount } from '@/types/models/Ecash'
 import { formatFiatPrice } from '@/utils/format'
 
@@ -115,7 +115,7 @@ function EcashAccountCard({
                   currency={currencyUnit}
                   textSize="lg"
                   weight="ultralight"
-                  letterSpacing={-1}
+                  letterSpacing={Typography.amountLetterSpacing.header}
                 />
               )}
               <SSText

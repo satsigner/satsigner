@@ -1,5 +1,5 @@
 import Esplora from '@/api/esplora'
-import { type EsploraTx } from '@/types/models/Esplora'
+import type { EsploraTx } from '@/types/models/Esplora'
 
 const ADDRESS = 'bc1qar0srrr7xfkvy5l643lydnw9re59gtzzwf5mdq'
 

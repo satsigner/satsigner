@@ -1,9 +1,9 @@
-import { type ScaleLinear, type ScaleTime } from 'd3-scale'
+import type { ScaleLinear, ScaleTime } from 'd3-scale'
 
-import { type Currency } from '@/types/models/Blockchain'
-import { type Transaction } from '@/types/models/Transaction'
-import { type Utxo } from '@/types/models/Utxo'
-import { type Rectangle } from '@/types/ui/geometry'
+import type { Currency } from '@/types/models/Blockchain'
+import type { Transaction } from '@/types/models/Transaction'
+import type { Utxo } from '@/types/models/Utxo'
+import type { Rectangle } from '@/types/ui/geometry'
 
 export type HistoryChartData = {
   memo: string
@@ -68,7 +68,8 @@ export type UtxoGeometryParams = {
   transactions: Transaction[]
   xScale: XScale
   yScale: YScale
-  chartWidth: number
+  minX: number
+  maxX: number
   currentDate: Date
 }
 

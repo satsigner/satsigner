@@ -1,15 +1,15 @@
 import { INITIAL_DISPLAY_INDEX } from '@/constants/account'
+import { SELF_SEND_TAG } from '@/constants/transaction'
 import { getKeySecret, storeKeySecret } from '@/storage/encrypted'
-import {
-  type Account,
-  type Key,
-  type Secret,
-  SecretSchema
-} from '@/types/models/Account'
+import { SecretSchema } from '@/types/models/Account'
+import type { Account, Key, Secret } from '@/types/models/Account'
+import { getAccountAddressSets } from '@/utils/address'
 import { aesDecrypt, aesEncrypt } from '@/utils/crypto'
 import { decryptKeySecret } from '@/utils/decryption'
+import { addLabelTag } from '@/utils/parse'
 import { getPin } from '@/utils/pin'
 import { time } from '@/utils/time'
+import { isSelfSend } from '@/utils/transaction'
 import { getUtxoOutpoint } from '@/utils/utxo'
 
 const MAX_DAYS_WITHOUT_SYNCING = 3
@@ -76,7 +76,6 @@ export function updateAccountObjectLabels(account: Account) {
       label = labels[utxo.addressTo]?.label
     }
 
-    // save label inherited from address
     if (label && !labels[utxoRef]) {
       labels[utxoRef] = {
         label,
@@ -86,6 +85,8 @@ export function updateAccountObjectLabels(account: Account) {
     }
     updatedAccount.utxos[index].label = label || ''
   }
+
+  const { ownAddresses } = getAccountAddressSets(updatedAccount.addresses)
 
   for (const [index, tx] of updatedAccount.transactions.entries()) {
     const { id: txRef, vout, vin } = tx
@@ -105,9 +106,13 @@ export function updateAccountObjectLabels(account: Account) {
       label = label.replace(/,$/, '')
     }
 
-    // save label inherited from address
-    if (label && !labels[txRef]) {
+    if (isSelfSend(tx, ownAddresses)) {
+      label = addLabelTag(label ?? '', SELF_SEND_TAG)
+    }
+
+    if (label && labels[txRef]?.label !== label) {
       labels[txRef] = {
+        ...labels[txRef],
         label,
         ref: txRef,
         type: 'tx'
@@ -213,6 +218,10 @@ export function createResetKey(index: Key['index']): Key {
     scriptVersion: undefined,
     secret: ''
   }
+}
+
+export function isZeroFingerprint(fingerprint?: string): boolean {
+  return !fingerprint || /^0+$/.test(fingerprint)
 }
 
 export function getAccountFingerprint(

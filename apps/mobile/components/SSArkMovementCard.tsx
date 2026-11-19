@@ -8,7 +8,7 @@ import SSTimeAgoText from '@/components/SSTimeAgoText'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { Colors } from '@/styles'
+import { Colors, Typography } from '@/styles'
 import type { ArkMovement } from '@/types/models/Ark'
 import type { DisplayPreferences } from '@/types/ui/displayPreferences'
 import {
@@ -105,7 +105,7 @@ function SSArkMovementCard({
                   noColor={muteAmountColor}
                   showSign={false}
                   weight="light"
-                  letterSpacing={-0.5}
+                  letterSpacing={Typography.amountLetterSpacing.card}
                 />
               )}
             </SSHStack>

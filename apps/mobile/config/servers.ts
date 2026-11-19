@@ -1,4 +1,4 @@
-import { type Backend, type ProxyConfig } from '@/types/settings/blockchain'
+import type { Backend, ProxyConfig } from '@/types/settings/blockchain'
 
 const MEMPOOL_MAINNET_URL = 'https://mempool.space/api'
 const MEMPOOL_SIGNET_URL = 'ssl://mempool.space:60602'

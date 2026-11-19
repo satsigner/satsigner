@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import Animated, {
+  createAnimatedComponent,
   Easing,
   useAnimatedProps,
   useAnimatedStyle,
@@ -13,16 +14,16 @@ import Svg, {
   G,
   Path,
   RadialGradient,
-  Stop,
-  type SvgProps
+  Stop
 } from 'react-native-svg'
+import type { SvgProps } from 'react-native-svg'
 
 import { Colors } from '@/styles'
 
 const { gray } = Colors
 const { 50: G50, 200: CHECK_GREY } = gray
 
-const AnimatedCircle = Animated.createAnimatedComponent(Circle)
+const AnimatedCircle = createAnimatedComponent(Circle)
 
 type IconProps = {
   variant?: 'filled' | 'outline'

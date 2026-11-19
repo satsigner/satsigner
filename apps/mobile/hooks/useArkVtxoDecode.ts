@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
-import { decodeVtxo, type VtxoData } from 'bitcoin-decoder'
+import { decodeVtxo } from 'bitcoin-decoder'
+import type { VtxoData } from 'bitcoin-decoder'
 
 import { fetchArkVtxoEncoded } from '@/api/ark'
 import { getArkAccountOrThrow } from '@/store/ark'

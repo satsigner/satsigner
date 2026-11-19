@@ -2,8 +2,8 @@ import { toast } from 'sonner-native'
 
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
-import { type Account } from '@/types/models/Account'
-import { type Utxo } from '@/types/models/Utxo'
+import type { Account } from '@/types/models/Account'
+import type { Utxo } from '@/types/models/Utxo'
 import { getUtxoOutpoint } from '@/utils/outpoint'
 
 const EXCLUDE_TOAST_DURATION_MS = 5000

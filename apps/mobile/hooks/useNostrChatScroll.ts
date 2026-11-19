@@ -1,6 +1,6 @@
-import { type FlashListRef } from '@shopify/flash-list'
+import type { FlashListRef } from '@shopify/flash-list'
 import { useRef, useState } from 'react'
-import { type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native'
+import type { NativeScrollEvent, NativeSyntheticEvent } from 'react-native'
 
 import { NOSTR_GROUP_CHAT_SCROLL_THRESHOLD } from '@/constants/nostr'
 

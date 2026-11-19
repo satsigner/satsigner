@@ -1,4 +1,4 @@
-import { type NitroSQLiteConnection } from 'react-native-nitro-sqlite'
+import type { NitroSQLiteConnection } from 'react-native-nitro-sqlite'
 
 const SCHEMA_V1 = `
 CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL);
@@ -362,6 +362,23 @@ CREATE TABLE IF NOT EXISTS nostr_deleted_messages (
 )
 `
 
+// NIP-25 reactions to NIP-17 chat messages, kept apart from the thread rows.
+// `id` is the reaction rumor's id: a later gift-wrapped kind 5 names it.
+const SCHEMA_V13 = `
+CREATE TABLE IF NOT EXISTS nostr_chat_reactions (
+  id TEXT NOT NULL,
+  identity_npub TEXT NOT NULL,
+  message_id TEXT NOT NULL,
+  author TEXT NOT NULL,
+  emoji TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (id, identity_npub)
+);
+
+CREATE INDEX IF NOT EXISTS idx_ncr_message
+  ON nostr_chat_reactions(identity_npub, message_id)
+`
+
 const SCHEMAS = [
   SCHEMA_V1,
   SCHEMA_V2,
@@ -374,7 +391,8 @@ const SCHEMAS = [
   SCHEMA_V9,
   SCHEMA_V10,
   SCHEMA_V11,
-  SCHEMA_V12
+  SCHEMA_V12,
+  SCHEMA_V13
 ]
 const CURRENT_VERSION = SCHEMAS.length
 

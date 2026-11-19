@@ -1,18 +1,19 @@
+import { useRecyclingState } from '@shopify/flash-list'
+import type { ReactNode } from 'react'
 import { Image, Pressable, StyleSheet, View } from 'react-native'
 
+import SSMarkdown from '@/components/SSMarkdown'
 import SSText from '@/components/SSText'
 import SSTransactionDetails from '@/components/SSTransactionDetails'
-import {
-  type AuthorDisplayInfo,
-  useNostrMessage
-} from '@/hooks/useNostrMessage'
+import { useNostrMessage } from '@/hooks/useNostrMessage'
+import type { AuthorDisplayInfo } from '@/hooks/useNostrMessage'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
-import { type Account } from '@/types/models/Account'
-import { type NostrDM } from '@/types/models/Nostr'
-import { type KeyFingerprintsByAccount } from '@/utils/psbt'
+import type { Account } from '@/types/models/Account'
+import type { NostrDM } from '@/types/models/Nostr'
+import type { KeyFingerprintsByAccount } from '@/utils/psbt'
 
 const RETRY_HIT_SLOP = 8
 const AVATAR_SIZE = 24
@@ -50,6 +51,15 @@ type SSNostrMessageProps = {
   replyPreview?: SSNostrMessageReplyPreview
   onReplyPreviewPress?: (parentId: string) => void
   onLongPress?: (msgId: string) => void
+  /** Render the text as markdown (DMs); the devices group chat keeps plain text. */
+  renderMarkdown?: boolean
+  /** Extra content under the text, e.g. payment cards. */
+  attachments?: ReactNode
+  /**
+   * The attachments already show what the text says (a decoded invoice), so
+   * the text starts as one line with a "Show more" link.
+   */
+  collapseText?: boolean
 }
 
 type AuthorNameProps = {
@@ -104,6 +114,65 @@ function AuthorAvatar({ author }: { author: AuthorDisplayInfo }) {
   return <View style={[styles.avatar, { backgroundColor: author.color }]} />
 }
 
+const SHOW_MORE_HIT_SLOP = 8
+
+function MessageText({
+  content,
+  markdown
+}: {
+  content: string
+  markdown: boolean
+}) {
+  if (markdown) {
+    return <SSMarkdown content={content} confirmLinks />
+  }
+  return <SSText size="md">{content}</SSText>
+}
+
+function CollapsibleMessageText({
+  content,
+  markdown,
+  messageId
+}: {
+  content: string
+  markdown: boolean
+  messageId: string
+}) {
+  // Resets when FlashList recycles the row for another message.
+  const [expanded, setExpanded] = useRecyclingState(false, [messageId])
+
+  function handleToggle() {
+    setExpanded((current) => !current)
+  }
+
+  return (
+    <SSVStack gap="xxs">
+      {expanded ? (
+        <MessageText content={content} markdown={markdown} />
+      ) : (
+        <SSText
+          size="sm"
+          color="muted"
+          numberOfLines={1}
+          ellipsizeMode="middle"
+        >
+          {content}
+        </SSText>
+      )}
+      <Pressable
+        accessibilityRole="button"
+        hitSlop={SHOW_MORE_HIT_SLOP}
+        onPress={handleToggle}
+        style={({ pressed }) => [styles.showMore, pressed && styles.pressed]}
+      >
+        <SSText size="xs" style={styles.showMoreText}>
+          {expanded ? t('common.showLess') : t('common.showMore')}
+        </SSText>
+      </Pressable>
+    </SSVStack>
+  )
+}
+
 function SSNostrMessage({
   item: msg,
   account,
@@ -121,7 +190,10 @@ function SSNostrMessage({
   isContinuation = false,
   replyPreview,
   onReplyPreviewPress,
-  onLongPress
+  onLongPress,
+  renderMarkdown = false,
+  attachments,
+  collapseText = false
 }: SSNostrMessageProps) {
   const {
     authorNpub,
@@ -253,9 +325,16 @@ function SSNostrMessage({
             onGoToSignFlow={handleGoToSignFlow}
             onOpenLinkedTx={onOpenLinkedTx}
           />
+        ) : collapseText ? (
+          <CollapsibleMessageText
+            content={messageContent}
+            markdown={renderMarkdown}
+            messageId={msg.id}
+          />
         ) : (
-          <SSText size="md">{messageContent}</SSText>
+          <MessageText content={messageContent} markdown={renderMarkdown} />
         )}
+        {attachments}
         {isContinuation && (msg.pending || failed) ? (
           <SSHStack gap="xxs">
             {msg.pending ? (
@@ -343,6 +422,13 @@ const styles = StyleSheet.create({
   },
   retryText: {
     color: Colors.white,
+    textDecorationLine: 'underline'
+  },
+  showMore: {
+    alignSelf: 'flex-start'
+  },
+  showMoreText: {
+    color: Colors.gray[75],
     textDecorationLine: 'underline'
   },
   status: {

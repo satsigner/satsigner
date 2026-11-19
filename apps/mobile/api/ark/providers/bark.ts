@@ -1,28 +1,30 @@
 import {
   Config,
-  type EmergencyExitFeeEstimate,
-  type ExitState,
   ExitState_Tags,
-  type ExitTx,
   ExitTxStatus_Tags,
   extractTxFromPsbt,
-  type FeeEstimate,
-  type LightningReceive,
-  type LightningSendStatus,
   LightningSendStatus_Tags,
-  type Movement,
   Network as BarkNetwork,
-  type OnchainUtxo,
   OnchainUtxo_Tags,
   OnchainWallet,
-  type OnchainWalletLike,
-  type PendingBoard,
-  type Vtxo,
   Wallet,
   WalletNotification_Tags,
-  WalletNotifications,
-  type WalletLike,
-  type WalletNotification
+  WalletNotifications
+} from '@secondts/bark-react-native'
+import type {
+  EmergencyExitFeeEstimate,
+  ExitState,
+  ExitTx,
+  FeeEstimate,
+  LightningReceive,
+  LightningSendStatus,
+  Movement,
+  OnchainUtxo,
+  OnchainWalletLike,
+  PendingBoard,
+  Vtxo,
+  WalletLike,
+  WalletNotification
 } from '@secondts/bark-react-native'
 
 import { registerArkProvider } from '@/api/ark/registry'
@@ -73,12 +75,11 @@ import {
   isArkRefreshMovement
 } from '@/utils/arkMovement'
 import {
-  type ArkBusyVtxoIds,
-  type ArkRefreshThresholds,
   filterCurrentArkVtxos,
   isArkVtxoBusy,
   moveBusyArkVtxosOutOfSpendable
 } from '@/utils/arkVtxo'
+import type { ArkBusyVtxoIds, ArkRefreshThresholds } from '@/utils/arkVtxo'
 import { decodeLightningInvoice } from '@/utils/lightningInvoiceDecoder'
 import { withTimeout } from '@/utils/time'
 

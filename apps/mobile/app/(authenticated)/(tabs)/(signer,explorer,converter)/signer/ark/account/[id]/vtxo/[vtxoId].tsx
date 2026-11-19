@@ -17,7 +17,8 @@ import { useArkFeeEstimate } from '@/hooks/useArkFeeEstimate'
 import { useArkMovements } from '@/hooks/useArkMovements'
 import { useArkRefresh } from '@/hooks/useArkRefresh'
 import { useArkTipHeight } from '@/hooks/useArkTipHeight'
-import { type ArkVtxoDecoded, useArkVtxoDecode } from '@/hooks/useArkVtxoDecode'
+import { useArkVtxoDecode } from '@/hooks/useArkVtxoDecode'
+import type { ArkVtxoDecoded } from '@/hooks/useArkVtxoDecode'
 import { useArkVtxos } from '@/hooks/useArkVtxos'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -30,8 +31,6 @@ import { useSettingsStore } from '@/store/settings'
 import { Colors, Typography } from '@/styles'
 import type { ArkMovement, ArkVtxo } from '@/types/models/Ark'
 import {
-  type ArkVtxoExpiry,
-  type ArkVtxoExpiryUrgency,
   buildArkVtxoLineage,
   findArkVtxoMovements,
   getArkVtxoEta,
@@ -40,6 +39,7 @@ import {
   getArkVtxoPolicyPaymentHash,
   isArkVtxoExitUneconomical
 } from '@/utils/arkVtxoDetail'
+import type { ArkVtxoExpiry, ArkVtxoExpiryUrgency } from '@/utils/arkVtxoDetail'
 import { setClipboard } from '@/utils/clipboard'
 import {
   formatFiatPrice,
@@ -423,7 +423,7 @@ export default function ArkVtxoDetailPage() {
                 showSign={false}
                 textSize="4xl"
                 weight="ultralight"
-                letterSpacing={-1}
+                letterSpacing={Typography.amountLetterSpacing.header}
                 unitSize="lg"
               />
             </SSHStack>

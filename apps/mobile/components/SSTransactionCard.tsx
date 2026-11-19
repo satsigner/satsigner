@@ -1,12 +1,14 @@
 import { useState } from 'react'
-import { type StyleProp, StyleSheet, View, type ViewStyle } from 'react-native'
+import { StyleSheet, View } from 'react-native'
+import type { StyleProp, ViewStyle } from 'react-native'
 
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
-import { Colors, Layout, Sizes } from '@/styles'
-import { type Transaction } from '@/types/models/Transaction'
+import { Colors, Layout, Sizes, Typography } from '@/styles'
+import type { Transaction } from '@/types/models/Transaction'
 import type { DisplayPreferences } from '@/types/ui/displayPreferences'
+import { isAutomaticTag } from '@/utils/automaticTags'
 import {
   getConfirmations,
   getConfirmationsColorStyle
@@ -25,7 +27,7 @@ import SSAmountDisplay from './SSAmountDisplay'
 import SSButton from './SSButton'
 import SSIconButton from './SSIconButton'
 import SSModal from './SSModal'
-import SSPressable from './SSPressable'
+import SSPressable, { LIST_ITEM_PRESS_DELAY_MS } from './SSPressable'
 import SSStyledSatText from './SSStyledSatText'
 import SSText from './SSText'
 import SSTimeAgoText from './SSTimeAgoText'
@@ -81,6 +83,7 @@ function HistoricalFiatUnavailable({
 
 type SSTransactionCardProps = DisplayPreferences & {
   transaction: Transaction
+  automaticTags?: string[]
   blockHeight: number
   walletBalance?: number
   onPress: () => void
@@ -90,9 +93,11 @@ type SSTransactionCardProps = DisplayPreferences & {
 }
 
 const DEFAULT_STYLE: ViewStyle = {}
+const NO_AUTOMATIC_TAGS: string[] = []
 
 function SSTransactionCard({
   transaction,
+  automaticTags = NO_AUTOMATIC_TAGS,
   blockHeight,
   fiatCurrency,
   btcPrice,
@@ -121,7 +126,9 @@ function SSTransactionCard({
   const confirmationColor = getConfirmationsColorStyle(confirmations)
 
   const { amount, type } = getWalletTransactionEffect(transaction)
-  const { label, tags } = parseLabel(transaction.label || '')
+  const parsedLabel = parseLabel(transaction.label || '')
+  const { label } = parsedLabel
+  const tags = [...new Set([...parsedLabel.tags, ...automaticTags])]
 
   const { prices } = transaction
   const oldPrice = historicalFiatEnabled && prices ? prices[fiatCurrency] : null
@@ -164,13 +171,16 @@ function SSTransactionCard({
   const smallView = expand || `${amount}`.length > 10
 
   return (
-    <SSPressable onPress={onPress}>
+    <SSPressable
+      onPress={onPress}
+      unstable_pressDelay={LIST_ITEM_PRESS_DELAY_MS}
+    >
       <SSVStack
         style={[
           {
             paddingBottom: expand ? 6 : 12,
             paddingHorizontal: 0,
-            paddingTop: expand ? 0 : 4
+            paddingTop: 4
           },
           style
         ]}
@@ -242,8 +252,8 @@ function SSTransactionCard({
                     textSize={smallView ? 'xl' : '4xl'}
                     noColor={false}
                     showSign={false}
-                    weight="light"
-                    letterSpacing={smallView ? 0 : -0.5}
+                    weight="ultralight"
+                    letterSpacing={Typography.amountLetterSpacing.card}
                     unitSize={smallView ? 'xs' : 'sm'}
                   />
                 </SSHStack>
@@ -389,7 +399,10 @@ function SSTransactionCard({
                   <SSText
                     key={index}
                     size={smallView ? 'xxs' : 'xs'}
-                    style={styles.tag}
+                    style={[
+                      styles.tag,
+                      isAutomaticTag(tag) && styles.tagAutomatic
+                    ]}
                     uppercase
                     numberOfLines={1}
                   >
@@ -431,6 +444,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 2,
     textAlign: 'right'
+  },
+  tagAutomatic: {
+    backgroundColor: Colors.transparent,
+    borderColor: Colors.gray[600],
+    borderWidth: 1,
+    paddingHorizontal: 5,
+    paddingVertical: 1
   },
   tagEmpty: {
     backgroundColor: Colors.gray[950],

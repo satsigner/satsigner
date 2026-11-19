@@ -1,7 +1,7 @@
 import * as bitcoinjs from 'bitcoinjs-lib'
 
-import { type Output } from '@/types/models/Output'
-import { type Utxo } from '@/types/models/Utxo'
+import type { Output } from '@/types/models/Output'
+import type { Utxo } from '@/types/models/Utxo'
 
 import type { ExtendedTransaction } from '../../../hooks/useInputTransactions.ts'
 import {
@@ -15,6 +15,7 @@ import {
   getPreviewTransactionHex,
   getRawTransactionSizes,
   getTransactionIdDisplay,
+  isSelfSend,
   legacyEstimateTransactionSize,
   mapBuildTransactionError,
   recalculateDepthH,
@@ -642,6 +643,13 @@ describe('recalculateDepthH', () => {
   })
 })
 
+function getDepthOrders(
+  transactions: Map<string, ExtendedTransaction>,
+  txid: string
+) {
+  return transactions.get(txid)?.vout.map((output) => output.depthOrder)
+}
+
 describe('assignOutputDepthOrder', () => {
   function buildTransaction(id: string, depthH: number, outputCount: number) {
     return {
@@ -654,13 +662,6 @@ describe('assignOutputDepthOrder', () => {
         value: 1000
       })) as unknown as ExtendedTransaction['vout']
     }
-  }
-
-  function getDepthOrders(
-    transactions: Map<string, ExtendedTransaction>,
-    txid: string
-  ) {
-    return transactions.get(txid)?.vout.map((output) => output.depthOrder)
   }
 
   it('numbers outputs across transactions sharing a depth', () => {
@@ -982,5 +983,29 @@ describe('getRawTransactionSizes', () => {
       vsize: 0,
       weight: 0
     })
+  })
+})
+
+describe('isSelfSend', () => {
+  const own = new Set(['tb1qown'])
+  const tx = {
+    ...minimalTxProps,
+    id: 'tx',
+    received: 900,
+    sent: 1000,
+    vin: [],
+    vout: [{ address: 'tb1qown', script: '', value: 900 }]
+  }
+
+  it('is true when every output pays the wallet', () => {
+    expect(isSelfSend(tx, own)).toBe(true)
+  })
+
+  it('is false when an output pays someone else', () => {
+    const payment = {
+      ...tx,
+      vout: [...tx.vout, { address: 'tb1qother', script: '', value: 50 }]
+    }
+    expect(isSelfSend(payment, own)).toBe(false)
   })
 })

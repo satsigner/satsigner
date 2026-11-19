@@ -6,11 +6,8 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { tn as _tn } from '@/locales'
 import { Colors } from '@/styles'
-import {
-  type BlockDecodedField,
-  BlockField,
-  isBlockField
-} from '@/utils/blockDecoded'
+import { BlockField, isBlockField } from '@/utils/blockDecoded'
+import type { BlockDecodedField } from '@/utils/blockDecoded'
 import { TxField } from '@/utils/txDecoded'
 
 const tnBlock = _tn('explorer.block.decoded')

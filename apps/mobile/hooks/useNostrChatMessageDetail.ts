@@ -9,18 +9,17 @@ import { t } from '@/locales'
 import { useNostrStore } from '@/store/nostr'
 import { identityChatKey, useNostrChatReplyStore } from '@/store/nostrChatReply'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
-import { type NostrChatThreadItem } from '@/types/models/Nostr'
+import type { NostrChatThreadItem } from '@/types/models/Nostr'
 import { formatNpub } from '@/utils/format'
 import { safeNpubEncode } from '@/utils/nostr'
 import {
-  type ChatIdentity,
-  type ChatMessageDetail,
   deleteChatMessageForEveryone,
   deleteChatMessageForMe,
   getChatPipelineApi,
   loadChatMessageDetail,
   nostrChatQueryKeys
 } from '@/utils/nostrChat'
+import type { ChatIdentity, ChatMessageDetail } from '@/utils/nostrChat'
 import { getNostrContactsRelays } from '@/utils/nostrContacts'
 import { getNostrErrorMessage } from '@/utils/nostrErrorMessage'
 import {

@@ -3,7 +3,7 @@ import { act, create } from 'react-test-renderer'
 
 import { useNostrIdentityAdd } from '@/hooks/useNostrIdentityAdd'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
-import { type NostrIdentity } from '@/types/models/Nostr'
+import type { NostrIdentity } from '@/types/models/Nostr'
 import {
   connectedRelayUrls,
   hasNostrRelaysSelected,

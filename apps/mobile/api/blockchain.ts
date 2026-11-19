@@ -1,4 +1,4 @@
-import z from 'zod'
+import { z } from 'zod'
 
 import { SATS_PER_BITCOIN } from '@/constants/btc'
 import {
@@ -12,12 +12,14 @@ import {
   TxOutspendSchema,
   TxSchema,
   TxStatusSchema,
-  UTXOSchema,
-  type BlockchainOracle,
-  type Currency,
-  type MemPoolFees,
-  type PriceValue,
-  type TxPriority
+  UTXOSchema
+} from '@/types/models/Blockchain'
+import type {
+  BlockchainOracle,
+  Currency,
+  MemPoolFees,
+  PriceValue,
+  TxPriority
 } from '@/types/models/Blockchain'
 
 const satoshiToFiat = (btcFiatPrice: number, sats: number, decimals = 2) =>

@@ -6,7 +6,7 @@ import SSButton from '@/components/SSButton'
 import SSPaymentMethodPicker from '@/components/SSPaymentMethodPicker'
 import SSTextInput from '@/components/SSTextInput'
 import { NOSTR_PRIVACY_MASK } from '@/constants/nostr'
-import { type NostrZapFlowSheets } from '@/hooks/useNostrZapFlow'
+import type { NostrZapFlowSheets } from '@/hooks/useNostrZapFlow'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -123,6 +123,7 @@ function SSNostrZapSheets({
         amountSats={payAmount}
         btcPrice={btcPrice}
         fiatCurrency={fiatCurrency}
+        privacyMode={privacyMode}
       />
     </>
   )

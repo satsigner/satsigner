@@ -1,17 +1,12 @@
 import * as WebBrowser from 'expo-web-browser'
-import {
-  Image,
-  StyleSheet,
-  View,
-  type StyleProp,
-  type ViewStyle
-} from 'react-native'
+import { Image, StyleSheet, View } from 'react-native'
+import type { StyleProp, ViewStyle } from 'react-native'
 
 import SSNostrVideo from '@/components/SSNostrVideo'
 import SSText from '@/components/SSText'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
-import { type NostrVideoEmbed } from '@/types/models/Nostr'
+import type { NostrVideoEmbed } from '@/types/models/Nostr'
 
 import SSPressable from './SSPressable'
 

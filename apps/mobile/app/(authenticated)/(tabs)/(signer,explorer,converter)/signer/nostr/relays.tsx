@@ -14,7 +14,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { Colors } from '@/styles'
-import { type NostrRelay } from '@/types/models/Nostr'
+import type { NostrRelay } from '@/types/models/Nostr'
 
 type RelayRowProps = {
   relay: NostrRelay

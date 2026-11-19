@@ -14,6 +14,36 @@ jest.mock<typeof import('@/locales')>('@/locales', () => ({
   })
 }))
 
+const runInUTC = (fn: () => void) => {
+  const originalDate = global.Date
+  global.Date = class extends Date {
+    getFullYear() {
+      return this.getUTCFullYear()
+    }
+    getMonth() {
+      return this.getUTCMonth()
+    }
+    getDate() {
+      return this.getUTCDate()
+    }
+    getHours() {
+      return this.getUTCHours()
+    }
+    getMinutes() {
+      return this.getUTCMinutes()
+    }
+    getSeconds() {
+      return this.getUTCSeconds()
+    }
+  } as DateConstructor
+
+  try {
+    fn()
+  } finally {
+    global.Date = originalDate
+  }
+}
+
 describe('date utils', () => {
   // Consistent time for testing
   const constantDate = new Date('2024-01-01T00:00:00Z')
@@ -106,36 +136,6 @@ describe('date utils', () => {
   })
 
   describe('formatDate', () => {
-    const runInUTC = (fn: () => void) => {
-      const originalDate = global.Date
-      global.Date = class extends Date {
-        getFullYear() {
-          return this.getUTCFullYear()
-        }
-        getMonth() {
-          return this.getUTCMonth()
-        }
-        getDate() {
-          return this.getUTCDate()
-        }
-        getHours() {
-          return this.getUTCHours()
-        }
-        getMinutes() {
-          return this.getUTCMinutes()
-        }
-        getSeconds() {
-          return this.getUTCSeconds()
-        }
-      } as DateConstructor
-
-      try {
-        fn()
-      } finally {
-        global.Date = originalDate
-      }
-    }
-
     it('should return an empty string for undefined input', () => {
       expect(formatDate(undefined)).toBe('')
     })

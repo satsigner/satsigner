@@ -12,9 +12,9 @@ import { t } from '@/locales'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { useSettingsStore } from '@/store/settings'
 import { Colors, Sizes } from '@/styles'
-import {
-  type NostrIdentity,
-  type NostrRelayConnectionInfo
+import type {
+  NostrIdentity,
+  NostrRelayConnectionInfo
 } from '@/types/models/Nostr'
 import { formatNpub } from '@/utils/format'
 import {

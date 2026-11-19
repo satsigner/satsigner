@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { NostrAPI } from '@/api/nostr'
 import { NOSTR_FEED_NEW_NOTES_POLL_MS } from '@/constants/nostr'
 import { nostrKeys } from '@/db/keys'
-import { type NostrFeedNoteLike } from '@/types/models/Nostr'
+import type { NostrFeedNoteLike } from '@/types/models/Nostr'
 import { getNostrContactsRelaysKey } from '@/utils/nostrContacts'
 import { filterFeedReplies } from '@/utils/nostrFeed'
 import {

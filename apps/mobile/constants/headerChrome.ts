@@ -1,4 +1,4 @@
-import { type ViewStyle } from 'react-native'
+import type { ViewStyle } from 'react-native'
 
 /** Raster size for header glyphs (square); SVGs use a 24×24 viewBox. */
 export const HEADER_CHROME_ICON_SIZE = 24

@@ -1,7 +1,7 @@
 import { nip19 } from 'nostr-tools'
 
 import { NOSTR_MENTION_RE } from '@/constants/nostr'
-import { type NostrKind0Profile } from '@/types/models/Nostr'
+import type { NostrKind0Profile } from '@/types/models/Nostr'
 
 function decodeMentionPubkey(bech32: string): string | null {
   try {

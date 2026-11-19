@@ -95,13 +95,13 @@ describe('transaction decoding', () => {
 
       if (expected.flag !== undefined) {
         it('decodes the flag', () => {
-          expect(decodedTx.getFlag().value).toBe(expected.flag)
+          expect(TxDecoded.getFlag().value).toBe(expected.flag)
         })
       }
 
       if (expected.marker !== undefined) {
         it('decodes the marker', () => {
-          expect(decodedTx.getMarker().value).toBe(expected.marker)
+          expect(TxDecoded.getMarker().value).toBe(expected.marker)
         })
       }
 

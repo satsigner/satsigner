@@ -1,9 +1,5 @@
-import {
-  ActivityIndicator,
-  type LayoutChangeEvent,
-  StyleSheet,
-  View
-} from 'react-native'
+import { ActivityIndicator, StyleSheet, View } from 'react-native'
+import type { LayoutChangeEvent } from 'react-native'
 
 import SSButton from '@/components/SSButton'
 import SSNostrReactionGlyph from '@/components/SSNostrReactionGlyph'
@@ -13,9 +9,9 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
-import {
-  type NostrReactionRow,
-  type NostrReactionSummaryEntry
+import type {
+  NostrReactionRow,
+  NostrReactionSummaryEntry
 } from '@/types/models/Nostr'
 
 type SSNostrNoteReactionsProps = {

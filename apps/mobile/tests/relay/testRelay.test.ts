@@ -1,9 +1,11 @@
 import { finalizeEvent, generateSecretKey, getPublicKey } from 'nostr-tools'
-import WebSocket from 'ws'
+import { WebSocket } from 'ws'
 
 import { BASE_CREATED_AT, fixturePubkey, makeEvent } from './support/fixtures'
-import { connectRawClient, type RawRelayClient } from './support/rawClient'
-import { startTestRelay, type TestRelay } from './support/testRelay'
+import { connectRawClient } from './support/rawClient'
+import type { RawRelayClient } from './support/rawClient'
+import { startTestRelay } from './support/testRelay'
+import type { TestRelay } from './support/testRelay'
 
 const METADATA_KIND = 0
 const TEXT_NOTE_KIND = 1

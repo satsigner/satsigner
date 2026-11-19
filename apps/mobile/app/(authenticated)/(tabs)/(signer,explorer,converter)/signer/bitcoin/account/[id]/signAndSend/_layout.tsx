@@ -8,7 +8,7 @@ import SSHStack from '@/layouts/SSHStack'
 import { t } from '@/locales'
 import { useAccountsStore } from '@/store/accounts'
 import { useTransactionBuilderStore } from '@/store/transactionBuilder'
-import { type AccountSearchParams } from '@/types/navigation/searchParams'
+import type { AccountSearchParams } from '@/types/navigation/searchParams'
 
 // The children render inside this layout's Slot, so their own Stack.Screen
 // options never reach the header: the layout picks the title for them.

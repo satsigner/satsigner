@@ -1,18 +1,17 @@
 import { Stack, useRouter } from 'expo-router'
 import { useEffect, useMemo, useState } from 'react'
 import { View } from 'react-native'
+import type { RenderItemParams } from 'react-native-draggable-flatlist'
 import {
   NestableDraggableFlatList,
   NestableScrollContainer,
-  RenderItemParams,
   ScaleDecorator
 } from 'react-native-draggable-flatlist'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
-import SSAccountCard, {
-  type SSAccountCardStat
-} from '@/components/SSAccountCard'
+import SSAccountCard from '@/components/SSAccountCard'
+import type { SSAccountCardStat } from '@/components/SSAccountCard'
 import SSActionButton from '@/components/SSActionButton'
 import SSBlockFeePriceRow from '@/components/SSBlockFeePriceRow'
 import SSButton from '@/components/SSButton'
@@ -52,8 +51,8 @@ import { useBlockchainStore } from '@/store/blockchain'
 import { usePriceStore } from '@/store/price'
 import { useWalletsStore } from '@/store/wallets'
 import { Colors } from '@/styles'
-import { type Account } from '@/types/models/Account'
-import { type Network } from '@/types/settings/blockchain'
+import type { Account } from '@/types/models/Account'
+import type { Network } from '@/types/settings/blockchain'
 import { getAccountTotalBalance, isAutoSyncDue } from '@/utils/account'
 import { isAccountSyncing } from '@/utils/accountSyncRuns'
 import {
@@ -65,9 +64,10 @@ import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { ensurePin } from '@/utils/pin'
 import {
   getSampleAccountName,
-  isSampleWalletLoaded,
-  type SampleWallet
+  isSampleWalletLoaded
 } from '@/utils/sampleWallet'
+import type { SampleWallet } from '@/utils/sampleWallet'
+import { buildSampleWalletLabels } from '@/utils/sampleWalletLabels'
 import { createSyncFailureBatch } from '@/utils/syncFailureToasts'
 import { time } from '@/utils/time'
 
@@ -110,11 +110,12 @@ export default function AccountList() {
         state.configs[state.selectedNetwork].config.timeDiffBeforeAutoSync
       ])
     )
-  const [accounts, updateAccount, setAccounts] = useAccountsStore(
+  const [accounts, updateAccount, setAccounts, importLabels] = useAccountsStore(
     useShallow((state) => [
       state.accounts,
       state.updateAccount,
-      state.setAccounts
+      state.setAccounts,
+      state.importLabels
     ])
   )
   const { fiatPriceApiUrl, showCurrentFiat } = useFiatData()
@@ -539,6 +540,10 @@ export default function AccountList() {
         : await syncAccountWithAddress(data.accountWithEncryptedSecret)
       if (updatedAccount) {
         updateAccount(updatedAccount)
+        const sampleLabels = buildSampleWalletLabels(type, updatedAccount)
+        if (sampleLabels.length > 0) {
+          importLabels(updatedAccount.id, sampleLabels)
+        }
       }
     }
     toast.success('Sample wallet created successfully!')

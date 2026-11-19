@@ -2,7 +2,7 @@
  * Source flag for the identity feed fetchers: relay data comes back as
  * 'relay', relay failures fall back to the cache with an error code.
  */
-import { type NDKFilter } from '@nostr-dev-kit/ndk'
+import type { NDKFilter } from '@nostr-dev-kit/ndk'
 
 jest.mock<typeof import('@/api/ndkRegistry')>('@/api/ndkRegistry', () => ({
   clearNdkRegistry: jest.fn(),
@@ -37,12 +37,12 @@ import { getOrCreateNdk } from '@/api/ndkRegistry'
 import { NostrAPI } from '@/api/nostr'
 import { connectToFirstRelay } from '@/api/nostrRelayHealth'
 import {
-  type CachedEvent,
   deleteCachedEventsByAuthor,
   getCachedNotes,
   getCachedNotesByAuthors,
   getNewestCachedTimestamp
 } from '@/db/nostrCache'
+import type { CachedEvent } from '@/db/nostrCache'
 import { getNostrFollowCache, setNostrFollowCache } from '@/storage/mmkv'
 import { NostrNoRelaysError } from '@/utils/errors'
 

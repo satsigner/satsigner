@@ -2,7 +2,7 @@ import * as WebBrowser from 'expo-web-browser'
 import { Platform, StyleSheet } from 'react-native'
 
 import { Colors, Sizes } from '@/styles'
-import { type TextFontSize } from '@/styles/sizes'
+import type { TextFontSize } from '@/styles/sizes'
 
 import SSPressable from './SSPressable'
 import SSText from './SSText'

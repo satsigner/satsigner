@@ -1,4 +1,4 @@
-import { type PayjoinSessionStatus } from '@/types/payjoin'
+import type { PayjoinSessionStatus } from '@/types/payjoin'
 
 const PAYJOIN_TERMINAL_STATUSES = new Set<PayjoinSessionStatus>([
   'cancelled',

@@ -4,7 +4,7 @@
  */
 /* eslint-disable require-await -- async signatures match the native facade */
 
-import { type PayjoinNativeRequest } from '@/types/payjoin'
+import type { PayjoinNativeRequest } from '@/types/payjoin'
 
 type ReceiverSessionInit = {
   address: string

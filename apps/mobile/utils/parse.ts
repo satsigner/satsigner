@@ -3,7 +3,7 @@ import { EXTENDED_PUBKEY_PATTERN } from '@/constants/descriptor'
 import { t } from '@/locales'
 import type { Account, Key } from '@/types/models/Account'
 import type { Address } from '@/types/models/Address'
-import { type Output } from '@/types/models/Output'
+import type { Output } from '@/types/models/Output'
 
 import { getUtxoOutpoint } from './outpoint'
 
@@ -153,6 +153,16 @@ function normalizeUtxoLabelForDisplay(rawLabel: string): string {
   }
   // Include tags so tag-only labels (e.g. "#alpha") are visible, not "No label".
   return parseLabelTags(label, tags)
+}
+
+// Appends to the raw text: parseLabel drops everything after the first "#",
+// so rebuilding from it would lose text like "Invoice #12 from Bob".
+function addLabelTag(rawLabel: string, tag: string) {
+  if (parseLabel(rawLabel).tags.includes(tag)) {
+    return rawLabel
+  }
+  const trimmedLabel = rawLabel.trim()
+  return trimmedLabel ? `${trimmedLabel} #${tag}` : `#${tag}`
 }
 
 function parseLabelTags(label: string, tags: string[]) {
@@ -454,6 +464,7 @@ export {
   isMalformedUriComponent,
   parseAccountAddressesDetails,
   parseAddressDescriptorToAddress,
+  addLabelTag,
   parseLabel,
   parseLabelTags,
   parseTXOutputs,

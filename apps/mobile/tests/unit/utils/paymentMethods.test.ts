@@ -2,6 +2,7 @@ import type { ArkAccount } from '@/types/models/Ark'
 import {
   buildPaymentMethods,
   getAutoPaymentMethod,
+  getInvoicePaymentMethods,
   getInvoicePayRoute
 } from '@/utils/paymentMethods'
 
@@ -13,6 +14,32 @@ const arkAccount = (overrides: Partial<ArkAccount> = {}): ArkAccount => ({
   network: 'bitcoin',
   serverId: 'second',
   ...overrides
+})
+
+describe('getInvoicePaymentMethods', () => {
+  const methods = buildPaymentMethods({ url: 'https://lnd.example' }, [], {}, [
+    arkAccount()
+  ])
+
+  function types(invoice: { amountSats: number; network: 'bitcoin' | null }) {
+    return getInvoicePaymentMethods(methods, invoice).map((m) => m.type)
+  }
+
+  it('offers Ark for a fixed-amount mainnet invoice', () => {
+    expect(types({ amountSats: 1000, network: 'bitcoin' })).toStrictEqual([
+      'lightning',
+      'ark'
+    ])
+  })
+
+  it('leaves Ark out for an amountless or non-mainnet invoice', () => {
+    expect(types({ amountSats: 0, network: 'bitcoin' })).toStrictEqual([
+      'lightning'
+    ])
+    expect(types({ amountSats: 1000, network: null })).toStrictEqual([
+      'lightning'
+    ])
+  })
 })
 
 describe('buildPaymentMethods', () => {

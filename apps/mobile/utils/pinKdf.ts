@@ -10,7 +10,7 @@ import {
   SALT_KEY_DURESS
 } from '@/config/auth'
 import { deleteItem, getItem, setItem } from '@/storage/encrypted'
-import { type EncryptedKeySecret } from '@/types/models/Account'
+import type { EncryptedKeySecret } from '@/types/models/Account'
 import { generateSalt } from '@/utils/crypto'
 import { pinDigestOpensSecret } from '@/utils/decryption'
 import { setSessionPinDigest } from '@/utils/pinSession'
@@ -452,6 +452,7 @@ export function safeEqualHex(a: string, b: string): boolean {
   }
   let diff = 0
   for (let i = 0; i < a.length; i += 1) {
+    // oxlint-disable-next-line unicorn/prefer-code-point -- compares UTF-16 code units
     diff |= a.charCodeAt(i) ^ b.charCodeAt(i)
   }
   return diff === 0

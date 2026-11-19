@@ -1,13 +1,16 @@
-import { FlashList, type ListRenderItem } from '@shopify/flash-list'
+import { FlashList } from '@shopify/flash-list'
+import type { ListRenderItem } from '@shopify/flash-list'
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
-import { type ReactNode, useState } from 'react'
+import { useState } from 'react'
+import type { ReactNode } from 'react'
 import {
   RefreshControl,
   StyleSheet,
   useWindowDimensions,
   View
 } from 'react-native'
-import { type SceneRendererProps, TabView } from 'react-native-tab-view'
+import { TabView } from 'react-native-tab-view'
+import type { SceneRendererProps } from 'react-native-tab-view'
 import { toast } from 'sonner-native'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -74,8 +77,8 @@ import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useArkStore } from '@/store/ark'
-import { Colors, Layout } from '@/styles'
-import { type Direction } from '@/types/logic/sort'
+import { Colors, Layout, Typography } from '@/styles'
+import type { Direction } from '@/types/logic/sort'
 import type { ArkMovement } from '@/types/models/Ark'
 import { getArkBalanceBreakdown } from '@/utils/ark'
 import { countUsedArkAddresses } from '@/utils/arkAddress'
@@ -92,14 +95,14 @@ import {
   sortArkMovements
 } from '@/utils/arkMovement'
 import {
-  type ArkVtxoListItem,
   arkVtxosToBubbleData,
   buildArkVtxoSections,
   filterSelectableVtxoIds,
   getArkNextExpiryHeight
 } from '@/utils/arkVtxo'
+import type { ArkVtxoListItem } from '@/utils/arkVtxo'
 import { getArkVtxoRoute } from '@/utils/arkVtxoDetail'
-import { type DetectedContent } from '@/utils/contentDetector'
+import type { DetectedContent } from '@/utils/contentDetector'
 import { formatFiatPrice, formatNumber } from '@/utils/format'
 
 const HEADER_ICON_STROKE = '#828282'
@@ -772,7 +775,7 @@ export default function ArkAccountDetailPage() {
                 currency={currencyUnit}
                 textSize={totalSize}
                 weight="ultralight"
-                letterSpacing={-1}
+                letterSpacing={Typography.amountLetterSpacing.header}
                 unitSize="xl"
               />
             </SSHStack>

@@ -3,13 +3,15 @@ import {
   getDecodedToken,
   getEncodedTokenV3,
   getEncodedTokenV4,
-  type Keyset,
   Mint,
-  type MeltQuoteBolt11Response,
-  type MintQuoteState,
-  type Proof,
-  type Token,
   Wallet
+} from '@cashu/cashu-ts'
+import type {
+  Keyset,
+  MeltQuoteBolt11Response,
+  MintQuoteState,
+  Proof,
+  Token
 } from '@cashu/cashu-ts'
 
 import { MILLISATS_PER_SAT } from '@/constants/btc'

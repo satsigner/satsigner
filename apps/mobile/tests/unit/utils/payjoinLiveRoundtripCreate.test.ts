@@ -27,7 +27,8 @@ import {
   sampleSignetXpubFingerprint
 } from '@/constants/samples'
 import { useAccountsStore } from '@/store/accounts'
-import { AccountSchema, type Account } from '@/types/models/Account'
+import { AccountSchema } from '@/types/models/Account'
+import type { Account } from '@/types/models/Account'
 import {
   buildSeedAccount,
   ensureRoundtripAccounts
