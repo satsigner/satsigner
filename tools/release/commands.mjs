@@ -1,5 +1,7 @@
 import { StringDecoder } from 'node:string_decoder'
 
+import { NOSTR_REMOTE } from './ref-sync.mjs'
+
 const REPO_NAME = 'Satsigner'
 const REPO_IDENTIFIER = 'satsigner'
 const REPO_DESCRIPTION =
@@ -48,7 +50,7 @@ function buildInitArgs() {
 }
 
 function buildPushArgs() {
-  return ['push', 'origin', 'HEAD']
+  return ['push', NOSTR_REMOTE, 'HEAD']
 }
 
 const APK_IDENTITIES = {
@@ -248,8 +250,9 @@ function hasInstalledPackage(text, packageId) {
   return parsePackageList(text).includes(packageId)
 }
 
-// Build APK and Uninstall never ask the extension for a signature.
-const UNSIGNED_ACTIONS = new Set(['apk', 'uninstall'])
+// These never ask the extension for a signature: pushing to GitHub uses the
+// local git credentials.
+const UNSIGNED_ACTIONS = new Set(['apk', 'syncToGithub', 'uninstall'])
 
 function actionSigns(action) {
   return !UNSIGNED_ACTIONS.has(action)
