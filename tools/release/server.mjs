@@ -788,7 +788,9 @@ const server = createServer(async (req, res) => {
     return
   }
 
-  if (req.method === 'GET' && url.pathname === '/api/sync') {
+  // A POST carries an Origin header, so another site cannot make the console
+  // fetch both remotes the way it could with a plain link or image.
+  if (req.method === 'POST' && url.pathname === '/api/sync') {
     if (job) {
       send(res, 409, { error: 'a command is already running' })
       return

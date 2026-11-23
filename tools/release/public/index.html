@@ -1212,6 +1212,9 @@
 
       const EXTENSION_POLL_MS = 250
       const EXTENSION_POLL_ATTEMPTS = 12
+      const SIGN_IN_TIMEOUT_MS = 15000
+      const SIGN_IN_TIMEOUT_MESSAGE =
+        'The extension did not answer. Unlock or reload it, then sign in again.'
       const UI_STATE_KEY = 'satsigner.releaseConsole.ui'
 
       function readUiState() {
@@ -1353,7 +1356,7 @@
         syncPlanEl.replaceChildren()
         statusEl.textContent = 'Fetching GitHub and ngit…'
         try {
-          const response = await fetch('/api/sync')
+          const response = await fetch('/api/sync', { method: 'POST' })
           const body = await response.json()
           if (!response.ok) throw new Error(body.error)
           syncCounts = body.counts
@@ -2754,6 +2757,16 @@
         await refreshStatus()
       }
 
+      // A locked or crashed extension never settles getPublicKey, and the page
+      // would wait forever without a word.
+      function withTimeout(promise, ms, message) {
+        const timer = Promise.withResolvers()
+        const id = setTimeout(() => timer.reject(new Error(message)), ms)
+        return Promise.race([promise, timer.promise]).finally(() =>
+          clearTimeout(id)
+        )
+      }
+
       function connectSigner() {
         if (!window.nostr?.getPublicKey || !window.nostr.signEvent) {
           statusEl.textContent = 'No NIP-07 extension found.'
@@ -2808,7 +2821,14 @@
             writeLog(`${error.message}\n`, 'error')
           }
         })
-        return accepted
+        return withTimeout(
+          accepted,
+          SIGN_IN_TIMEOUT_MS,
+          SIGN_IN_TIMEOUT_MESSAGE
+        ).catch((error) => {
+          socket.close()
+          throw error
+        })
       }
 
       async function runAction(action, confirmedVersion = '') {
