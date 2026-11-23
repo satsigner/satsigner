@@ -51,7 +51,7 @@ test('login and init commands keep the key out of the argument names', () => {
   assert.equal(login.at(-1), '--defaults')
   const init = buildInitArgs()
   assert.equal(init.includes('satsigner'), true)
-  assert.deepEqual(buildPushArgs(), ['push', 'origin', 'HEAD'])
+  assert.deepEqual(buildPushArgs(), ['push', 'ngit', 'HEAD'])
   assert.deepEqual(buildApkArgs(), [
     '--dir',
     'apps/mobile',
@@ -275,7 +275,15 @@ test('accepts only the known release channels', () => {
 test('only build and uninstall run without signing', () => {
   assert.equal(actionSigns('apk'), false)
   assert.equal(actionSigns('uninstall'), false)
-  for (const action of ['announce', 'publish', 'push', 'zapstore']) {
+  assert.equal(actionSigns('syncToGithub'), false)
+  for (const action of [
+    'announce',
+    'publish',
+    'push',
+    'syncPrune',
+    'syncToNgit',
+    'zapstore'
+  ]) {
     assert.equal(actionSigns(action), true)
   }
 })

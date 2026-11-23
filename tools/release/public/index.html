@@ -783,6 +783,43 @@
                 <button id="push" type="button" disabled>Push branch</button>
               </li>
             </ol>
+            <h2 class="manager">Sync GitHub and ngit</h2>
+            <p class="hint">
+              Compares every branch and tag on GitHub (origin) and ngit. Pushes
+              only create refs or fast-forward them, so nothing is overwritten.
+              Diverged branches are listed and skipped. Merge them by hand.
+            </p>
+            <ol>
+              <li class="step">
+                <span class="step-title">Compare all branches and tags</span>
+                <button id="sync-compare" type="button">Compare</button>
+              </li>
+              <li class="step">
+                <span class="step-title"
+                  >Bring ngit up to date with GitHub</span
+                >
+                <button id="sync-to-ngit" type="button" disabled>
+                  Push to ngit
+                </button>
+              </li>
+              <li class="step">
+                <span class="step-title"
+                  >Bring GitHub up to date with ngit</span
+                >
+                <button id="sync-to-github" type="button" disabled>
+                  Push to GitHub
+                </button>
+              </li>
+              <li class="step">
+                <span class="step-title"
+                  >Delete leftover ngit branches already merged on GitHub</span
+                >
+                <button id="sync-prune" type="button" disabled>
+                  Delete on ngit
+                </button>
+              </li>
+            </ol>
+            <div id="sync-plan"></div>
           </section>
           <section id="zap" hidden>
             <p class="hint">
@@ -1275,6 +1312,65 @@
           list.append(row)
         }
         block.append(list)
+      }
+
+      function syncSummary(counts) {
+        return `${counts.same} in sync · ${counts.ngit} to push to ngit · ${counts.github} to push to GitHub · ${counts.prune} leftover on ngit · ${counts.conflict} diverged`
+      }
+
+      function renderSyncPlan({ counts, plan }) {
+        const block = document.createElement('div')
+        block.className = 'preview-block'
+        const heading = document.createElement('h2')
+        heading.textContent = syncSummary(counts)
+        block.append(heading)
+        syncPlanEl.replaceChildren(block)
+        const list = document.createElement('ul')
+        list.className = 'checks'
+        for (const item of plan.filter((row) => row.target)) {
+          const row = document.createElement('li')
+          row.className = item.status
+          const badge = document.createElement('span')
+          badge.className = 'badge'
+          badge.textContent = item.badge
+          const label = document.createElement('span')
+          const kind = item.kind === 'tags' ? 'tag' : 'branch'
+          label.textContent = `${kind} ${item.name}`
+          const detail = document.createElement('span')
+          detail.className = 'detail'
+          detail.textContent = item.detail
+          row.append(badge, label, detail)
+          list.append(row)
+        }
+        block.append(list)
+      }
+
+      async function compareRemotes() {
+        syncCounts = null
+        setBusy(busy)
+        syncCompareButton.disabled = true
+        syncPlanEl.replaceChildren()
+        statusEl.textContent = 'Fetching GitHub and ngit…'
+        try {
+          const response = await fetch('/api/sync')
+          const body = await response.json()
+          if (!response.ok) throw new Error(body.error)
+          syncCounts = body.counts
+          renderSyncPlan(body)
+          statusEl.textContent = syncSummary(body.counts)
+        } catch (error) {
+          statusEl.textContent = error.message
+          writeLog(`${error.message}\n`, 'error')
+        } finally {
+          setBusy(busy)
+        }
+      }
+
+      function confirmSync(action, target, count) {
+        if (!confirm(`Push ${count} branch(es) and tag(s) to ${target}?`)) {
+          return
+        }
+        void runAction(action)
       }
 
       function renderListing(preview) {
@@ -2156,6 +2252,12 @@
       const pushTitle = document.querySelector('#push-title')
       const publishButton = document.querySelector('#publish')
       const pushButton = document.querySelector('#push')
+      const syncCompareButton = document.querySelector('#sync-compare')
+      const syncToNgitButton = document.querySelector('#sync-to-ngit')
+      const syncToGithubButton = document.querySelector('#sync-to-github')
+      const syncPruneButton = document.querySelector('#sync-prune')
+      const syncPlanEl = document.querySelector('#sync-plan')
+      let syncCounts = null
       const zapstoreButton = document.querySelector('#zapstore')
       const zapstoreOnlyButton = document.querySelector('#zapstore-only')
       const announceButton = document.querySelector('#announce')
@@ -2240,6 +2342,9 @@
         apk: 'Building the APK',
         publish: 'Publishing the repository',
         push: 'Pushing the branch',
+        syncPrune: 'Deleting leftover ngit branches',
+        syncToGithub: 'Pushing to GitHub',
+        syncToNgit: 'Pushing to ngit',
         uninstall: 'Uninstalling',
         zapstore: 'Building, publishing, and announcing',
         zapstoreOnly: 'Publishing to Zapstore'
@@ -2397,6 +2502,10 @@
           busy || !connected || publishButton.dataset.hidden === '1'
         pushButton.disabled =
           busy || !connected || pushButton.dataset.ready !== '1'
+        syncCompareButton.disabled = busy
+        syncToNgitButton.disabled = busy || !connected || !syncCounts?.ngit
+        syncToGithubButton.disabled = busy || !syncCounts?.github
+        syncPruneButton.disabled = busy || !connected || !syncCounts?.prune
         zapstoreButton.disabled = busy || !connected
         zapstoreOnlyButton.disabled = busy || !connected
         announceButton.disabled = busy || !connected
@@ -2564,7 +2673,7 @@
         )
       }
 
-      const loggedStatus = { origin: '' }
+      const loggedStatus = { nostrRemote: '' }
       const statusRefresh = { pending: null }
 
       function refreshStatusInBackground() {
@@ -2589,7 +2698,7 @@
         pushButton.dataset.ready = status.published ? '1' : '0'
         const branch = status.branch || 'the current branch'
         ngitHint.textContent = status.published
-          ? `Checked out ${branch}. Sync sends only that branch to ${status.origin}.`
+          ? `Checked out ${branch}. Sync sends only that branch to ${status.nostrRemote}.`
           : `Checked out ${branch}. Publish this repository over Nostr, then push only that branch.`
         pushTitle.textContent = status.published
           ? `Sync ${branch}`
@@ -2597,10 +2706,13 @@
         pushButton.textContent = status.published
           ? `Sync ${branch}`
           : `Push ${branch}`
-        if (status.origin && status.origin !== loggedStatus.origin) {
-          writeLog(`origin ${status.origin}\n`)
+        if (
+          status.nostrRemote &&
+          status.nostrRemote !== loggedStatus.nostrRemote
+        ) {
+          writeLog(`ngit ${status.nostrRemote}\n`)
         }
-        loggedStatus.origin = status.origin
+        loggedStatus.nostrRemote = status.nostrRemote
         releaseStatus = status
         showChannel()
         showApkSelection()
@@ -2747,6 +2859,20 @@
       connectButton.addEventListener('click', signIn)
       publishButton.addEventListener('click', () => runAction('publish'))
       pushButton.addEventListener('click', () => runAction('push'))
+      syncCompareButton.addEventListener('click', () => void compareRemotes())
+      syncToNgitButton.addEventListener('click', () =>
+        confirmSync('syncToNgit', 'ngit', syncCounts?.ngit)
+      )
+      syncToGithubButton.addEventListener('click', () =>
+        confirmSync('syncToGithub', 'GitHub', syncCounts?.github)
+      )
+      syncPruneButton.addEventListener('click', () => {
+        const count = syncCounts?.prune
+        if (!confirm(`Delete ${count} merged leftover branch(es) on ngit?`)) {
+          return
+        }
+        void runAction('syncPrune')
+      })
       for (const button of channelButtons) {
         button.addEventListener('click', () => {
           releaseChannel = button.dataset.channel

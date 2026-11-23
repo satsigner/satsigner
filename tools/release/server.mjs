@@ -42,6 +42,19 @@ import {
   withPermissionStatus
 } from './permission-check.mjs'
 import { signalProcessGroup, stopProcessGroup } from './process-group.mjs'
+import {
+  GITHUB_REMOTE,
+  NOSTR_REMOTE,
+  buildSyncFetchArgs,
+  buildSyncPruneArgs,
+  buildSyncPushArgs,
+  buildSyncRefListArgs,
+  parseRefList,
+  refNames,
+  syncCounts,
+  syncNamespace,
+  syncPlan
+} from './ref-sync.mjs'
 import { versionStatus } from './version.mjs'
 
 const execFileAsync = promisify(execFile)
@@ -274,8 +287,91 @@ function gitLine(args) {
   })
 }
 
-function gitOrigin() {
-  return gitLine(['remote', 'get-url', 'origin'])
+function gitOk(args) {
+  return new Promise((resolve) => {
+    const proc = spawn('git', args, { cwd: REPO_ROOT, stdio: 'ignore' })
+    proc.on('close', (code) => resolve(code === 0))
+    proc.on('error', () => resolve(false))
+  })
+}
+
+function gitNostrRemote() {
+  return gitLine(['remote', 'get-url', NOSTR_REMOTE])
+}
+
+async function fetchSyncRefs() {
+  await execFileAsync('git', buildSyncFetchArgs(GITHUB_REMOTE), {
+    cwd: REPO_ROOT,
+    env: commandEnv()
+  })
+  await execFileAsync('git', buildSyncFetchArgs(NOSTR_REMOTE), {
+    cwd: REPO_ROOT,
+    env: commandEnv()
+  })
+}
+
+async function syncRefs(remote, kind) {
+  return parseRefList(
+    await gitLine(buildSyncRefListArgs(remote, kind)),
+    syncNamespace(remote, kind)
+  )
+}
+
+async function branchRelation(github, ngit) {
+  if (github === ngit) {
+    return 'same'
+  }
+  if (await gitOk(['merge-base', '--is-ancestor', ngit, github])) {
+    return 'github-ahead'
+  }
+  if (await gitOk(['merge-base', '--is-ancestor', github, ngit])) {
+    return 'ngit-ahead'
+  }
+  return 'diverged'
+}
+
+async function containedInGithub(sha) {
+  const containing = await gitLine([
+    'for-each-ref',
+    '--count=1',
+    '--contains',
+    sha,
+    syncNamespace(GITHUB_REMOTE, 'heads')
+  ])
+  return containing.length > 0
+}
+
+async function branchFact(name, githubHeads, ngitHeads) {
+  const github = githubHeads.get(name)
+  const ngit = ngitHeads.get(name)
+  return {
+    github,
+    inGithub: !github && ngit ? await containedInGithub(ngit) : false,
+    name,
+    ngit,
+    relation: github && ngit ? await branchRelation(github, ngit) : ''
+  }
+}
+
+async function currentSyncPlan() {
+  await fetchSyncRefs()
+  const [githubHeads, ngitHeads, githubTags, ngitTags] = await Promise.all([
+    syncRefs(GITHUB_REMOTE, 'heads'),
+    syncRefs(NOSTR_REMOTE, 'heads'),
+    syncRefs(GITHUB_REMOTE, 'tags'),
+    syncRefs(NOSTR_REMOTE, 'tags')
+  ])
+  const branches = await Promise.all(
+    refNames(githubHeads, ngitHeads).map((name) =>
+      branchFact(name, githubHeads, ngitHeads)
+    )
+  )
+  const tags = refNames(githubTags, ngitTags).map((name) => ({
+    github: githubTags.get(name),
+    name,
+    ngit: ngitTags.get(name)
+  }))
+  return syncPlan({ branches, tags })
 }
 
 function gitBranch() {
@@ -291,12 +387,51 @@ async function publishRepo() {
 }
 
 async function pushBranch() {
-  const origin = await gitOrigin()
-  if (!isNostrRemote(origin)) {
-    throw new Error('origin is not a nostr remote yet')
+  if (!isNostrRemote(await gitNostrRemote())) {
+    throw new Error(`the ${NOSTR_REMOTE} remote is not a nostr remote yet`)
   }
   await run('ngit', buildLoginArgs(bunkerUrl))
   await run('git', buildPushArgs())
+}
+
+async function pushPlannedRefs(buildArgs, label, signs) {
+  log('comparing GitHub and ngit...\n')
+  const plan = await currentSyncPlan()
+  const args = buildArgs(plan)
+  const { conflict } = syncCounts(plan)
+  if (conflict > 0) {
+    log(
+      `${conflict} ref(s) diverged; they are skipped and need a manual merge\n`
+    )
+  }
+  if (args.length === 0) {
+    log(`nothing to ${label}\n`)
+    return
+  }
+  if (signs) {
+    await run('ngit', buildLoginArgs(bunkerUrl))
+  }
+  await run('git', args)
+}
+
+function syncToNgit() {
+  return pushPlannedRefs(
+    (plan) => buildSyncPushArgs(plan, 'ngit'),
+    'push to ngit',
+    true
+  )
+}
+
+function syncToGithub() {
+  return pushPlannedRefs(
+    (plan) => buildSyncPushArgs(plan, 'github'),
+    'push to GitHub',
+    false
+  )
+}
+
+function pruneNgit() {
+  return pushPlannedRefs(buildSyncPruneArgs, 'delete on ngit', true)
 }
 
 function releaseChannel(value) {
@@ -485,6 +620,9 @@ const actions = {
   apk: (body) => buildLocalApk(body),
   publish: () => publishRepo(),
   push: () => pushBranch(),
+  syncPrune: () => pruneNgit(),
+  syncToGithub: () => syncToGithub(),
+  syncToNgit: () => syncToNgit(),
   uninstall: (body) => uninstallPackage(body.channel),
   zapstore: (body) => publishZapstore(body, ''),
   zapstoreOnly: (body) => publishZapstore(body, 'zapstore')
@@ -650,8 +788,22 @@ const server = createServer(async (req, res) => {
     return
   }
 
+  if (req.method === 'GET' && url.pathname === '/api/sync') {
+    if (job) {
+      send(res, 409, { error: 'a command is already running' })
+      return
+    }
+    try {
+      const plan = await currentSyncPlan()
+      send(res, 200, { counts: syncCounts(plan), plan })
+    } catch (error) {
+      send(res, 500, { error: redactSecrets(error.message) })
+    }
+    return
+  }
+
   if (req.method === 'GET' && url.pathname === '/api/status') {
-    const origin = await gitOrigin()
+    const nostrRemote = await gitNostrRemote()
     const branch = await gitBranch()
     send(res, 200, {
       branch,
@@ -660,8 +812,8 @@ const server = createServer(async (req, res) => {
       connected: bunkerUrl.startsWith('bunker://'),
       installedPackages: await installedPackages(),
       job: jobStatus(),
-      origin: redactSecrets(origin),
-      published: isNostrRemote(origin),
+      nostrRemote: redactSecrets(nostrRemote),
+      published: isNostrRemote(nostrRemote),
       releaseApk: await releaseApk(),
       toolVersion: TOOL_VERSION
     })

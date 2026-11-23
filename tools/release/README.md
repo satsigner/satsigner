@@ -17,7 +17,20 @@ The signer relay uses port `4718`. Stop anything else bound to `4717` or `4718` 
 
 ## What the tabs do
 
-**Sync with ngit.** If `origin` is not a `nostr://` remote yet, this publishes the repository with `ngit`, then pushes the current branch. If it is already a Nostr remote, the tab only syncs the branch.
+**Sync with ngit.** GitHub stays `origin`, and the Nostr remote is called `ngit`. If `ngit` is not a `nostr://` remote yet, this publishes the repository with `ngit`, then pushes the current branch. If it is already a Nostr remote, the tab only syncs the branch.
+
+**Sync GitHub and ngit** (same tab) keeps every branch and tag the same on both sides:
+
+| Button         | What it does                                                                                                    |
+| -------------- | --------------------------------------------------------------------------------------------------------------- |
+| Compare        | Fetches both remotes into `refs/sync/<remote>/` and lists each ref that differs. Pushes nothing                 |
+| Push to ngit   | Creates the branches and tags that exist only on GitHub, and fast-forwards the ones where ngit is behind        |
+| Push to GitHub | The same in the other direction, with your local git credentials. It does not need the extension                |
+| Delete on ngit | Deletes ngit branches that are gone from GitHub and whose commits GitHub already has (merged and deleted there) |
+
+No push is forced. A branch that has new commits on both sides (**FIX**) or a tag that points at different commits on each side is skipped. Merge or rebase it by hand, push it to both remotes, then compare again. ngit's `pr/*` proposal branches are left out. Each button compares both remotes again right before it pushes.
+
+Only the button you click pushes. Nothing syncs on its own.
 
 **Build and publish.** Rebuilds the current Android release APK and publishes that file to Zapstore. The notes field is the announcement text. This uses `apps/mobile/scripts/publish-zapstore.mjs`. The listing summary and description come from `apps/mobile/zapstore/summary.txt` and `description.md`, and the screenshots come from `apps/mobile/zapstore/screenshots/` in file-name order. Each publish sends all of them. Listing management stays behind **Manage listings**.
 
