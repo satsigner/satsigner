@@ -98,6 +98,10 @@ const SIGNER_RELAY = startLocalRelay(log)
 const MAX_BODY = 8192
 const MAX_PENDING_LOG_LINE = 64 * 1024
 const ADB_TIMEOUT_MS = 5000
+const SYNC_FETCH_TIMEOUT_MS = 120_000
+// git merge-base --is-ancestor exits 1 for "not an ancestor"; anything else
+// non-zero is a real failure.
+const NOT_ANCESTOR_EXIT_CODE = 1
 
 const listeners = new Set()
 let bunkerUrl = ''
@@ -287,11 +291,31 @@ function gitLine(args) {
   })
 }
 
-function gitOk(args) {
-  return new Promise((resolve) => {
-    const proc = spawn('git', args, { cwd: REPO_ROOT, stdio: 'ignore' })
-    proc.on('close', (code) => resolve(code === 0))
-    proc.on('error', () => resolve(false))
+// Unlike gitLine, a failure throws, so a broken comparison is reported
+// instead of being read as "no refs" and offered as a push.
+async function gitOutput(args) {
+  const { stdout } = await execFileAsync('git', args, { cwd: REPO_ROOT })
+  return stdout.trim()
+}
+
+async function isAncestor(ancestor, descendant) {
+  try {
+    await gitOutput(['merge-base', '--is-ancestor', ancestor, descendant])
+    return true
+  } catch (error) {
+    if (error.code === NOT_ANCESTOR_EXIT_CODE) {
+      return false
+    }
+    throw error
+  }
+}
+
+function fetchRemote(remote) {
+  return execFileAsync('git', buildSyncFetchArgs(remote), {
+    cwd: REPO_ROOT,
+    env: commandEnv({ GIT_TERMINAL_PROMPT: '0' }),
+    killSignal: 'SIGKILL',
+    timeout: SYNC_FETCH_TIMEOUT_MS
   })
 }
 
@@ -300,19 +324,13 @@ function gitNostrRemote() {
 }
 
 async function fetchSyncRefs() {
-  await execFileAsync('git', buildSyncFetchArgs(GITHUB_REMOTE), {
-    cwd: REPO_ROOT,
-    env: commandEnv()
-  })
-  await execFileAsync('git', buildSyncFetchArgs(NOSTR_REMOTE), {
-    cwd: REPO_ROOT,
-    env: commandEnv()
-  })
+  await fetchRemote(GITHUB_REMOTE)
+  await fetchRemote(NOSTR_REMOTE)
 }
 
 async function syncRefs(remote, kind) {
   return parseRefList(
-    await gitLine(buildSyncRefListArgs(remote, kind)),
+    await gitOutput(buildSyncRefListArgs(remote, kind)),
     syncNamespace(remote, kind)
   )
 }
@@ -321,17 +339,17 @@ async function branchRelation(github, ngit) {
   if (github === ngit) {
     return 'same'
   }
-  if (await gitOk(['merge-base', '--is-ancestor', ngit, github])) {
+  if (await isAncestor(ngit, github)) {
     return 'github-ahead'
   }
-  if (await gitOk(['merge-base', '--is-ancestor', github, ngit])) {
+  if (await isAncestor(github, ngit)) {
     return 'ngit-ahead'
   }
   return 'diverged'
 }
 
 async function containedInGithub(sha) {
-  const containing = await gitLine([
+  const containing = await gitOutput([
     'for-each-ref',
     '--count=1',
     '--contains',

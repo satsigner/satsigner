@@ -46,7 +46,7 @@ Only the button you click pushes. Nothing syncs on its own.
 **Android permissions.** `apps/mobile/constants/androidPermissions.cjs` lists the only permissions a release may request, and the ones stripped from libraries. The same check runs at two points:
 
 - **Before the build:** `pnpm --dir tools/release permissions:check` reads the `AndroidManifest.xml` of every native dependency in `apps/mobile/package.json` and fails on a permission that is neither allowed nor blocked. Maven libraries (androidx, media3, react-android) only show up after the build.
-- **After the build:** `pnpm --dir tools/release permissions:check path/to/app.apk` reads the merged permissions with `aapt2`. Every release APK build (Build APK, `variant --apk --release`) and every publish runs this check and stops if the APK requests anything off the allow list, blocked ones included.
+- **After the build:** `pnpm --dir tools/release permissions:check path/to/app.apk` reads the merged permissions with `aapt2`. Every release APK build (**Build APK** in the APK tab, `variant --apk --release`) and every publish runs this check and stops if the APK requests anything off the allow list, blocked ones included.
 
 The Preview tab shows both lists.
 
@@ -144,7 +144,7 @@ Rotate only when the key leaked or must be retired. Following [Zapstore's guidan
 3. From then on every release build (the APK and Publish tabs) is re-signed with `apksigner sign --next-signer --lineage`. Android 13 and later verify the new key through v3.1. Older versions keep verifying the old key, so the old key keeps signing every release. Never delete it or its words.
 4. Publish once. The publisher links the **new** certificate to your npub with a fresh NIP-C1 identity proof (`zsp identity --link-key`), so Zapstore accepts it as the app's certificate.
 
-The lineage is not secret and is rebuilt from both keys, so a second computer needs only the two sets of words. `expo run:android --variant release` installs straight from Gradle and is not re-signed; use Build APK when testing an update over a rotated install.
+The lineage is not secret and is rebuilt from both keys, so a second computer needs only the two sets of words. `expo run:android --variant release` installs straight from Gradle and is not re-signed; use **Build APK** in the APK tab when testing an update over a rotated install.
 
 ## Tests
 
