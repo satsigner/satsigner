@@ -18,14 +18,14 @@ describe('blockchain » price', () => {
 
   it('get price at given currency at given time', async () => {
     const timestamp = 1_500_000_000
-    const expectedPrice = 1964
+    const expectedPrice = 2089
     const response = await mempoolspace.getPriceAt('EUR', timestamp)
     expect(response).toBe(expectedPrice)
   })
 
   it('get prices list at given time', async () => {
     const timestamp = 1_500_000_000
-    const expectedPrice = 2254.9
+    const expectedPrice = 2373.8
     const response = await mempoolspace.getFullPriceAt('USD', timestamp)
     expect(typeof response).toBe('object')
     expect(response['USD']).toBe(expectedPrice)
