@@ -17,7 +17,7 @@ The signer relay uses port `4718`. Stop anything else bound to `4717` or `4718` 
 
 ## What the tabs do
 
-**Sync with ngit.** GitHub stays `origin`, and the Nostr remote is called `ngit`. If `ngit` is not a `nostr://` remote yet, this publishes the repository with `ngit`, then pushes the current branch. If it is already a Nostr remote, the tab only syncs the branch.
+**Sync.** GitHub stays `origin`, and the Nostr remote is called `ngit`. If `ngit` is not a `nostr://` remote yet, this publishes the repository with `ngit`, then pushes the current branch. If it is already a Nostr remote, the tab only syncs the branch.
 
 **Sync GitHub and ngit** (same tab) keeps every branch and tag the same on both sides:
 
@@ -32,9 +32,9 @@ No push is forced. A branch that has new commits on both sides (**FIX**) or a ta
 
 Only the button you click pushes. Nothing syncs on its own.
 
-**Build and publish.** Rebuilds the current Android release APK and publishes that file to Zapstore. The notes field is the announcement text. This uses `apps/mobile/scripts/publish-zapstore.mjs`. The listing summary and description come from `apps/mobile/zapstore/summary.txt` and `description.md`, and the screenshots come from `apps/mobile/zapstore/screenshots/` in file-name order. Each publish sends all of them. Listing management stays behind **Manage listings**.
+**Publish.** Rebuilds the current Android release APK and publishes that file to Zapstore. The notes field is the announcement text. This uses `apps/mobile/scripts/publish-zapstore.mjs`. The listing summary and description come from `apps/mobile/zapstore/summary.txt` and `description.md`, and the screenshots come from `apps/mobile/zapstore/screenshots/` in file-name order. Each publish sends all of them. Listing management stays behind **Manage listings**.
 
-**Preview release.** Shows the listing exactly as a publish sends it: the app name, the summary, the description and every screenshot, in upload order. It then inspects the newest release APK for the chosen channel in `apps/mobile/dist/apks` (the Android SDK's `aapt2` and `apksigner`), compares it with the latest release on `wss://relay.zapstore.dev`, and lists each check:
+**Preview.** Shows the listing exactly as a publish sends it: the app name, the summary, the description and every screenshot, in upload order. It then inspects the newest release APK for the chosen channel in `apps/mobile/dist/apks` (the Android SDK's `aapt2` and `apksigner`), compares it with the latest release on `wss://relay.zapstore.dev`, and lists each check:
 
 | Group                    | Checks                                                                                                                                                                                                                                                                                                                                                                         |
 | ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -48,9 +48,9 @@ Only the button you click pushes. Nothing syncs on its own.
 - **Before the build:** `pnpm --dir tools/release permissions:check` reads the `AndroidManifest.xml` of every native dependency in `apps/mobile/package.json` and fails on a permission that is neither allowed nor blocked. Maven libraries (androidx, media3, react-android) only show up after the build.
 - **After the build:** `pnpm --dir tools/release permissions:check path/to/app.apk` reads the merged permissions with `aapt2`. Every release APK build (Build APK, `variant --apk --release`) and every publish runs this check and stops if the APK requests anything off the allow list, blocked ones included.
 
-The Preview release tab shows both lists.
+The Preview tab shows both lists.
 
-**Build APK.** Saves a copy under `apps/mobile/dist/apks`. Each option runs a clean prebuild, which deletes `apps/mobile/android`.
+**APK.** Saves a copy under `apps/mobile/dist/apks`. Each option runs a clean prebuild, which deletes `apps/mobile/android`.
 
 | Option            | What it builds                                               |
 | ----------------- | ------------------------------------------------------------ |
@@ -66,17 +66,17 @@ The Preview release tab shows both lists.
 
 ## Tools the actions expect
 
-| Action            | Needs                                                                                                    |
-| ----------------- | -------------------------------------------------------------------------------------------------------- |
-| Sign in           | A NIP-07 extension in the browser                                                                        |
-| Sync with ngit    | `ngit` on `PATH`                                                                                         |
-| Build APK         | Android SDK at `ANDROID_HOME`, or `~/Library/Android/sdk` on macOS. `pnpm` can run `apps/mobile` scripts |
-| Build and publish | The APK tools above, plus `zsp` (`~/go/bin/zsp` unless `ZSP_BIN` is set), plus a release keystore        |
-| Preview release   | The SDK's build-tools (`aapt2`, `apksigner`) and `unzip` on `PATH`                                       |
+| Action  | Needs                                                                                                    |
+| ------- | -------------------------------------------------------------------------------------------------------- |
+| Sign in | A NIP-07 extension in the browser                                                                        |
+| Sync    | `ngit` on `PATH`                                                                                         |
+| APK     | Android SDK at `ANDROID_HOME`, or `~/Library/Android/sdk` on macOS. `pnpm` can run `apps/mobile` scripts |
+| Publish | The APK tools above, plus `zsp` (`~/go/bin/zsp` unless `ZSP_BIN` is set), plus a release keystore        |
+| Preview | The SDK's build-tools (`aapt2`, `apksigner`) and `unzip` on `PATH`                                       |
 
 ## Android developer keys
 
-The **Android developer keys** tab shows the keystore on this computer, its certificate SHA-256, whether it is the Satsigner release certificate, any rotated key, and whether `apksigner` is installed. The same report is available in a terminal:
+The **Keys** tab shows the keystore on this computer, its certificate SHA-256, whether it is the Satsigner release certificate, any rotated key, and whether `apksigner` is installed. The same report is available in a terminal:
 
 ```bash
 pnpm --dir tools/release keystore:status
@@ -121,7 +121,7 @@ The 12 words rebuild the same key and the same certificate, byte for byte, so re
 
    This writes `~/.satsigner/release.p12` and `~/.satsigner/release.pass`. If a keystore is already there, add `--force` to replace it.
 
-4. Check the printed `Certificate SHA-256`. For the current Satsigner release key it is `E0:D6:E6:92:FA:D1:AA:16:26:FF:54:9A:CE:E3:47:C2:EB:CE:8B:E5:0D:07:44:CB:D0:D3:A6:75:39:F2:7E:D7`. A different value means a word is wrong: Android and Zapstore treat it as another developer. `keystore:status` and the keys tab compare it for you.
+4. Check the printed `Certificate SHA-256`. For the current Satsigner release key it is `E0:D6:E6:92:FA:D1:AA:16:26:FF:54:9A:CE:E3:47:C2:EB:CE:8B:E5:0D:07:44:CB:D0:D3:A6:75:39:F2:7E:D7`. A different value means a word is wrong: Android and Zapstore treat it as another developer. `keystore:status` and the Keys tab compare it for you.
 5. If the key was rotated, restore the new key too: `pnpm --dir tools/release keystore:rotate --restore`, then type its 12 words.
 6. Start the console with `pnpm --dir tools/release dev` and sign in with the same npub as before.
 7. Publish. The publisher finds the identity proof that links this certificate to your npub. It signs a new one only when none is active or it expires within 30 days.
@@ -141,7 +141,7 @@ Rotate only when the key leaked or must be retired. Following [Zapstore's guidan
 
    This writes the new key to `~/.satsigner/next/`, has `apksigner rotate` sign the lineage with the old key into `~/.satsigner/release.lineage`, and prints 12 new words. Back them up like the first ones. Pass `--force` to replace an earlier rotated key.
 
-3. From then on every release build (Build APK and Build and publish) is re-signed with `apksigner sign --next-signer --lineage`. Android 13 and later verify the new key through v3.1. Older versions keep verifying the old key, so the old key keeps signing every release. Never delete it or its words.
+3. From then on every release build (the APK and Publish tabs) is re-signed with `apksigner sign --next-signer --lineage`. Android 13 and later verify the new key through v3.1. Older versions keep verifying the old key, so the old key keeps signing every release. Never delete it or its words.
 4. Publish once. The publisher links the **new** certificate to your npub with a fresh NIP-C1 identity proof (`zsp identity --link-key`), so Zapstore accepts it as the app's certificate.
 
 The lineage is not secret and is rebuilt from both keys, so a second computer needs only the two sets of words. `expo run:android --variant release` installs straight from Gradle and is not re-signed; use Build APK when testing an update over a rotated install.
