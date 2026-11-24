@@ -93,7 +93,6 @@ export const NOSTR_TRUST_SYNC_RESTART_DELAY_MS = 1500
 export const NOSTR_SYNCING_MESSAGE_ROTATE_MS = 2500
 export const NOSTR_GROUP_CHAT_PAGE_SIZE = 50
 export const NOSTR_GROUP_CHAT_SCROLL_THRESHOLD = 40
-export const NOSTR_GROUP_CHAT_AUTOSCROLL_THRESHOLD = 0.2
 export const NOSTR_GROUP_CHAT_MESSAGE_MAX_LENGTH = 500
 // NIP-44 caps each layer at 65535 bytes. The seal carries the rumor as padded
 // base64, so the rumor JSON must stay within 40960 bytes: 13k UTF-16 units at
