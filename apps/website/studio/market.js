@@ -36,10 +36,20 @@ function writeMarket(data) {
   } catch (e) {}
 }
 
+// Rebuilding the kit screen would drop what the user is typing; new prices show on the next render instead.
+function kitHasEdits() {
+  const body = document.getElementById('kit-body')
+  if (!body) return false
+  return [...body.querySelectorAll('input, textarea')].some((field) =>
+    field.type === 'checkbox' || field.type === 'radio' ? field.checked !== field.defaultChecked : field.value !== field.defaultValue
+  )
+}
+
 function applyMarket(m) {
   if (!m || !m.usd || !m.height) return
   const prev = window.__marketApplied
-  if (prev && prev.usd === m.usd && prev.height === m.height && prev.fee === m.fee) return
+  const consumed = (data) => JSON.stringify({ ...data, at: undefined })
+  if (prev && consumed(prev) === consumed(m)) return
   USD_PER_BTC = m.usd
   if (typeof ss !== 'undefined' && ss.price) ss.price.btc = m.usd
   BLOCK_HEIGHT = m.height
@@ -77,7 +87,7 @@ function applyMarket(m) {
   if (txView && !txView.hidden && typeof renderTransaction === 'function') renderTransaction()
   const io = document.getElementById('io-preview')
   if (io && !io.hidden && typeof renderIo === 'function') renderIo()
-  if (typeof kitCurrent === 'string' && kitCurrent && typeof kitScreens !== 'undefined' && kitScreens[kitCurrent]) {
+  if (typeof kitCurrent === 'string' && kitCurrent && typeof kitScreens !== 'undefined' && kitScreens[kitCurrent] && !kitHasEdits()) {
     openKitScreen(kitCurrent)
   }
   window.__marketApplied = m
@@ -171,6 +181,7 @@ if (!marketData) {
         if (!marketEmbed) broadcastMarket(data)
       })
       .catch(() => {
+        if (marketData) return
         try {
           applyMarket(MARKET_FALLBACK)
         } catch (e) {}

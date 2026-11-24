@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
   <style>html,body{background:#000}html[data-theme="light"],html[data-theme="light"] body{background:#f4f4f4}</style>
-  <script>if (new URLSearchParams(location.search).has('embed')) document.documentElement.classList.add('is-embed');if (new URLSearchParams(location.search).has('still')) document.documentElement.classList.add('is-still');if (localStorage.getItem('studio-theme') === 'light') document.documentElement.dataset.theme = 'light'</script>
+  <script>if (new URLSearchParams(location.search).has('embed')) document.documentElement.classList.add('is-embed');if (new URLSearchParams(location.search).has('still')) document.documentElement.classList.add('is-still');try { if (localStorage.getItem('studio-theme') === 'light') document.documentElement.dataset.theme = 'light' } catch (e) {}</script>
   <title>SatSigner Studio</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -345,33 +345,33 @@
   <script src="/studio/icons.js"></script>
   <script src="/studio/generated/icons.js"></script>
   <script src="/studio/generated/strings.js?v=2"></script>
-  <script src="/studio/components.js?v=3"></script>
-  <script src="/studio/screen.js?v=23"></script>
-  <script src="/studio/screens.js?v=2"></script>
+  <script src="/studio/components.js?v=4"></script>
+  <script src="/studio/screen.js?v=24"></script>
+  <script src="/studio/screens.js?v=3"></script>
   <script src="/studio/screens/settings.js"></script>
-  <script src="/studio/screens/settings-network.js"></script>
+  <script src="/studio/screens/settings-network.js?v=2"></script>
   <script src="/studio/screens/settings-features.js?v=3"></script>
-  <script src="/studio/screens/settings-system.js"></script>
-  <script src="/studio/screens/explorer-tx.js"></script>
-  <script src="/studio/screens/explorer-chain.js?v=2"></script>
-  <script src="/studio/screens/bitcoin-account.js?v=2"></script>
-  <script src="/studio/screens/bitcoin-settings.js?v=3"></script>
-  <script src="/studio/screens/bitcoin-add.js?v=3"></script>
-  <script src="/studio/screens/nostr.js?v=3"></script>
-  <script src="/studio/personas.js?v=13"></script>
-  <script src="/studio/screens/ark-lightning.js?v=2"></script>
-  <script src="/studio/screens/ecash-shell.js?v=2"></script>
-  <script src="/studio/screens/legacy-bitcoin.js?v=7"></script>
-  <script src="/studio/screens/legacy-add.js"></script>
-  <script src="/studio/screens/legacy-hubs.js"></script>
-  <script src="/studio/screens/legacy-tools.js?v=2"></script>
+  <script src="/studio/screens/settings-system.js?v=2"></script>
+  <script src="/studio/screens/explorer-tx.js?v=2"></script>
+  <script src="/studio/screens/explorer-chain.js?v=3"></script>
+  <script src="/studio/screens/bitcoin-account.js?v=3"></script>
+  <script src="/studio/screens/bitcoin-settings.js?v=4"></script>
+  <script src="/studio/screens/bitcoin-add.js?v=4"></script>
+  <script src="/studio/screens/nostr.js?v=4"></script>
+  <script src="/studio/personas.js?v=14"></script>
+  <script src="/studio/screens/ark-lightning.js?v=3"></script>
+  <script src="/studio/screens/ecash-shell.js?v=3"></script>
+  <script src="/studio/screens/legacy-bitcoin.js?v=8"></script>
+  <script src="/studio/screens/legacy-add.js?v=2"></script>
+  <script src="/studio/screens/legacy-hubs.js?v=2"></script>
+  <script src="/studio/screens/legacy-tools.js?v=3"></script>
   <script src="/studio/generated/routes.js"></script>
   <script src="/studio/generated/coverage.js"></script>
   <script src="/studio/generated/meta.js"></script>
-  <script src="/studio/catalog.js?v=33"></script>
+  <script src="/studio/catalog.js?v=34"></script>
   <script src="/studio/dashboard.js?v=3"></script>
   <script src="/release/data.js?v=4"></script>
-  <script src="/studio/distribution.js?v=80"></script>
-  <script src="/studio/market.js?v=4"></script>
+  <script src="/studio/distribution.js?v=81"></script>
+  <script src="/studio/market.js?v=5"></script>
 </body>
 </html>

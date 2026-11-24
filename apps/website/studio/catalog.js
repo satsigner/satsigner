@@ -839,7 +839,7 @@ function setView(mode, updateUrl) {
   buttons.forEach((button) => {
     button.classList.toggle('is-active', button.getAttribute('data-view') === mode)
   })
-  localStorage.setItem('screen-catalog-view', mode)
+  writePreference('screen-catalog-view', mode)
   if (updateUrl) {
     const url = new URL(location.href)
     url.searchParams.set('view', mode)
@@ -870,6 +870,15 @@ cardHeight.addEventListener('click', () => {
 
 const themeToggle = document.getElementById('theme-toggle')
 
+// Storage access throws SecurityError when the browser blocks it; fall back to defaults.
+function readPreference(key) {
+  try { return localStorage.getItem(key) } catch { return null }
+}
+
+function writePreference(key, value) {
+  try { localStorage.setItem(key, value) } catch { /* preference stays in memory */ }
+}
+
 function applyTheme(theme) {
   const light = theme === 'light'
   document.documentElement.dataset.theme = light ? 'light' : 'dark'
@@ -878,10 +887,10 @@ function applyTheme(theme) {
   if (meta) meta.content = light ? 'light' : 'dark'
   themeToggle.setAttribute('aria-pressed', light ? 'true' : 'false')
   themeToggle.setAttribute('aria-label', light ? 'Switch to dark mode' : 'Switch to light mode')
-  localStorage.setItem('studio-theme', light ? 'light' : 'dark')
+  writePreference('studio-theme', light ? 'light' : 'dark')
 }
 
-applyTheme(localStorage.getItem('studio-theme') === 'light' ? 'light' : 'dark')
+applyTheme(readPreference('studio-theme') === 'light' ? 'light' : 'dark')
 themeToggle.addEventListener('click', () => {
   const next = document.documentElement.dataset.theme === 'light' ? 'dark' : 'light'
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches

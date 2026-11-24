@@ -651,7 +651,11 @@ if (distributionView && !document.documentElement.classList.contains('is-embed')
       button.dataset.id = item.id
       button.textContent = item.label
       button.setAttribute('aria-selected', index === 0 ? 'true' : 'false')
-      button.addEventListener('click', () => onPick(item.id))
+      button.addEventListener('click', () => {
+        // Export temporarily reveals hidden panels; switching tabs mid-export would be undone by its cleanup.
+        if (distributionView.dataset.exporting) return
+        onPick(item.id)
+      })
       bar.appendChild(button)
     })
     return bar
@@ -1491,10 +1495,11 @@ async function boardCanvas(board, scale) {
 }
 
 async function markCanvas(img, scale) {
-  if (!img.complete || !img.naturalWidth) {
+  if (img.complete && !img.naturalWidth) throw new Error('A logo failed to load')
+  if (!img.complete) {
     await new Promise((resolve, reject) => {
       img.onload = resolve
-      img.onerror = () => reject(new Error('A logo is still loading'))
+      img.onerror = () => reject(new Error('A logo failed to load'))
     })
   }
   const height = img.classList.contains('promo-chicklet') ? 40 : 160
@@ -1653,6 +1658,7 @@ async function exportJpg(button) {
 async function exportDistribution(button, status) {
   if (button.disabled) return
   button.disabled = true
+  distributionView.dataset.exporting = 'true'
   const previous = button.textContent
   const files = []
   try {
@@ -1665,23 +1671,24 @@ async function exportDistribution(button, status) {
       done += 1
       button.textContent = 'Rendering ' + done + ' / ' + total
       const hideAgain = reveal(board)
-      if (!board.querySelector('canvas.promo-glow')) paintGlow(board)
-      const width = Number(board.dataset.w)
-      const height = Number(board.dataset.h)
-      const canvas = await boardCanvas(board, 2)
-      const png2x = await canvasBlob(canvas, 'image/png')
-      const jpg2x = await canvasBlob(canvas, 'image/jpeg', 0.92)
-      const one = scaledCopy(canvas, 0.5)
-      const png = await canvasBlob(one, 'image/png')
-      const jpg = await canvasBlob(one, 'image/jpeg', 0.92)
-      const name = board.dataset.file
-      files.push(
-        { name: name + '.jpg', data: new Uint8Array(await jpg.arrayBuffer()) },
-        { name: name + '@2x.jpg', data: new Uint8Array(await jpg2x.arrayBuffer()) },
-        { name: name + '.png', data: new Uint8Array(await png.arrayBuffer()) },
-        { name: name + '@2x.png', data: new Uint8Array(await png2x.arrayBuffer()) }
-      )
-      hideAgain()
+      try {
+        if (!board.querySelector('canvas.promo-glow')) paintGlow(board)
+        const canvas = await boardCanvas(board, 2)
+        const png2x = await canvasBlob(canvas, 'image/png')
+        const jpg2x = await canvasBlob(canvas, 'image/jpeg', 0.92)
+        const one = scaledCopy(canvas, 0.5)
+        const png = await canvasBlob(one, 'image/png')
+        const jpg = await canvasBlob(one, 'image/jpeg', 0.92)
+        const name = board.dataset.file
+        files.push(
+          { name: name + '.jpg', data: new Uint8Array(await jpg.arrayBuffer()) },
+          { name: name + '@2x.jpg', data: new Uint8Array(await jpg2x.arrayBuffer()) },
+          { name: name + '.png', data: new Uint8Array(await png.arrayBuffer()) },
+          { name: name + '@2x.png', data: new Uint8Array(await png2x.arrayBuffer()) }
+        )
+      } finally {
+        hideAgain()
+      }
     }
     for (const mark of marks) {
       done += 1
@@ -1704,6 +1711,7 @@ async function exportDistribution(button, status) {
     }
     for (const link of distributionView.querySelectorAll('a[data-asset]')) {
       const response = await fetch(link.href)
+      if (!response.ok) throw new Error('Could not fetch ' + link.dataset.asset)
       files.push({ name: link.dataset.asset, data: new Uint8Array(await response.arrayBuffer()) })
     }
     files.push({ name: 'store-text.md', data: new TextEncoder().encode(storeMarkdown()) })
@@ -1721,6 +1729,7 @@ async function exportDistribution(button, status) {
   } catch (err) {
     status.textContent = err && err.message ? err.message : 'Export failed.'
   } finally {
+    delete distributionView.dataset.exporting
     button.disabled = false
     button.textContent = previous
   }

@@ -275,8 +275,12 @@ function lbUtxoCard(coin, total) {
   </div>`
 }
 
+// Wallets created in the prototype start empty; the shared fixture coins belong to the fixture accounts.
+const lbAccountCoins = (account) => (account && account.created ? [] : coins)
+
 function lbAccountMarkup() {
   const account = openAccountData
+  const accountCoins = lbAccountCoins(account)
   const txs = lbTxs()
   const stats = lbStats(account)
   const syncTitle = lbAcct.syncing ? t('account.sync.status.syncing') : `${t('account.sync.status.synced')} ${t('account.sync.status.old.day', { value: 3 })}`
@@ -303,23 +307,25 @@ function lbAccountMarkup() {
         ss.radio({ label: 'Change', variant: 'outline', group: 'lb-chain', selected: lbAcct.change, data: { 'lb-chain': 'change' }, style: 'flex:1' })) +
       `<div class="lb-scroll">${tagged}</div>`
   } else if (lbAcct.tab === 2) {
-    const excluded = coins.filter((c) => c.excluded).length
-    const total = coins.reduce((s, c) => s + c.value, 0)
+    const excluded = accountCoins.filter((c) => c.excluded).length
+    const total = accountCoins.reduce((s, c) => s + c.value, 0)
     const bubblesOn = typeof sfState === 'undefined' || !sfState.charts || sfState.charts.showUtxoFlowChart
     if (!bubblesOn) lbAcct.utxoView = 'list'
     const right =
       lbIconButton('filter', '', 16) +
       (bubblesOn ? lbIconButton(lbAcct.utxoView === 'bubbles' ? 'list' : 'bubbles', 'data-lb-utxo-view', 15) : '') +
       `<button type="button" class="lb-icon" data-go="exclude-utxos" aria-label="${t('utxo.exclude.title')}">${ss.icon('exclude', { size: 16 })}${excluded ? `<span class="exclude-badge">${excluded}</span>` : ''}</button>`
-    const sorted = [...coins].sort((a, b) => {
+    const sorted = [...accountCoins].sort((a, b) => {
       const key = { date: (c) => c.timestamp || 0, amount: (c) => c.value, label: (c) => (c.label || '').toLowerCase() }[lbAcct.sort.field]
       return (key(a) > key(b) ? 1 : key(a) < key(b) ? -1 : 0) * (lbAcct.sort.dir === 'asc' ? 1 : -1)
     })
     content =
       toolbar(syncTitle, right) +
-      (lbAcct.utxoView === 'bubbles'
-        ? `<div class="lb-scroll"><div class="lb-bubbles">${bubblePack(!lbAcct.bubblesEntered, false)}</div></div>`
-        : lbSortBar() + `<div class="lb-scroll"><div class="lb-list">${sorted.map((c) => lbUtxoCard(c, total)).join('')}</div></div>`)
+      (!accountCoins.length
+        ? `<div class="lb-scroll"><p class="lb-empty">${ss.esc(t('explorer.address.noUtxos'))}</p></div>`
+        : lbAcct.utxoView === 'bubbles'
+          ? `<div class="lb-scroll"><div class="lb-bubbles">${bubblePack(!lbAcct.bubblesEntered, false)}</div></div>`
+          : lbSortBar() + `<div class="lb-scroll"><div class="lb-list">${sorted.map((c) => lbUtxoCard(c, total)).join('')}</div></div>`)
     lbAcct.bubblesEntered = lbAcct.utxoView === 'bubbles'
   } else {
     content = toolbar(syncTitle, lbIconButton('search', 'disabled', 18)) + `<div class="lb-scroll"><div class="lb-list">${lbTxList(txs.filter((tx) => tx.conf <= 0))}</div></div>`
@@ -350,12 +356,18 @@ function lbAccountMarkup() {
   </div>`
 }
 
+function lbPaintChart(body) {
+  const host = body.querySelector('.lb-chart-host')
+  if (host) host.innerHTML = historyChart(lbTxs(), host.clientWidth, host.clientHeight)
+}
+
 function lbBindAccount(body) {
   const repaint = () => {
     body.innerHTML = lbAccountMarkup()
-    const host = body.querySelector('.lb-chart-host')
-    if (host) host.innerHTML = historyChart(lbTxs(), host.clientWidth, host.clientHeight)
+    lbPaintChart(body)
   }
+  // The host has no size until the screen is laid out.
+  requestAnimationFrame(() => lbPaintChart(body))
   body.addEventListener('click', (e) => {
     const hit = (sel) => e.target.closest(sel)
     if (hit('[data-lb-send]')) return go('coin-list')
@@ -440,6 +452,7 @@ function lbHeaderKeys() {
 
 const lbOpenKitScreen = openKitScreen
 openKitScreen = function (id) {
+  if (id === 'psbt-qr' && routeId !== 'psbt-qr') lbQrReturn = routeId === 'multisig-sign' ? 'multisig-sign' : 'preview'
   document.querySelectorAll('.lb-header-extra').forEach((node) => node.remove())
   return lbOpenKitScreen(id)
 }
@@ -646,7 +659,8 @@ registerScreen('account-settings', {
   render: () => {
     const account = openAccountData
     const s = (lbSettings[account.fingerprint] = lbSettings[account.fingerprint] || { name: account.name })
-    const birthday = typeof bsState === 'function' && bsState().birthday ? bsState().birthday : t('account.birthdayDate.unset')
+    const saved = typeof bsState === 'function' ? bsState().birthday : null
+    const birthday = saved && saved.date ? bsDate(saved.date) : t('account.birthdayDate.unset')
     const row = (label, value) => ss.hstack({ justifyBetween: true }, ss.text({ color: 'muted' }, label), value)
     const ratio = (a, b) => ss.hstack({ gap: 'xs' }, ss.text({}, String(a)), ss.text({ color: 'muted' }, 'of'), ss.text({}, String(b)))
     const n = (i) => Number(account.stats[i][0]) || 0
@@ -786,10 +800,13 @@ function lbQrDescription(parts) {
     : lbT('transaction.preview.singleChunk', 'Single chunk')
 }
 
+// psbt-qr is opened from the preview and from multisig signing; Back and Cancel return to the opener.
+let lbQrReturn = 'preview'
+
 registerScreen('psbt-qr', {
   source: 'app/(authenticated)/(tabs)/(signer,explorer,converter)/signer/bitcoin/account/[id]/signAndSend/previewTransaction.tsx',
   title: '',
-  back: 'preview',
+  back: () => lbQrReturn,
   gear: false,
   render: () => {
     const parts = lbQrParts()
@@ -805,7 +822,7 @@ registerScreen('psbt-qr', {
         ss.vstack({ gap: 'xs', className: 'lb-step' }, ss.text({ center: true }, `QR density: ${lbQr.density}/12`), ss.hstack({ gap: 'sm', style: 'justify-content:center' }, ss.button({ label: '-', variant: 'outline', data: { 'lb-density': -1 } }), ss.button({ label: '+', variant: 'outline', data: { 'lb-density': 1 } }))),
         ss.vstack({ gap: 'xs', className: 'lb-step' }, ss.text({ center: true }, `${t('common.speed')}: ${lbQr.speed}/12`), ss.hstack({ gap: 'sm', style: 'justify-content:center' }, ss.button({ label: '-', variant: 'outline', data: { 'lb-speed': -1 } }), ss.button({ label: '+', variant: 'outline', data: { 'lb-speed': 1 } })))),
       parts.length === 1 ? ss.button({ label: t('common.share'), variant: 'outline', data: { 'ss-copy': value } }) : '',
-      ss.button({ label: t('common.cancel'), variant: 'ghost', go: 'preview' }))
+      ss.button({ label: t('common.cancel'), variant: 'ghost', go: lbQrReturn }))
   },
   bind: (body) => {
     clearInterval(lbQr.timer)

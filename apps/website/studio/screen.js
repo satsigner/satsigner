@@ -173,6 +173,8 @@ function show(name, route) {
     node.hidden = key !== name
   })
   routeId = route || (name === 'menu' ? activeTab : name)
+  // kitCurrent names the open kit screen; leaving the kit view must clear it so stale timers and persona refreshes don't reopen it.
+  if (name !== 'kit' && typeof kitCurrent !== 'undefined') kitCurrent = null
   if (isStage && !demoQuery.has('embed') && location.hash !== '#' + routeId) {
     const url = new URL(location.href)
     url.hash = routeId
@@ -2833,7 +2835,8 @@ document.getElementById('sign-body').addEventListener('click', (e) => {
     button.disabled = true
     button.innerHTML = '<span class="ss-spinner"></span>'
     recordBroadcast()
-    setTimeout(() => renderSent(signState.txid), 700)
+    clearTimeout(broadcastTimer)
+    broadcastTimer = setTimeout(() => renderSent(signState.txid), 700)
   }
 })
 
@@ -4431,7 +4434,7 @@ function go(id) {
   }
   if ((id === 'send' || id === 'payjoin') && !enteringReplacement && !['fee-management', 'timelock', 'import-outputs'].includes(routeId)) replacementDraft = null
   if (id === 'send' || id === 'payjoin') {
-    openAccountData = accounts[0]
+    if (!['fee-management', 'timelock', 'import-outputs'].includes(routeId)) openAccountData = accounts[0]
     document.getElementById('payjoin-toggle').checked = true
     openSend('output')
     show('send', id === 'payjoin' ? 'payjoin' : 'send')
@@ -4590,7 +4593,9 @@ const stagePlay = document.getElementById('stage-play')
 const demoCursor = document.getElementById('demo-cursor')
 let demoToken = 0
 let demoTimer = 0
+let demoWaitResolve = null
 let demoRunId = 0
+let broadcastTimer = 0
 
 function notifyDemo(playing) {
   if (window.parent === window) return
@@ -4599,8 +4604,19 @@ function notifyDemo(playing) {
 
 function waitDemo(ms, token) {
   return new Promise((resolve) => {
-    demoTimer = setTimeout(() => resolve(token === demoToken), ms)
+    demoWaitResolve = resolve
+    demoTimer = setTimeout(() => {
+      demoWaitResolve = null
+      resolve(token === demoToken)
+    }, ms)
   })
+}
+
+function cancelDemoWait() {
+  clearTimeout(demoTimer)
+  const resolve = demoWaitResolve
+  demoWaitResolve = null
+  if (resolve) resolve(false)
 }
 
 function hideDemoCursor() {
@@ -4611,7 +4627,8 @@ function hideDemoCursor() {
 
 function stopDemo() {
   demoToken += 1
-  clearTimeout(demoTimer)
+  cancelDemoWait()
+  clearTimeout(broadcastTimer)
   hideDemoCursor()
   document.documentElement.classList.remove('is-demo')
   if (stagePlay) {
@@ -4765,7 +4782,10 @@ function resetDemoState() {
   document.querySelectorAll('.ss-modal:not([hidden]), .bd-warning:not([hidden]), .bd-gradient-modal:not([hidden])').forEach((node) => node.setAttribute('hidden', ''))
   for (let i = accounts.length - 1; i >= 0; i -= 1) if (accounts[i].created) accounts.splice(i, 1)
   undoBroadcasts()
-  coins.forEach((coin) => (coin.selected = coin.id === 'salary'))
+  coins.forEach((coin) => {
+    coin.excluded = false
+    coin.selected = coin.id === 'salary'
+  })
   activeNetwork = 'signet'
   newAccountName = 'Spending'
   newAccountPolicy = 'singlesig'
@@ -4796,7 +4816,7 @@ async function playDemo(flow, runId) {
   demoRunId = runId || 0
   demoToken += 1
   const token = demoToken
-  clearTimeout(demoTimer)
+  cancelDemoWait()
   document.documentElement.classList.add('is-demo')
   stagePlay.textContent = 'Stop'
   stagePlay.setAttribute('aria-pressed', 'true')

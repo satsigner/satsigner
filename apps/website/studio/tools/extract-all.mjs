@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /* Run every extractor against the SatSigner app.
-   Usage: node studio/tools/extract-all.mjs [--app ../satsigner/apps/mobile] */
+   Usage: node studio/tools/extract-all.mjs [--app ../mobile] */
 
 import fs from 'node:fs'
 import path from 'node:path'
@@ -14,7 +14,7 @@ import { extractRoutes } from './extract-routes.mjs'
 const here = path.dirname(fileURLToPath(import.meta.url))
 const studio = path.resolve(here, '..')
 const argApp = process.argv.indexOf('--app')
-const appDir = path.resolve(argApp > -1 ? process.argv[argApp + 1] : path.join(studio, '../../satsigner/apps/mobile'))
+const appDir = path.resolve(argApp > -1 ? process.argv[argApp + 1] : path.join(studio, '../../mobile'))
 const outDir = path.join(studio, 'generated')
 
 if (!fs.existsSync(path.join(appDir, 'app'))) {

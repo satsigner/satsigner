@@ -202,20 +202,24 @@ registerScreen('settings-security-report', {
     const input = body.querySelector('.sy-report-input')
     const send = body.querySelector('#sy-report-send')
     if (input) input.addEventListener('input', () => (send.disabled = !input.value.trim()))
+    // Rerendering builds an empty textarea, so carry the typed report across.
+    const rerenderKeepingDraft = () => {
+      const draft = input ? input.value : ''
+      openKitScreen('settings-security-report')
+      const next = document.querySelector('.sy-report-input')
+      if (next) {
+        next.value = draft
+        document.getElementById('sy-report-send').disabled = !draft.trim()
+      }
+    }
     body.addEventListener('click', (e) => {
       if (e.target.closest('#sy-backup-toggle')) {
         syState.backupRevealed = !syState.backupRevealed
-        openKitScreen('settings-security-report')
+        rerenderKeepingDraft()
       }
       if (e.target.closest('#sy-anon')) {
         syState.reportAnonymous = !syState.reportAnonymous
-        const draft = input ? input.value : ''
-        openKitScreen('settings-security-report')
-        const next = document.querySelector('.sy-report-input')
-        if (next) {
-          next.value = draft
-          document.getElementById('sy-report-send').disabled = !draft.trim()
-        }
+        rerenderKeepingDraft()
       }
       if (e.target.closest('#sy-report-send') && input && input.value.trim()) {
         const button = e.target.closest('#sy-report-send')

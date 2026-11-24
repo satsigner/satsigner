@@ -65,7 +65,20 @@ document.head.insertAdjacentHTML(
 // --- fixture key state (mirrors store/accountBuilder.ts) ---------------------------------
 
 // BIP39 test vector (valid checksum) and the words the confirm step mixes in.
-const BD_MNEMONIC = 'legal winner thank year wave sausage worth useful legal winner thank yellow'.split(' ')
+// BIP39 test vectors (entropy 0x7f…, valid checksums) for every word count the setup offers.
+const BD_MNEMONICS = {
+  12: 'legal winner thank year wave sausage worth useful legal winner thank yellow',
+  15: 'legal winner thank year wave sausage worth useful legal winner thank year wave sausage wise',
+  18: 'legal winner thank year wave sausage worth useful legal winner thank year wave sausage worth useful legal will',
+  21: 'legal winner thank year wave sausage worth useful legal winner thank year wave sausage worth useful legal winner thank year viable',
+  24: 'legal winner thank year wave sausage worth useful legal winner thank year wave sausage worth useful legal winner thank year wave sausage worth title'
+}
+const bdWordCount = () => {
+  if (typeof lxState === 'undefined') return 12
+  const count = bdIsMultisig() ? lxState.keyWords : lxState.words
+  return BD_MNEMONICS[count] ? count : 12
+}
+const bdMnemonic = () => BD_MNEMONICS[bdWordCount()].split(' ')
 const BD_WORDS = ('abandon ability able about above absent absorb abstract absurd abuse access accident account accuse achieve acid ' +
   'acoustic acquire across act action actor actress actual adapt add addict address adjust admit adult advance advice aerobic ' +
   'affair afford afraid again age agent agree ahead aim air airport aisle alarm album alcohol alert alien all alley allow almost ' +
@@ -74,7 +87,7 @@ const BD_WORDS = ('abandon ability able about above absent absorb abstract absur
   'arena argue arm armed armor army around arrange arrest arrive arrow art artefact artist artwork ask aspect assault asset ' +
   'thank useful legal sausage wave winner worth year yellow wealth wedding weekend weird welcome west wet whale what wheat wheel ' +
   'when where whip whisper wide width wife wild will win window wine wing wink wise wish witness wolf woman wonder wood wool word ' +
-  'work world worry wrap wreck wrestle wrist write wrong yard young youth zebra zero zone zoo').split(' ')
+  'work world worry wrap wreck wrestle wrist write wrong yard young youth zebra zero zone zoo title viable').split(' ')
 const BD_FINGERPRINT = 'a1b2c3d4'
 const BD_XPUB = 'tpubDCwMhXsvGnVrkQyxxrZ7m8dzHCzWQHSnPjDhDYNnFkjM2XHtbbPQ2tVvW6ujLzNpmvJGyGdyMCbTq2Xg4n3w9HqGQpgKNUTdyRpSXXjzv4b'
 const BD_DESCRIPTOR = `wpkh([${BD_FINGERPRINT}/84'/1'/0']${BD_XPUB}/0/*)#kp3z9d4w`
@@ -99,6 +112,12 @@ const bdState = {
 const bdName = () => (typeof newAccountName !== 'undefined' ? newAccountName : 'Spending')
 const bdPolicy = () => (typeof newAccountPolicy !== 'undefined' ? newAccountPolicy : 'singlesig')
 const bdIsMultisig = () => bdPolicy() === 'multisig'
+
+// Only a finished import/generation fills the pending multisig key; Cancel and Back leave it empty.
+function bdFinishMultisigKey() {
+  if (typeof lxCompletePending === 'function') lxCompletePending()
+  go('multisig-keys')
+}
 const bdScriptName = { P2PKH: 'Legacy (P2PKH)', 'P2SH-P2WPKH': 'Nested SegWit (P2SH-P2WPKH)', P2WPKH: 'Native SegWit (P2WPKH)', P2TR: 'Taproot (P2TR)' }
 
 function bdChecksum(valid) {
@@ -160,7 +179,7 @@ registerScreen('add-generate-mnemonic', {
   render: () =>
     ss.vstack({ justifyBetween: true },
       ss.form({},
-        ss.form.item({}, ss.form.label({ label: t('account.mnemonic.title') }), bdSeedGrid(BD_MNEMONIC, false)),
+        ss.form.item({}, ss.form.label({ label: t('account.mnemonic.title') }), bdSeedGrid(bdMnemonic(), false)),
         ss.form.item({}, ss.form.label({ label: `${t('bitcoin.passphrase')} (${t('common.optional')})` }), ss.textInput({ value: bdState.passphrase, name: 'passphrase' })),
         ss.form.item({}, ss.hstack({ justifyBetween: true }, bdChecksum(true), bdFingerprint(BD_FINGERPRINT, true)))),
       ss.vstack({},
@@ -180,8 +199,8 @@ registerScreen('add-generate-mnemonic', {
 // --- confirm/[keyIndex]/word/[index].tsx ---------------------------------------------------
 
 function bdCandidates(index) {
-  const right = BD_MNEMONIC[index]
-  const pool = BD_WORDS.filter((w) => !BD_MNEMONIC.includes(w))
+  const right = bdMnemonic()[index]
+  const pool = BD_WORDS.filter((w) => !bdMnemonic().includes(w))
   const a = pool[(index * 7 + 3) % pool.length]
   const b = pool[(index * 13 + 11) % pool.length]
   const words = [right, a, b]
@@ -212,7 +231,7 @@ registerScreen('add-confirm-word', {
       ss.icon('circleX', { size: 88 }),
       ss.text({ size: '3xl', center: true, style: 'max-width:200px' }, t('account.confirmSeed.warning')))}${ss.button({ label: t('account.confirmSeed.tryAgain'), id: 'bd-wrong-close' })}</div></div>` +
     `<div class="bd-warning" id="bd-done" hidden>${ss.vstack({ itemsCenter: true, style: 'margin-bottom:20px' },
-      ss.hstack({}, ss.icon('checkCircle', { size: 30 }), ss.text({ size: '3xl' }, `${BD_MNEMONIC.length} ${t('common.of').toLowerCase()} ${BD_MNEMONIC.length}`)),
+      ss.hstack({}, ss.icon('checkCircle', { size: 30 }), ss.text({ size: '3xl' }, `${bdMnemonic().length} ${t('common.of').toLowerCase()} ${bdMnemonic().length}`)),
       ss.text({ uppercase: true, center: true }, `${t('bitcoin.notYourKeys')}<br>${t('bitcoin.notYourCoins')}`),
       ss.text({ size: '6xl' }, t('common.warning')),
       ss.icon('hideWarning', { width: 210, height: 132 }),
@@ -228,7 +247,7 @@ registerScreen('add-confirm-word', {
         ss.button({ label: t('common.no'), data: { 'ss-close': '' } }))),
   bind: (body) => {
     const finish = () => {
-      if (bdIsMultisig()) return go('multisig-keys')
+      if (bdIsMultisig()) return bdFinishMultisigKey()
       ss.open('bd-done')
     }
     body.addEventListener('click', (e) => {
@@ -246,9 +265,9 @@ registerScreen('add-confirm-word', {
       }
       if (e.target.closest('#bd-next')) {
         const picked = bdCandidates(bdState.wordIndex)[bdState.choice - 1]
-        if (picked !== BD_MNEMONIC[bdState.wordIndex]) return ss.open('bd-wrong')
+        if (picked !== bdMnemonic()[bdState.wordIndex]) return ss.open('bd-wrong')
         bdState.choice = 0
-        if (bdState.wordIndex + 1 < BD_MNEMONIC.length) {
+        if (bdState.wordIndex + 1 < bdMnemonic().length) {
           bdState.wordIndex += 1
           openKitScreen('add-confirm-word')
         } else finish()
@@ -270,9 +289,10 @@ registerScreen('add-confirm-word', {
 
 // The new wallet joins the account list (empty, on the active network) so "Go to wallet"
 // opens it instead of a fixture account. Creating the same name again reuses it.
-function bdRegisterAccount(multisig) {
+function bdRegisterAccount(multisig, watchImport) {
   const name = String(bdName()).trim() || 'Spending'
-  let account = accounts.find((a) => a.created && a.name === name)
+  const watchOnly = !!watchImport
+  let account = accounts.find((a) => a.created && a.name === name && !!a.watchOnly === watchOnly)
   if (!account) {
     let fingerprint = BD_FINGERPRINT
     for (let n = 1; accounts.some((a) => a.fingerprint === fingerprint); n += 1) {
@@ -284,9 +304,10 @@ function bdRegisterAccount(multisig) {
       balance: 0,
       fiat: '0.00',
       fingerprint,
-      watchOnly: false,
+      watchOnly,
       multisig: !!multisig,
       created: true,
+      ...(watchImport ? { watchImport } : {}),
       stats: [['0', 'Transactions'], ['0', 'Addresses'], ['0', 'Outputs'], ['0', 'Mempool']]
     }
     accounts.push(account)
@@ -399,12 +420,12 @@ registerScreen('add-import-mnemonic', {
       refresh()
     })
     const fill = () => {
-      bdState.importWords = [...BD_MNEMONIC]
+      bdState.importWords = [...bdMnemonic()]
       openKitScreen('add-import-mnemonic')
     }
     body.querySelector('#bd-paste').onclick = fill
     body.querySelector('#bd-scan').onclick = fill
-    body.querySelector('#bd-import').onclick = () => go(bdIsMultisig() ? 'multisig-keys' : 'add-created')
+    body.querySelector('#bd-import').onclick = () => (bdIsMultisig() ? bdFinishMultisigKey() : go('add-created'))
     body.querySelector('#bd-cancel').onclick = () => go(bdIsMultisig() ? 'multisig-keys' : 'new-singlesig')
   }
 })
@@ -452,7 +473,7 @@ registerScreen('add-import-descriptor', {
     }
     body.querySelector('#bd-paste').onclick = fill
     body.querySelector('#bd-scan').onclick = fill
-    body.querySelector('#bd-confirm').onclick = () => go('multisig-keys')
+    body.querySelector('#bd-confirm').onclick = bdFinishMultisigKey
   }
 })
 
@@ -492,7 +513,7 @@ registerScreen('add-import-descriptor-from-account', {
       if (create) {
         create.disabled = true
         create.innerHTML = '<span class="ss-spinner"></span>'
-        setTimeout(() => go('multisig-keys'), 700)
+        setTimeout(bdFinishMultisigKey, 700)
       }
     })
   }
@@ -546,7 +567,7 @@ registerScreen('add-import-xpub', {
         bdXpubForm.fingerprint = BD_FINGERPRINT
         openKitScreen('add-import-xpub')
       }
-      if (e.target.closest('#bd-confirm')) go('multisig-keys')
+      if (e.target.closest('#bd-confirm')) bdFinishMultisigKey()
     })
   }
 })
@@ -615,7 +636,7 @@ registerScreen('add-import-unified', {
       if (confirm) {
         confirm.disabled = true
         confirm.innerHTML = '<span class="ss-spinner"></span>'
-        setTimeout(() => (bdIsMultisig() ? go('multisig-keys') : go('add-created')), 700)
+        setTimeout(() => (bdIsMultisig() ? bdFinishMultisigKey() : go('add-created')), 700)
       }
       if (e.target.closest('#bd-cancel')) back()
     })
@@ -688,20 +709,20 @@ registerScreen('add-multisig-export-seed-words', {
   title: () => `${t('account.seed.viewSeedWords')} - Key ${bdState.keyIndex + 1}`,
   back: 'multisig-keys',
   render: () => {
-    const per = Math.ceil(BD_MNEMONIC.length / 3)
+    const per = Math.ceil(bdMnemonic().length / 3)
     const cols = [0, 1, 2]
-      .map((c) => `<div class="bd-words-col">${BD_MNEMONIC.slice(c * per, c * per + per)
+      .map((c) => `<div class="bd-words-col">${bdMnemonic().slice(c * per, c * per + per)
         .map((w, r) => `<div class="bd-word-box">${ss.text({ color: 'muted', className: 'bd-idx', as: 'span' }, String(c * per + r + 1).padStart(2, '0'))}${ss.text({ size: 'md', as: 'span' }, w)}</div>`)
         .join('')}</div>`)
       .join('')
     return ss.vstack({ gap: 'lg', style: 'padding:16px 0' },
       ss.vstack({ gap: 'md' },
-        ss.text({ center: true, uppercase: true }, `${BD_MNEMONIC.length} ${t('account.mnemonic.title')} (english)`),
+        ss.text({ center: true, uppercase: true }, `${bdMnemonic().length} ${t('account.mnemonic.title')} (english)`),
         ss.hstack({ style: 'justify-content:center' }, ss.text({ uppercase: true, color: 'muted' }, t('account.seed.keepItSecret')))),
       `<div class="bd-words-grid">${cols}</div>`,
       ss.vstack({ gap: 'sm', style: 'padding-top:32px' },
         ss.hstack({ gap: 'sm' },
-          `<div style="flex:0.5">${ss.clipboardCopy({ text: BD_MNEMONIC.join(' ') }, ss.button({ label: t('common.copy'), variant: 'outline' }))}</div>`,
+          `<div style="flex:0.5">${ss.clipboardCopy({ text: bdMnemonic().join(' ') }, ss.button({ label: t('common.copy'), variant: 'outline' }))}</div>`,
           ss.button({ label: t('account.seed.seedqr.title'), variant: 'outline', style: 'flex:0.5', id: 'bd-seedqr' })),
         ss.button({ label: t('common.back'), variant: 'ghost', go: 'multisig-keys' })))
   },
@@ -709,7 +730,7 @@ registerScreen('add-multisig-export-seed-words', {
     ss.modal({ id: 'bd-seedqr-modal', label: t('common.close') },
       ss.vstack({ itemsCenter: true, gap: 'lg' },
         ss.text({ uppercase: true }, t('account.seed.seedqr.title')),
-        `<div class="bd-qr-card">${ss.qr({ value: BD_MNEMONIC.join(' '), size: 240 })}</div>`)),
+        `<div class="bd-qr-card">${ss.qr({ value: bdMnemonic().join(' '), size: 240 })}</div>`)),
   bind: (body) => {
     body.querySelector('#bd-seedqr').onclick = () => ss.open('bd-seedqr-modal')
   }
@@ -941,9 +962,15 @@ registerScreen('add-watch-only', {
       if (confirm) {
         confirm.disabled = true
         confirm.innerHTML = '<span class="ss-spinner"></span>'
+        const option = bdState.watchOption
+        const watchImport = option === 'importExtendedPub'
+          ? { option, xpub: bdWatchForm.xpub, fingerprint: bdWatchForm.fingerprint, script: bdState.watchScript }
+          : option === 'importDescriptor'
+            ? { option, external: bdWatchForm.external, internal: bdWatchForm.internal }
+            : { option, addresses: bdState.watchAddresses.slice() }
         setTimeout(() => {
           bdState.watchPicked = false
-          go('account')
+          openAccount(bdRegisterAccount(false, watchImport))
           ss.toast(t('watchonly.success.accountCreated'), document.getElementById('view-account'))
         }, 900)
       }

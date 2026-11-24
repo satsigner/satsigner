@@ -334,7 +334,9 @@ registerScreen('explorer-block', {
     latest.onclick = () => {
       latest.disabled = true
       latest.innerHTML = '<span class="ss-spinner"></span>'
-      setTimeout(() => ecOpenBlock(EC_TIP, 'explorer-block'), 500)
+      setTimeout(() => {
+        if (latest.isConnected && kitCurrent === 'explorer-block') ecOpenBlock(EC_TIP, 'explorer-block')
+      }, 500)
     }
   }
 })
@@ -701,10 +703,8 @@ registerScreen('explorer-block-transactions', {
       const tx = e.target.closest('[data-ec-tx]')
       if (!tx) return
       // explorer/transaction/[txid] is ported elsewhere; open it when registered.
-      if (kitScreens['explorer-transaction-detail']) {
-        window.ecTxid = tx.dataset.ecTx
-        go('explorer-transaction-detail')
-      } else if (kitScreens['explorer-transaction']) go('explorer-transaction')
+      if (typeof exOpenTx === 'function' && kitScreens['explorer-transaction-detail']) exOpenTx(tx.dataset.ecTx)
+      else if (kitScreens['explorer-transaction']) go('explorer-transaction')
       else ss.toast(tx.dataset.ecTx.slice(0, 16) + '…', document.getElementById('view-kit'))
     })
   }

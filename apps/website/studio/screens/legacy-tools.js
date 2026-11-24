@@ -322,6 +322,8 @@ function ltCurInput(key, value, size, decimals) {
   return `<input class="lt-cur-input is-${size}" inputmode="decimal" data-lt-cur="${key}" value="${shown}">`
 }
 
+const ltDaysInMonth = (year, month) => new Date(year, month + 1, 0).getDate()
+
 registerScreen('currency', {
   source: 'app/(authenticated)/(tabs)/(signer,explorer,converter)/converter/currency.tsx',
   title: () => t('converter.title'),
@@ -340,7 +342,7 @@ registerScreen('currency', {
         .map((it) => `<div class="lt-wheel-item${it.v === selected ? ' is-on' : ''}" data-v="${it.v}">${it.l}</div>`)
         .join('')}<div class="lt-wheel-pad"></div></div>`
     const months = Array.from({ length: 12 }, (_, i) => ({ v: i, l: new Date(2020, i, 1).toLocaleString('en-US', { month: 'short' }) }))
-    const days = Array.from({ length: 31 }, (_, i) => ({ v: i + 1, l: String(i + 1) }))
+    const days = Array.from({ length: ltDaysInMonth(d.getFullYear(), d.getMonth()) }, (_, i) => ({ v: i + 1, l: String(i + 1) }))
     const years = Array.from({ length: new Date().getFullYear() - 2011 + 1 }, (_, i) => ({ v: 2011 + i, l: String(2011 + i) }))
     const today = new Date()
     const isToday = d.toDateString() === today.toDateString()
@@ -413,9 +415,16 @@ registerScreen('currency', {
           const d = new Date(ltConv.date)
           const value = Number(item.dataset.v)
           const kind = wheel.dataset.ltWheel
-          if (kind === 'month') d.setMonth(value)
-          if (kind === 'day') d.setDate(value)
-          if (kind === 'year') d.setFullYear(value)
+          // Clamp the day first so Jan 31 -> February lands on Feb 28/29, not March.
+          if (kind === 'month') {
+            d.setDate(Math.min(d.getDate(), ltDaysInMonth(d.getFullYear(), value)))
+            d.setMonth(value)
+          }
+          if (kind === 'day') d.setDate(Math.min(value, ltDaysInMonth(d.getFullYear(), d.getMonth())))
+          if (kind === 'year') {
+            d.setDate(Math.min(d.getDate(), ltDaysInMonth(value, d.getMonth())))
+            d.setFullYear(value)
+          }
           if (d > new Date()) return
           if (d.toDateString() !== ltConv.date.toDateString()) setDate(d)
         }, 140)

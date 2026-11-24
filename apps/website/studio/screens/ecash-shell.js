@@ -162,19 +162,34 @@ const esBalance = (url) => esState.proofs.filter((p) => !url || p.mintUrl === ur
 
 // Received ecash lands in the account: proofs split into powers of two, plus a transaction.
 // Marked `added` so the Studio demo can put the fixtures back.
+// Powers of two, largest first, that sum to amount. Works past 2^31 where bitwise ops would not.
+function esSplitAmount(amount) {
+  const parts = []
+  let rest = Math.floor(amount)
+  for (let bit = 2 ** Math.floor(Math.log2(Math.max(rest, 1))); rest > 0 && bit >= 1; bit /= 2) {
+    if (rest < bit) continue
+    parts.push(bit)
+    rest -= bit
+  }
+  return parts
+}
+
 function esCredit(tx) {
-  const mintUrl = tx.mintUrl || esState.mints[0].url
-  const keyset = (esState.proofs.find((p) => p.mintUrl === mintUrl) || esState.proofs[0]).id
-  for (let bit = 1 << 20; bit >= 1; bit >>= 1) {
-    if (!(tx.amount & bit)) continue
+  const mintUrl = tx.mintUrl || (esState.mints[0] && esState.mints[0].url)
+  if (!mintUrl) return false
+  const keysetSource = esState.proofs.find((p) => p.mintUrl === mintUrl) || esState.proofs[0]
+  const keyset = keysetSource ? keysetSource.id : esHex('keyset' + mintUrl, 16)
+  for (const bit of esSplitAmount(tx.amount)) {
     const i = esState.proofs.length
     esState.proofs.push({ amount: bit, mintUrl, id: keyset, active: true, secret: esHex('secret' + i, 64), C: '02' + esHex('C' + i, 64), counter: 12 + i * 3, added: true })
   }
   esState.transactions.unshift({ id: `tx-${tx.type}-${Date.now()}`, timestamp: Date.now(), status: 'completed', added: true, ...tx, mintUrl })
+  return true
 }
 const ES_DEMO_SEED = 'abandon ability able about above absent absorb abstract absurd abuse access accident'.split(' ')
 
 function esOpenProof(i) {
+  if (esState.proofIndex !== i) esProof.token = ''
   esState.proofIndex = i
   go('ecash-proof')
 }
@@ -397,12 +412,14 @@ registerScreen('set-duress-pin', {
 // unlock.tsx — SSPinAuth with tries-left feedback. Fixture PIN: the one set in set-pin, else 1234.
 
 const esUnlock = { pin: esEmpty(4), maxTries: 10, triesLeft: 10, verifying: false, shake: false }
+const esUnlockLength = () => (esSetPin.saved || '1234').length
 
 registerScreen('unlock', {
   source: 'app/unlock.tsx',
   back: null,
   render: () => {
     const s = esUnlock
+    if (s.pin.length !== esUnlockLength()) s.pin = esEmpty(esUnlockLength())
     let text = ''
     if (s.triesLeft < s.maxTries) {
       text = `${s.triesLeft} ${s.triesLeft > 1 ? t('auth.triesLeft') : t('auth.tryLeft')}`
@@ -432,12 +449,12 @@ registerScreen('unlock', {
           s.verifying = true
           openKitScreen('unlock')
           return setTimeout(() => {
-            Object.assign(s, { pin: esEmpty(4), triesLeft: s.maxTries, verifying: false })
+            Object.assign(s, { pin: esEmpty(esUnlockLength()), triesLeft: s.maxTries, verifying: false })
             go('signer')
           }, 700)
         }
         s.triesLeft = Math.max(1, s.triesLeft - 1)
-        s.pin = esEmpty(4)
+        s.pin = esEmpty(esUnlockLength())
         s.shake = true
       }
       openKitScreen('unlock')
@@ -696,7 +713,10 @@ registerScreen('converter-energy', {
         }
         s.mining = true
         const tick = () => {
-          if (kitCurrent !== 'converter-energy') return clearInterval(s.timer)
+          if (kitCurrent !== 'converter-energy') {
+            clearInterval(s.timer)
+            return Object.assign(s, { timer: null, mining: false, stopping: false, hps: 0 })
+          }
           const n = Math.max(1, Math.round(s.intensity * (1000 / Math.max(s.interval, 50)) * 0.1))
           s.hashes += n
           s.hps = n
@@ -1132,7 +1152,9 @@ registerScreen('ecash-send-page', {
     const s = esSend
     const rerender = () => openKitScreen('ecash-send-page')
     document.getElementById('kit-title').innerHTML = `${ss.esc(t('ecash.send.title'))}<small style="display:block;font-size:10px;color:var(--gray-300);text-transform:none;letter-spacing:0">${ss.esc(esState.accountName)}</small>`
-    body.addEventListener('ss-change', (e) => (s.amount = e.detail.sats))
+    body.addEventListener('ss-change', (e) => {
+      if ('sats' in e.detail) s.amount = e.detail.sats
+    })
     body.addEventListener('input', (e) => {
       if (e.target.closest('#es-memo')) s.memo = e.target.value
       if (e.target.closest('#es-invoice')) s.invoice = e.target.value
@@ -1181,7 +1203,10 @@ registerScreen('ecash-send-page', {
 
 // signer/ecash/receive.tsx (the account receive route re-exports this screen)
 
-const esReceive = { tab: 'ecash', token: '', redeemed: false, mint: '', amount: '', fiatMode: false, memo: '', quote: '', status: 'pending' }
+const esReceive = { tab: 'ecash', token: '', redeemed: false, redeeming: '', mint: '', amount: '', fiatMode: false, memo: '', quote: '', status: 'pending' }
+const esUsdToSats = (usd) => Math.round((Number(usd) / (typeof USD_PER_BTC === 'number' ? USD_PER_BTC : 100000)) * 1e8)
+// Auto-select falls back to the first connected mint; with none connected there is nowhere to mint.
+const esReceiveMint = (selected) => (selected && esState.mints.some((m) => m.url === selected) ? selected : esState.mints[0] ? esState.mints[0].url : '')
 
 registerScreen('ecash-receive-page', {
   source: 'app/(authenticated)/(tabs)/(signer,explorer,converter)/signer/ecash/receive.tsx',
@@ -1203,23 +1228,26 @@ registerScreen('ecash-receive-page', {
         : '',
       unknownMint ? `<div class="es-warning">${ss.esc(esT('ecash.warning.mintNotConnected', { mint: 'https://unknown.mint' }))}</div>` : '',
       s.redeemed ? ss.text({ style: 'color:var(--success)' }, t('ecash.quote.completed')) : '',
-      ss.button({ label: t('ecash.receive.redeemToken'), variant: 'secondary', id: 'es-redeem', disabled: !hasToken || s.redeemed }))
+      ss.button({ label: t('ecash.receive.redeemToken'), variant: 'secondary', id: 'es-redeem', loading: !!s.token && s.redeeming === s.token, disabled: !hasToken || s.redeemed || !!s.redeeming }))
     const amt = +s.amount || 0
+    const quoteMint = esReceiveMint(s.mint)
+    const quotePending = !!s.quote && s.status === 'pending'
     const lightning = ss.vstack({ gap: 'md' },
       esMintSelector(s.mint),
       ss.vstack({ gap: 'xs' },
         ss.text({ color: 'muted', size: 'xs', uppercase: true }, `${t('ecash.receive.amount')} (${s.fiatMode ? 'USD' : t('bitcoin.sats')})`),
-        ss.textInput({ placeholder: '0', value: s.fiatMode ? (amt ? esUsd(amt) : '') : amt ? esFmt(amt) : '', inputMode: 'numeric', id: 'es-amount', name: 'amount' }),
+        ss.textInput({ placeholder: '0', value: s.fiatMode ? (amt ? esUsd(amt) : '') : amt ? esFmt(amt) : '', inputMode: s.fiatMode ? 'decimal' : 'numeric', id: 'es-amount', name: 'amount', readOnly: quotePending }),
         ss.text({ color: 'muted', size: 'xs', className: 'es-underline', id: 'es-switch' }, s.fiatMode ? `${esFmt(amt)} ${t('bitcoin.sats')}` : `≈ ${amt ? esUsd(amt) : 0} USD`)),
       ss.vstack({ gap: 'xs' },
         ss.text({ color: 'muted', size: 'xs', uppercase: true }, t('ecash.receive.memo')),
-        ss.textInput({ placeholder: t('ecash.receive.memoPlaceholder'), value: s.memo, id: 'es-rmemo', align: 'left' })),
+        ss.textInput({ placeholder: t('ecash.receive.memoPlaceholder'), value: s.memo, id: 'es-rmemo', align: 'left', readOnly: quotePending })),
       !s.quote
         ? ss.vstack({ gap: 'sm' },
             ss.hstack({ gap: 'sm' },
               ss.button({ label: t('common.paste'), variant: 'subtle', style: 'flex:1', id: 'es-paste-lnurl' }),
               ss.button({ label: t('common.scan'), variant: 'subtle', style: 'flex:1', id: 'es-paste-lnurl' })),
-            ss.button({ label: t('ecash.receive.createInvoice'), variant: 'gradient', id: 'es-invoice-btn', disabled: !amt }))
+            quoteMint ? '' : ss.text({ style: 'color:var(--warning)' }, t('ecash.error.noMintConnected')),
+            ss.button({ label: t('ecash.receive.createInvoice'), variant: 'gradient', id: 'es-invoice-btn', disabled: !amt || !quoteMint }))
         : ss.vstack({ gap: 'md' },
             ss.vstack({ itemsCenter: true, gap: 'md', style: 'padding:20px 0' }, ss.qr({ value: s.quote, size: 280 }), ss.clipboardCopy({ text: s.quote }, ss.button({ label: t('common.copy'), variant: 'outline' }))),
             ss.vstack({ gap: 'none' },
@@ -1232,12 +1260,18 @@ registerScreen('ecash-receive-page', {
   bind: (body) => {
     const s = esReceive
     const rerender = () => openKitScreen('ecash-receive-page')
+    const quotePending = () => !!s.quote && s.status === 'pending'
     body.addEventListener('input', (e) => {
       if (e.target.closest('#es-token')) {
         s.token = e.target.value.trim()
         s.redeemed = false
       }
-      if (e.target.closest('#es-amount')) s.amount = e.target.value.replace(/[^0-9]/g, '')
+      if (e.target.closest('#es-amount')) {
+        if (s.fiatMode) {
+          const usd = e.target.value.replace(/[^0-9.]/g, '')
+          s.amount = usd && Number(usd) > 0 ? String(esUsdToSats(usd)) : ''
+        } else s.amount = e.target.value.replace(/[^0-9]/g, '')
+      }
       if (e.target.closest('#es-rmemo')) s.memo = e.target.value
     })
     body.addEventListener('change', (e) => {
@@ -1251,6 +1285,7 @@ registerScreen('ecash-receive-page', {
       }
       const mint = e.target.closest('[data-es-mint]')
       if (mint) {
+        if (quotePending()) return
         s.mint = mint.dataset.esMint
         return rerender()
       }
@@ -1260,13 +1295,16 @@ registerScreen('ecash-receive-page', {
         return rerender()
       }
       if (e.target.closest('#es-redeem')) {
-        const btn = e.target.closest('#es-redeem')
-        btn.disabled = true
-        btn.innerHTML = '<span class="ss-spinner"></span>'
+        if (s.redeeming || s.redeemed) return
+        const token = s.token
+        s.redeeming = token
+        rerender()
         setTimeout(() => {
-          s.redeemed = true
+          if (s.redeeming !== token) return
+          s.redeeming = ''
+          if (s.token === token) s.redeemed = true
           esCredit({ type: 'receive', amount: 2048, mintUrl: 'https://mint.coinos.io', token: true })
-          rerender()
+          if (kitCurrent === 'ecash-receive-page') rerender()
         }, 900)
       }
       if (e.target.closest('#es-switch')) {
@@ -1274,18 +1312,22 @@ registerScreen('ecash-receive-page', {
         return rerender()
       }
       if (e.target.closest('#es-paste-lnurl')) {
+        if (quotePending()) return
         s.amount = '5000'
         return rerender()
       }
       if (e.target.closest('#es-invoice-btn')) {
-        s.quote = 'lnbc' + (+s.amount || 1) / 10 + 'n1pjdemo0pp5' + esHex('quote' + s.amount, 160)
-        s.status = 'pending'
+        const mintUrl = esReceiveMint(s.mint)
+        if (!mintUrl) return rerender()
+        const snapshot = { amount: +s.amount || 1, mintUrl, memo: s.memo }
+        const quote = 'lnbc' + snapshot.amount / 10 + 'n1pjdemo0pp5' + esHex('quote' + snapshot.amount, 160)
+        Object.assign(s, { quote, status: 'pending' })
         rerender()
         setTimeout(() => {
-          if (s.quote && s.status !== 'paid') {
-            s.status = 'paid'
-            esCredit({ type: 'mint', amount: +s.amount || 1, mintUrl: s.mint, memo: s.memo, invoice: true })
-          }
+          if (s.quote !== quote || s.status === 'paid') return
+          const mintStillConnected = esState.mints.some((m) => m.url === snapshot.mintUrl)
+          s.status = mintStillConnected ? 'paid' : 'failed'
+          if (mintStillConnected) esCredit({ type: 'mint', amount: snapshot.amount, mintUrl: snapshot.mintUrl, memo: snapshot.memo, invoice: true })
           if (kitCurrent === 'ecash-receive-page') rerender()
         }, 3000)
       }
@@ -1298,6 +1340,8 @@ registerScreen('ecash-receive-page', {
 const ES_TX_ICON = { send: '↗', receive: '↙', mint: '⚡↙', melt: '⚡↗' }
 const ES_STATUS_COLOR = { pending: 'var(--warning)', completed: 'var(--success)', failed: 'var(--error)', expired: 'var(--error)', settled: 'var(--soft-bar-red)' }
 
+const esTxInvoice = (x) => 'lnbc' + Math.round(x.amount / 10) + 'n1pjdemo0pp5' + esHex(x.id, 180)
+
 registerScreen('ecash-transaction', {
   source: 'app/(authenticated)/(tabs)/(signer,explorer,converter)/signer/ecash/transaction/[id]/index.tsx',
   title: () => t('ecash.transactionDetail.title'),
@@ -1306,7 +1350,7 @@ registerScreen('ecash-transaction', {
     const x = esState.transactions.find((tx) => tx.id === esState.txId) || esState.transactions[0]
     const mint = esState.mints.find((m) => m.url === x.mintUrl)
     const dir = x.type === 'mint' ? 'receive' : x.type === 'melt' ? 'send' : x.type
-    const data = x.token ? esToken(x.id) : 'lnbc' + Math.round(x.amount / 10) + 'n1pjdemo0pp5' + esHex(x.id, 180)
+    const data = x.token ? esToken(x.id) : esTxInvoice(x)
     const ago = Math.round((Date.now() - x.timestamp) / 36e5)
     const row = (label, value) => `<div class="es-row">${ss.text({ color: 'muted' }, label)}${ss.text({}, ss.esc(value))}</div>`
     return ss.vstack({ gap: 'lg', style: 'padding-bottom:40px' },
@@ -1351,7 +1395,7 @@ registerScreen('ecash-transaction', {
   overlays: () => {
     const x = esState.transactions.find((tx) => tx.id === esState.txId) || esState.transactions[0]
     return ss.modal({ id: 'es-tx-qr', label: t('common.close') },
-      ss.vstack({ gap: 'md', itemsCenter: true }, ss.text({ size: 'lg', weight: 'medium', center: true }, t('ecash.transactionDetail.lightningInvoice')), ss.shareableQR({ value: 'lnbc' + x.id, size: 250 })))
+      ss.vstack({ gap: 'md', itemsCenter: true }, ss.text({ size: 'lg', weight: 'medium', center: true }, t('ecash.transactionDetail.lightningInvoice')), ss.shareableQR({ value: esTxInvoice(x), size: 250 })))
   },
   bind: (body) => {
     const x = esState.transactions.find((tx) => tx.id === esState.txId) || esState.transactions[0]

@@ -85,11 +85,15 @@ function baAddressRow(addr) {
 }
 
 // Full fixture address for a coin (coins only carry a shortened one).
+// The label only seeds the link; it is pinned on first lookup so later label edits keep it.
 function baCoinAddress(coin) {
-  const receive = baBook().receive
-  const byLabel = receive.find((r) => r.label && r.label === coin.label)
-  if (byLabel) return byLabel.address
-  return ('tb1q' + coin.id + 'utxo' + baAccount().fingerprint + '0'.repeat(40)).slice(0, 42)
+  const fingerprint = baAccount().fingerprint
+  coin.addressByAccount = coin.addressByAccount || {}
+  if (coin.addressByAccount[fingerprint]) return coin.addressByAccount[fingerprint]
+  const byLabel = baBook().receive.find((r) => r.label && r.label === coin.label)
+  const address = byLabel ? byLabel.address : ('tb1q' + coin.id + 'utxo' + fingerprint + '0'.repeat(40)).slice(0, 42)
+  coin.addressByAccount[fingerprint] = address
+  return address
 }
 
 function baCoinTxid(coin) {
@@ -268,6 +272,8 @@ function baReceive() {
   return baState.receive
 }
 
+const baFiatToSats = (fiat) => (fiat && Number(fiat) > 0 ? String(Math.round((Number(fiat) / USD_PER_BTC) * SATS_PER_BTC)) : '')
+
 function baReceiveUri(r) {
   const params = []
   const sats = Number(r.amount)
@@ -291,7 +297,7 @@ registerScreen('account-receive', {
     const uri = baReceiveUri(r)
     const fiatLine = r.fiatMode
       ? r.fiat && Number(r.fiat) > 0
-        ? Math.round((Number(r.fiat) / USD_PER_BTC) * SATS_PER_BTC).toLocaleString('en-US') + ' ' + t('bitcoin.sats')
+        ? Number(baFiatToSats(r.fiat)).toLocaleString('en-US') + ' ' + t('bitcoin.sats')
         : `${t('receive.enterIn')} ${t('bitcoin.sats')}`
       : sats > 0
         ? usd(sats) + ' USD'
@@ -382,7 +388,7 @@ registerScreen('account-receive', {
     })
     on('ba-amount-mode', () => {
       if (r.fiatMode) {
-        r.amount = r.fiat ? String(Math.round((Number(r.fiat) / USD_PER_BTC) * SATS_PER_BTC)) : r.amount
+        r.amount = r.fiat ? baFiatToSats(r.fiat) : r.amount
       } else {
         r.fiat = r.amount ? ((Number(r.amount) / SATS_PER_BTC) * USD_PER_BTC).toFixed(2) : ''
       }
@@ -390,8 +396,10 @@ registerScreen('account-receive', {
       rerender()
     })
     on('ba-paste-amount', () => {
-      if (r.fiatMode) r.fiat = '25.00'
-      else r.amount = '25000'
+      if (r.fiatMode) {
+        r.fiat = '25.00'
+        r.amount = baFiatToSats(r.fiat)
+      } else r.amount = '25000'
       rerender()
     })
     on('ba-paste-label', () => ((r.label = 'Invoice #1042'), rerender()))
@@ -410,7 +418,10 @@ registerScreen('account-receive', {
       input.addEventListener('change', () => {
         const v = input.value.replace(/[^\d.]/g, '')
         if (input.name === 'amount') r.amount = v.replace(/\..*/, '')
-        else r.fiat = v
+        else {
+          r.fiat = v
+          r.amount = baFiatToSats(v)
+        }
         rerender()
       })
     )

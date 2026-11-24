@@ -310,7 +310,9 @@ registerScreen('explorer-address-detail', {
       if (load) {
         load.disabled = true
         load.innerHTML = '<span class="ss-spinner"></span>'
+        const address = exState.address
         setTimeout(() => {
+          if (exState.address !== address || kitCurrent !== 'explorer-address-detail' || !load.isConnected) return
           exState.addressTxLoaded = true
           openKitScreen('explorer-address-detail')
         }, 600)

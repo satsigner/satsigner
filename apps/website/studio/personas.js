@@ -407,12 +407,15 @@ function personaLabels(persona) {
 }
 
 let activePersonaId = 'cold'
+// Bumped on every persona switch so timers started under the old persona can tell they are stale.
+let personaGeneration = 0
 
 function applyPersona(id, options) {
   const persona = STUDIO_PERSONAS.find((p) => p.id === id) || STUDIO_PERSONAS[0]
   const opts = options || {}
   const built = materializePersona(persona)
   activePersonaId = persona.id
+  personaGeneration += 1
 
   replaceList(accounts, persona.accounts.map((a) => ({ ...a })))
   Object.keys(activity).forEach((key) => delete activity[key])
@@ -464,7 +467,8 @@ function applyPersona(id, options) {
 }
 
 function refreshPersonaView() {
-  if (typeof kitCurrent !== 'undefined' && kitCurrent && typeof kitScreens !== 'undefined' && kitScreens[kitCurrent]) {
+  const kitOpen = !document.getElementById('view-kit')?.hidden
+  if (kitOpen && typeof kitCurrent !== 'undefined' && kitCurrent && typeof kitScreens !== 'undefined' && kitScreens[kitCurrent]) {
     openKitScreen(kitCurrent)
     return
   }

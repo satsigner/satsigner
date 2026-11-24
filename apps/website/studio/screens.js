@@ -22,6 +22,7 @@ let settingsReturn = 'signer'
 
 function openKitScreen(id) {
   const def = kitScreens[id]
+  if (!def) return
   if (id === 'settings' && routeId && !String(routeId).startsWith('settings')) settingsReturn = routeId
   // Chart settings opened from the account chart returns there; the settings stack stays on Features.
   if (id === 'settings-features-charts' && routeId !== 'settings-features-charts') {
@@ -114,7 +115,7 @@ registerScreen('timelock', {
         })}</div>`,
         `<div class="timelock-pane" data-pane="date"${lock.type === 'date' ? '' : ' hidden'}>${ss.vstack({ gap: 'lg' },
           ss.hstack({}, field('year', 2025, 2050), field('month', 1, 12), field('day', 1, 31)),
-          ss.hstack({}, field('hour', 0, 23), field('minute', 0, 60)))}</div>`),
+          ss.hstack({}, field('hour', 0, 23), field('minute', 0, 59)))}</div>`),
       ss.vstack({},
         ss.button({ label: t('common.remove'), id: 'kit-remove' }),
         ss.button({ variant: 'secondary', label: t('common.save'), id: 'kit-save', disabled: true }),

@@ -170,11 +170,16 @@ function lxShortPub(pub) {
   return pub && pub.length > 12 ? `${pub.slice(0, 7)}...${pub.slice(-4)}` : pub
 }
 
-// Fill a key after an add-* screen returns to the manager (imports/generation are fixtures).
+function lxCompletePending() {
+  if (lxState.pending) lxState.pending.done = true
+}
+
+// Fill a key after an add-* screen completes and returns to the manager (imports/generation are fixtures).
 function lxApplyPending() {
   const p = lxState.pending
   if (!p) return
   lxState.pending = null
+  if (!p.done) return
   const key = multisigKeys[p.index]
   if (!key) return
   const fp = lxHex(`${key.name}${p.type}${p.index}`, 8)
@@ -873,7 +878,7 @@ registerScreen('multisig-keys', {
   title: () => String(newAccountName).toUpperCase(),
   back: 'multisig-setup',
   render: () => {
-    if (lxState.pending && String(routeId).startsWith('add-')) lxApplyPending()
+    lxApplyPending()
     lxEnsureKeys()
     const shown = multisigKeys.slice(0, msigTotal)
     const ready = shown.every((k) => lxKeyType(k))

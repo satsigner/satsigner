@@ -910,14 +910,16 @@ registerScreen('nostr-account', {
   title: () => '',
   back: 'nostr',
   render: () => {
-    const me = { ...noMe, name: noState.profile.displayName || noMe.name, nip05: noState.profile.nip05 }
+    const selected = lhIdentities().find((identity) => identity.npub === lhNostr.active) || noMe
+    // The editable profile belongs to the primary identity; others render their own fields.
+    const me = selected === noMe ? { ...noMe, name: noState.profile.displayName || noMe.name, nip05: noState.profile.nip05 } : selected
     return `<div class="lh-flush">${noHero(me)}<div class="lh-pad">${ss.vstack({ gap: 'sm' },
       lhActions(false),
       // Studio-only shortcuts kept from the old hand-made hub (the app reaches these from settings/chat).
       ss.hstack({ gap: 'md', style: 'justify-content:center' },
         `<button type="button" class="lh-muted-link" data-go="nostr-contacts">${nt('contacts.title')}</button>`,
         `<button type="button" class="lh-muted-link" data-go="nostr-relays">${t('nostrIdentity.settings.identityRelays')}</button>`),
-      noFeed(noMe.npub))}</div></div>`
+      noFeed(me.npub))}</div></div>`
   },
   bind: (body) => {
     lhHeaderAction(

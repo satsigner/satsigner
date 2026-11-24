@@ -110,10 +110,15 @@ function alOn(body, map) {
   })
 }
 
+// The completion belongs to the screen that started it; if the user navigated away it is dropped.
 function alBusy(button, done, ms = 900) {
+  const screen = kitCurrent
   button.disabled = true
   button.innerHTML = '<span class="ss-spinner"></span>'
-  setTimeout(done, ms)
+  setTimeout(() => {
+    if (kitCurrent !== screen || !button.isConnected) return
+    done()
+  }, ms)
 }
 
 // --- Ark fixtures -----------------------------------------------------------------------
@@ -1074,7 +1079,11 @@ registerScreen('lightning-backup', {
   },
   bind: (body) =>
     alOn(body, {
-      '[data-opt]': (el) => (alLn.backup[el.dataset.opt] = el.classList.contains('is-on')),
+      // components.js toggles is-on in a document-level listener that runs after this one.
+      '[data-opt]': (el) => {
+        const { opt } = el.dataset
+        setTimeout(() => (alLn.backup[opt] = el.classList.contains('is-on')))
+      },
       '#al-backup-go': (el) =>
         alBusy(el, () => {
           const b = alLn.backup

@@ -836,9 +836,12 @@ registerScreen('account-nostr', {
           const first = !n.lastSync
           const stages = ['syncingConnecting', 'syncingDiscovering', 'syncingFetching']
           let stage = 0
+          n.syncRun = (n.syncRun || 0) + 1
+          const run = n.syncRun
           n.syncing = true
           n.syncStage = stages[0]
           const step = () => {
+            if (run !== n.syncRun) return
             stage += 1
             if (stage < stages.length) n.syncStage = stages[stage]
             else {
@@ -889,7 +892,8 @@ registerScreen('account-nostr', {
         bsToast(bsTn('deletionSuccess'))
       }
       if (e.target.closest('#bs-confirm-clear')) {
-        Object.assign(n, { autoSync: false, relays: [], kind0: null, messages: [], trusted: new Set(), lastSync: 0 })
+        // Bumping syncRun drops the pending sync steps so they can't refill the cleared caches.
+        Object.assign(n, { autoSync: false, syncing: false, syncStage: '', syncRun: (n.syncRun || 0) + 1, relays: [], kind0: null, members: [], messages: [], trusted: new Set(), lastSync: 0 })
         bsToast(bsTn('clearCachesSuccess'))
         bsRerender()
       }

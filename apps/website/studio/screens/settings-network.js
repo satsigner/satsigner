@@ -216,12 +216,13 @@ const SN_ELECTRUM_PORTS = { bitcoin: { ssl: 50002, tcp: 50001 }, testnet: { ssl:
 function snForm() {
   if (snState.form) return snState.form
   const s = snState.editing
-  const m = s && s.url.match(/^(ssl|tcp|https?):\/\/([^:/]+)(?::(\d+))?/)
+  const m = s && s.url.match(/^(ssl|tcp|https?):\/\/([^:/]+)(?::(\d+))?(\/[^?#]*)?/)
   snState.form = {
     backend: s ? s.backend : 'electrum',
     name: s ? s.name : '',
     protocol: m && (m[1] === 'tcp' || m[1] === 'ssl') ? m[1] : 'ssl',
-    host: m ? m[2] : '',
+    // Esplora endpoints keep their API path (mempool.space/signet/api) in the host field.
+    host: m ? m[2] + (s.backend === 'esplora' && m[4] && m[4] !== '/' ? m[4] : '') : '',
     port: m && m[3] ? m[3] : '',
     rpcUsername: '',
     rpcPassword: '',
@@ -236,7 +237,12 @@ function snForm() {
 function snUrlPreview(f) {
   if (!f.host) return ''
   if (f.backend === 'electrum') return `${f.protocol}://${f.host}${f.port ? ':' + f.port : ''}`
-  if (f.backend === 'esplora') return `https://${f.host}${f.port ? ':' + f.port : ''}`
+  if (f.backend === 'esplora') {
+    const slash = f.host.indexOf('/')
+    const host = slash === -1 ? f.host : f.host.slice(0, slash)
+    const path = slash === -1 ? '' : f.host.slice(slash)
+    return `https://${host}${f.port ? ':' + f.port : ''}${path}`
+  }
   return `http://${f.host}:${f.port || SN_RPC_PORT[snState.detailNetwork]}`
 }
 
@@ -337,6 +343,8 @@ registerScreen('settings-network-detail', {
     function rerenderSoon() {
       clearTimeout(timer)
       timer = setTimeout(() => {
+        // The user may have left (Cancel, Back) or the form may have been rebuilt since typing.
+        if (!body.isConnected || kitCurrent !== 'settings-network-detail') return
         const active = document.activeElement && document.activeElement.name
         capture()
         rerender()

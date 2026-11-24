@@ -288,9 +288,15 @@ const nt = (key, vars) => noT('nostrIdentity.' + key, vars)
 // Screens remember who opened them, so Back returns there (router.back()).
 const noReturn = {}
 function noRemember(id) {
-  if (typeof routeId !== 'undefined' && routeId && routeId !== id) noReturn[id] = routeId
+  if (typeof routeId === 'undefined' || !routeId || routeId === id) return
+  // Coming back from a screen this one opened is Back navigation, not a new opener.
+  if (noReturn[routeId] === id) return
+  noReturn[id] = routeId
 }
 const noBack = (id, fallback) => () => noReturn[id] || fallback
+// Every server can be removed; file URLs then fall back to the first popular one.
+const noPrimaryBlossom = () => noState.blossom[0] || NO_BLOSSOM_POPULAR[0].url
+const noPersonaGeneration = () => (typeof personaGeneration === 'number' ? personaGeneration : 0)
 
 function noAvatar(person, size = 36) {
   if (person.picture) {
@@ -575,7 +581,9 @@ registerScreen('nostr-chat-peer', {
         ;(noState.chats[peer] = noState.chats[peer] || []).push({ from: noMe.npub, text: input.value.trim(), at: Date.now() })
         openKitScreen('nostr-chat-peer')
         // A fixture reply so the thread feels alive.
+        const generation = noPersonaGeneration()
         setTimeout(() => {
+          if (generation !== noPersonaGeneration() || !noState.chats[peer]) return
           noState.chats[peer].push({ from: peer, text: 'Got it (demo reply).', at: Date.now() })
           if (kitCurrent === 'nostr-chat-peer' && noState.peer === peer) openKitScreen('nostr-chat-peer')
         }, 1400)
@@ -821,7 +829,7 @@ registerScreen('nostr-files', {
             )}${ss.text({ size: 'xs', color: 'muted', as: 'span' }, noSize(x.size) + '  ·  ' + noDay(x.at))}</span></button>`
         )
         .join('')}</div>`,
-      ss.text({ size: 'xs', color: 'muted', center: true }, noState.blossom[0].replace(/^https?:\/\//, ''))
+      ss.text({ size: 'xs', color: 'muted', center: true }, noState.blossom[0] ? noState.blossom[0].replace(/^https?:\/\//, '') : nt('blossom.noServersFound'))
     )
   },
   bind: (body) =>
@@ -845,7 +853,7 @@ registerScreen('nostr-file', {
   back: 'nostr-files',
   render: () => {
     const f = noFiles.find((x) => x.sha256 === noState.file) || noFiles[0]
-    const url = noState.blossom[0] + '/' + f.sha256 + '.' + f.ext
+    const url = noPrimaryBlossom() + '/' + f.sha256 + '.' + f.ext
     return ss.vstack(
       { gap: 'lg' },
       f.category === 'image' ? `<div class="no-preview">${ss.icon('files', { size: 40 })}</div>` : '',
@@ -1134,8 +1142,8 @@ registerScreen('nostr-zap', {
 
 // --- profile.tsx + create/profile.tsx ----------------------------------------------------
 
-function noProfileForm(withBanner) {
-  const p = noState.profile
+function noProfileForm(withBanner, profile) {
+  const p = profile || noState.profile
   const field = (label, name, placeholder, value, hint, upload) =>
     ss.vstack(
       { gap: 'xs' },
@@ -1153,7 +1161,8 @@ function noProfileForm(withBanner) {
   ]
 }
 
-function noBindProfile(body, done) {
+function noBindProfile(body, done, profile) {
+  const target = profile || noState.profile
   body.querySelector('[name="no-displayName"]').addEventListener('input', (e) => {
     const av = body.querySelector('.no-profile-head .no-avatar, .no-create-avatar .no-avatar')
     if (av && av.tagName !== 'IMG') av.textContent = (e.target.value || 'N')[0].toUpperCase()
@@ -1166,7 +1175,7 @@ function noBindProfile(body, done) {
       up.disabled = true
       label.textContent = nt('profile.uploading')
       setTimeout(() => {
-        body.querySelector(`[name="no-${up.dataset.upload}"]`).value = noState.blossom[0] + '/' + demoTxid(up.dataset.upload).slice(0, 16) + '.jpg'
+        body.querySelector(`[name="no-${up.dataset.upload}"]`).value = noPrimaryBlossom() + '/' + demoTxid(up.dataset.upload).slice(0, 16) + '.jpg'
         up.disabled = false
         label.textContent = original
         ss.toast(nt('profile.uploadSuccess'), document.getElementById('view-kit'))
@@ -1175,7 +1184,7 @@ function noBindProfile(body, done) {
     if (e.target.closest('#no-profile-save')) {
       for (const k of ['displayName', 'picture', 'banner', 'nip05', 'lud16']) {
         const el = body.querySelector(`[name="no-${k}"]`)
-        if (el) noState.profile[k] = el.value.trim()
+        if (el) target[k] = el.value.trim()
       }
       done()
     }
@@ -1207,16 +1216,28 @@ registerScreen('nostr-create-profile', {
   render: () =>
     ss.vstack(
       { gap: 'lg', style: 'padding-bottom:24px' },
-      `<div class="no-create-avatar" style="display:flex;justify-content:center">${noAvatar({ name: noState.profile.displayName || 'N' }, 80)}</div>`,
-      ...noProfileForm(false),
+      `<div class="no-create-avatar" style="display:flex;justify-content:center">${noAvatar({ name: noNewProfile.displayName || 'N' }, 80)}</div>`,
+      ...noProfileForm(false, noNewProfile),
       ss.button({ label: nt('profile.save'), variant: 'secondary', id: 'no-profile-save' })
     ),
   bind: (body) =>
     noBindProfile(body, () => {
+      const name = noNewProfile.displayName || 'Nostr ' + (noAddedIdentities().length + 1)
+      noAddIdentity({ ...noPerson(name, { nip05: noNewProfile.nip05, lud16: noNewProfile.lud16 }), picture: noNewProfile.picture })
+      Object.keys(noNewProfile).forEach((k) => (noNewProfile[k] = ''))
       ss.toast(nt('create.success'), document.getElementById('view-kit'))
       go('nostr')
-    })
+    }, noNewProfile)
 })
+
+// A created or imported identity joins the landing list (lhNostr lives in legacy-hubs.js).
+const noNewProfile = { displayName: '', picture: '', banner: '', nip05: '', lud16: '' }
+const noAddedIdentities = () => (typeof lhIdentities === 'function' ? lhIdentities() : [])
+function noAddIdentity(identity) {
+  const list = noAddedIdentities()
+  if (list.some((existing) => existing.npub === identity.npub)) return
+  list.push(identity)
+}
 
 // --- zapSettings.tsx ---------------------------------------------------------------------
 
@@ -1450,10 +1471,12 @@ registerScreen('nostr-bunker', {
         const uri = document.querySelector('[name="no-bunker-uri"]').value.trim()
         if (!uri.startsWith('nostrconnect://')) return (document.getElementById('no-bunker-error').hidden = false)
         const name = decodeURIComponent((uri.match(/name=([^&]+)/) || [])[1] || t('nip46.unknownApp'))
-        noState.sessions.unshift({ name, relay: decodeURIComponent((uri.match(/relay=([^&]+)/) || [])[1] || 'wss://relay.nsec.app'), status: 'connecting', lastActive: Date.now() })
+        const session = { name, relay: decodeURIComponent((uri.match(/relay=([^&]+)/) || [])[1] || 'wss://relay.nsec.app'), status: 'connecting', lastActive: Date.now() }
+        noState.sessions.unshift(session)
         openKitScreen('nostr-bunker')
         setTimeout(() => {
-          noState.sessions[0].status = 'connected'
+          if (!noState.sessions.includes(session)) return
+          session.status = 'connected'
           ss.toast(t('nip46.connectionSuccess').replace('{{name}}', name), document.getElementById('view-kit'))
           if (kitCurrent === 'nostr-bunker') openKitScreen('nostr-bunker')
         }, 1100)
@@ -1518,13 +1541,7 @@ registerScreen('nostr-compose', {
   render: () => {
     const c = noCompose
     const plain = (name, placeholder, value, mode = 'numeric') => `<input class="no-plain-input" name="no-c-${name}" inputmode="${mode}" placeholder="${ss.esc(placeholder)}" value="${ss.esc(value)}">`
-    const tags = [['client', 'satsigner']]
-    if (c.mode === 'fixed' && c.fixed) tags.push(['zap-min', String(+c.fixed * 1000)], ['zap-max', String(+c.fixed * 1000)])
-    if (c.mode === 'range' && c.min) tags.push(['zap-min', String(+c.min * 1000)], ['zap-max', String(+(c.max || c.min) * 1000)])
-    if (c.goal) tags.push(['zap-goal', String(+c.goal * 1000)])
-    if (c.uses) tags.push(['zap-uses', c.uses])
-    if (c.lnurl) tags.push(['zap-lnurl', c.lnurl])
-    const json = JSON.stringify({ kind: 1, created_at: Math.round(noNow / 1000), tags, content: c.text }, null, 2)
+    const json = noComposeJson(c)
     return ss.vstack(
       { gap: 'md', style: 'padding-bottom:24px' },
       ss.vstack({ gap: 'xs' }, ss.text({ size: 'xs', color: 'muted' }, ss.esc(noTitle()))),
@@ -1558,7 +1575,7 @@ registerScreen('nostr-compose', {
       ss.button({ label: nt('compose.publish'), variant: 'gradient', id: 'no-c-publish', disabled: !c.text.trim() }),
       ss.hstack(
         { gap: 'sm', className: 'no-eq' },
-        ss.clipboardCopy({ text: json }, ss.button({ label: nt('compose.copySigned'), variant: 'outline', disabled: !c.text.trim() })),
+        ss.clipboardCopy({ text: json }, ss.button({ label: nt('compose.copySigned'), variant: 'outline', disabled: !c.text.trim() })).replace('<span class="ss-copy"', '<span id="no-c-copy" class="ss-copy"'),
         ss.button({ label: nt('compose.qrSigned'), variant: 'outline', id: 'no-c-qr', disabled: !c.text.trim(), style: 'flex:1' })
       )
     )
@@ -1570,6 +1587,16 @@ registerScreen('nostr-compose', {
         noCompose[el.name.slice(5)] = el.value
       })
     const text = body.querySelector('[name="no-c-text"]')
+    const refreshCopy = () => {
+      keep()
+      const copy = body.querySelector('#no-c-copy')
+      if (copy) copy.dataset.ssCopy = noComposeJson(noCompose)
+      const button = body.querySelector('#no-c-copy button')
+      if (button) button.disabled = !noCompose.text.trim()
+    }
+    body.addEventListener('input', (e) => {
+      if (e.target.closest('[name^="no-c-"]')) refreshCopy()
+    })
     text.addEventListener('input', () => {
       body.querySelector('#no-c-count').textContent = `${text.value.length}/5000`
       const empty = !text.value.trim()
@@ -1608,8 +1635,11 @@ registerScreen('nostr-compose', {
         keep()
         pub.disabled = true
         pub.querySelector('.ss-button-label').textContent = nt('compose.publishing')
+        const generation = noPersonaGeneration()
+        const draftText = noCompose.text
         setTimeout(() => {
-          noNotes.unshift({ id: 'n' + Date.now(), author: noMe, kind: 1, at: noNow, content: noCompose.text })
+          if (generation !== noPersonaGeneration()) return
+          noNotes.unshift({ id: 'n' + Date.now(), author: noMe, kind: 1, at: noNow, content: draftText })
           Object.assign(noCompose, { text: '', mode: 'none', fixed: '', min: '', max: '', goal: '', uses: '', lnurl: '', advanced: false, json: false })
           ss.toast(nt('compose.published'), document.getElementById('view-kit'))
           go('nostr-account')
@@ -1618,6 +1648,16 @@ registerScreen('nostr-compose', {
     })
   }
 })
+
+function noComposeJson(c) {
+  const tags = [['client', 'satsigner']]
+  if (c.mode === 'fixed' && c.fixed) tags.push(['zap-min', String(+c.fixed * 1000)], ['zap-max', String(+c.fixed * 1000)])
+  if (c.mode === 'range' && c.min) tags.push(['zap-min', String(+c.min * 1000)], ['zap-max', String(+(c.max || c.min) * 1000)])
+  if (c.goal) tags.push(['zap-goal', String(+c.goal * 1000)])
+  if (c.uses) tags.push(['zap-uses', c.uses])
+  if (c.lnurl) tags.push(['zap-lnurl', c.lnurl])
+  return JSON.stringify({ kind: 1, created_at: Math.round(noNow / 1000), tags, content: c.text }, null, 2)
+}
 
 // --- create/index.tsx ---------------------------------------------------------------------
 
@@ -1716,6 +1756,11 @@ registerScreen('nostr-import', {
           err.hidden = false
           return
         }
+        const input = kind === 'seed'
+          ? [...body.querySelectorAll('[data-word]')].map((i) => i.value.trim()).join(' ')
+          : body.querySelector(`[name="no-import-${kind}"]`).value.trim()
+        const imported = noPerson('Imported ' + (noAddedIdentities().length + 1), { nip05: '', lud16: '' })
+        noAddIdentity({ ...imported, npub: kind === 'npub' ? input : noBech('npub', input), watchOnly: kind === 'npub' })
         ss.toast(nt('import.success'), document.getElementById('view-kit'))
         go('nostr')
       }

@@ -198,9 +198,13 @@ const ss = (() => {
     const c = e.target.closest('[data-ss-close]')
     if (c) c.closest('.ss-modal')?.setAttribute('hidden', '')
     const copy = e.target.closest('[data-ss-copy]')
-    if (copy) {
-      navigator.clipboard?.writeText(copy.dataset.ssCopy).catch(() => {})
-      toast(t('common.copiedToClipboard'), copy.closest('.ss-main, section') || undefined)
+    if (copy && !copy.querySelector('button:disabled')) {
+      const host = copy.closest('.ss-main, section') || undefined
+      const write = navigator.clipboard ? navigator.clipboard.writeText(copy.dataset.ssCopy) : Promise.reject()
+      write.then(
+        () => toast(t('common.copiedToClipboard'), host),
+        () => toast(t('common.copyFailed'), host)
+      )
     }
   })
 
@@ -537,6 +541,7 @@ const ss = (() => {
     root.querySelector('.ss-fee-sats').textContent = Math.trunc(vb * rate)
     root.querySelector('.ss-fee-fiat').textContent = fmt(satsToFiat(Math.trunc(vb * rate)), 2, true)
     root.dataset.value = rate
+    root.dispatchEvent(new CustomEvent('ss-change', { bubbles: true, detail: { rate } }))
   }
 
   document.addEventListener('input', (e) => {
