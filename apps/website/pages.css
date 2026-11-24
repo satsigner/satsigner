@@ -274,7 +274,7 @@ html[data-theme="light"] .logo-on-dark { filter: invert(1); }
   line-height: 1.2;
 }
 
-.review-author { color: var(--fg); font-weight: 500; }
+.review-author { color: var(--fg); font-weight: 500; overflow-wrap: anywhere; }
 
 .review-nip05 {
   color: var(--muted);

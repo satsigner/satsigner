@@ -10,7 +10,10 @@
   const PRIVATE_DM_KIND = 14;
   const SEAL_KIND = 13;
   const RELAY_LOOKUP_TIMEOUT_MS = 4000;
-  const MAX_REPORT_LENGTH = 20000;
+  // NIP-44 caps plaintext at 65535 bytes and the seal is encrypted again inside the wrap.
+  // 40000 bytes of JSON-escaped content keeps the padded rumor at 40960 bytes, so the seal stays under the cap.
+  const MAX_REPORT_BYTES = 40000;
+  const CONNECTION_FAILURE_PREFIX = "connection failure";
   const TWO_DAYS_S = 2 * 24 * 60 * 60;
 
   const form = document.getElementById("report-form");
@@ -33,9 +36,18 @@
     status.dataset.tone = tone || "";
   };
 
+  const sendState = { active: false };
+
+  const refreshButtons = () => {
+    anonymousButton.disabled = sendState.active;
+    signedButton.disabled = sendState.active || !supportsSignedReports();
+    signedButton.title = supportsSignedReports() ? "" : "Install a Nostr extension with NIP-44 support";
+  };
+
   const setBusy = (busy) => {
-    anonymousButton.disabled = busy;
-    signedButton.disabled = busy || !supportsSignedReports();
+    sendState.active = busy;
+    reportInput.readOnly = busy;
+    refreshButtons();
   };
 
   const isRelayUrl = (url) => typeof url === "string" && url.startsWith("wss://");
@@ -78,7 +90,16 @@
 
   const publish = async (wrap) => {
     const relays = await getInboxRelays();
-    const results = await Promise.allSettled(pool.publish(relays, wrap));
+    // SimplePool resolves (not rejects) with a "connection failure: …" string when a relay is unreachable.
+    const acceptances = pool.publish(relays, wrap).map((publication) =>
+      publication.then((reason) => {
+        if (typeof reason === "string" && reason.startsWith(CONNECTION_FAILURE_PREFIX)) {
+          throw new Error(reason);
+        }
+        return reason;
+      }),
+    );
+    const results = await Promise.allSettled(acceptances);
     return results.filter((result) => result.status === "fulfilled").length;
   };
 
@@ -88,14 +109,17 @@
       setStatus("Write your report first.", "bad");
       return null;
     }
-    if (content.length > MAX_REPORT_LENGTH) {
-      setStatus(`Keep the report under ${MAX_REPORT_LENGTH} characters.`, "bad");
+    if (new TextEncoder().encode(JSON.stringify(content)).length > MAX_REPORT_BYTES) {
+      setStatus("This report is too long to encrypt. Shorten it and try again.", "bad");
       return null;
     }
     return content;
   };
 
   const send = async (buildWrap) => {
+    if (sendState.active) {
+      return;
+    }
     const content = readReport();
     if (!content) {
       return;
@@ -122,10 +146,6 @@
   signedButton.addEventListener("click", () => send(buildSignedWrap));
 
   // Extensions inject window.nostr after page load, so check again once everything has loaded.
-  const refreshSignedButton = () => {
-    signedButton.disabled = !supportsSignedReports();
-    signedButton.title = supportsSignedReports() ? "" : "Install a Nostr extension with NIP-44 support";
-  };
-  refreshSignedButton();
-  window.addEventListener("load", () => setTimeout(refreshSignedButton, 500));
+  refreshButtons();
+  window.addEventListener("load", () => setTimeout(refreshButtons, 500));
 })();

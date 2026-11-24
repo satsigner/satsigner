@@ -1,10 +1,13 @@
 // Export App Store screenshots from release/shots.html at exact pixel sizes.
 //
-//   python3 -m http.server 8000          (from the repo root)
+// Run both commands from apps/website, which is the site's serving root:
+//
+//   cd apps/website
+//   python3 -m http.server 8000
 //   node release/tools/export-shots.mjs [--base http://localhost:8000] [--format iphone69,header]
 //
 // Needs a local Chrome and playwright-core, which is not a repo dependency:
-// run `npm i --no-save playwright-core` at the repo root (node_modules is
+// run `npm i --no-save playwright-core` in apps/website (node_modules is
 // gitignored), or point PLAYWRIGHT_CORE at an existing install.
 import { mkdir, readFile } from 'node:fs/promises'
 import { createRequire } from 'node:module'
@@ -32,7 +35,7 @@ try {
     ? createRequire(import.meta.url)(process.env.PLAYWRIGHT_CORE)
     : await import('playwright-core'))
 } catch {
-  console.error('playwright-core not found. Run `npm i --no-save playwright-core` at the repo root.')
+  console.error('playwright-core not found. Run `npm i --no-save playwright-core` in apps/website.')
   process.exit(1)
 }
 

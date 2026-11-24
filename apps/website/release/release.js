@@ -7,9 +7,20 @@
     try { return JSON.parse(localStorage.getItem(STORE)) || {}; } catch (e) { return {}; }
   }
 
-  function save() {
+  // Apply every change to the latest stored state so another open tab's edits survive.
+  function mutate(change) {
+    state = load();
+    change(state);
     try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) {}
   }
+
+  var refreshers = [];
+  window.addEventListener('storage', function (event) {
+    if (event.key !== STORE) return;
+    state = load();
+    refreshers.forEach(function (refresh) { refresh(); });
+    progress();
+  });
 
   function el(tag, attrs, children) {
     var node = document.createElement(tag);
@@ -55,9 +66,10 @@
   // Ticks shared by blockers and checklist so progress covers both.
   function tick(id) { return !!(state.ticks && state.ticks[id]); }
   function setTick(id, on) {
-    state.ticks = state.ticks || {};
-    if (on) state.ticks[id] = true; else delete state.ticks[id];
-    save();
+    mutate(function (latest) {
+      latest.ticks = latest.ticks || {};
+      if (on) latest.ticks[id] = true; else delete latest.ticks[id];
+    });
     progress();
   }
 
@@ -79,6 +91,7 @@
     var input = el('input', { type: 'checkbox' });
     input.checked = tick(id);
     input.addEventListener('change', function () { setTick(id, input.checked); onChange(input.checked); });
+    refreshers.push(function () { input.checked = tick(id); onChange(input.checked); });
     allTicks.push(id);
     return input;
   }
@@ -92,7 +105,7 @@
     var dot = el('span', { class: 'kit-dot' });
     var url = R.app.site + p[1];
     pages.appendChild(el('li', {}, [dot, el('a', { href: p[1], text: p[0] }), el('code', { text: url }), copyButton(function () { return url; }, p[0] + ' URL')]));
-    fetch(p[1], { method: 'HEAD' }).then(function (r) { dot.classList.add(r.ok ? 'is-ok' : 'is-bad'); }, function () { dot.classList.add('is-bad'); });
+    fetch(url, { method: 'HEAD', cache: 'no-store' }).then(function (r) { dot.classList.add(r.ok ? 'is-ok' : 'is-bad'); }, function () { dot.classList.add('is-bad'); });
   });
 
   // Blockers.
@@ -127,16 +140,24 @@
   // Listing fields with limits and local drafts.
   var fields = document.getElementById('kit-fields');
   var lastGroup;
-  state.drafts = state.drafts || {};
-  R.fields.forEach(function (f) {
+  function draft(key) { return state.drafts ? state.drafts[key] : undefined; }
+  function setDraft(key, value) {
+    mutate(function (latest) {
+      latest.drafts = latest.drafts || {};
+      if (value == null) delete latest.drafts[key]; else latest.drafts[key] = value;
+    });
+  }
+  R.fields.forEach(function (f, index) {
     var groupTitle = storeLabel(f.store) + ' · ' + f.group;
     if (groupTitle !== lastGroup) {
       fields.appendChild(el('h3', { class: 'kit-group-title', text: groupTitle }));
       lastGroup = groupTitle;
     }
     var box = el('div', { class: 'kit-field' });
-    var input = f.multiline ? el('textarea', { rows: Math.min(18, f.value.split('\n').length + 1) }) : el('input', { type: 'text' });
-    input.value = state.drafts[f.key] != null ? state.drafts[f.key] : f.value;
+    var inputId = 'kit-field-' + index;
+    var input = f.multiline ? el('textarea', { id: inputId, rows: Math.min(18, f.value.split('\n').length + 1) }) : el('input', { id: inputId, type: 'text' });
+    function stored() { return draft(f.key) != null ? draft(f.key) : f.value; }
+    input.value = stored();
     var count = el('span', { class: 'kit-count' });
     var reset = el('button', { type: 'button', class: 'kit-link-button', text: 'Reset' });
 
@@ -152,20 +173,22 @@
     }
 
     input.addEventListener('input', function () {
-      if (input.value === f.value) delete state.drafts[f.key];
-      else state.drafts[f.key] = input.value;
-      save();
+      setDraft(f.key, input.value === f.value ? null : input.value);
       sync();
     });
     reset.addEventListener('click', function () {
       input.value = f.value;
-      delete state.drafts[f.key];
-      save();
+      setDraft(f.key, null);
+      sync();
+    });
+    refreshers.push(function () {
+      if (document.activeElement === input) return;
+      input.value = stored();
       sync();
     });
 
     box.appendChild(el('div', { class: 'kit-field-head' }, [
-      el('strong', { text: f.label }),
+      el('label', { for: inputId, class: 'kit-field-label', text: f.label }),
       el('div', { class: 'kit-field-tools' }, [count, reset, copyButton(function () { return input.value; }, f.label)])
     ]));
     box.appendChild(input);

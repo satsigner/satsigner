@@ -40,7 +40,7 @@
 
 .kit-field { margin-bottom: 20px; }
 .kit-field-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
-.kit-field-head strong { font-size: 14px; font-weight: 600; }
+.kit-field-label { font-size: 14px; font-weight: 600; }
 .kit-field-tools { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); }
 .kit-count.is-over { color: var(--bad); font-weight: 600; }
 .kit-field textarea, .kit-field input {
@@ -56,7 +56,7 @@
 }
 .kit-field textarea:focus, .kit-field input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
 .kit-field .kit-note { color: var(--muted); font-size: 13px; margin: 6px 0 0; }
-.kit-field.is-edited .kit-field-head strong::after { content: " · edited"; color: var(--warn); font-weight: 400; }
+.kit-field.is-edited .kit-field-label::after { content: " · edited"; color: var(--warn); font-weight: 400; }
 
 .kit-group-title { font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 32px 0 12px; }
 

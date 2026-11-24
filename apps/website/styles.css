@@ -27,7 +27,8 @@ body {
 }
 
 input,
-textarea {
+textarea,
+code {
   -webkit-user-select: text;
   user-select: text;
 }

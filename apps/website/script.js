@@ -758,6 +758,7 @@ if (typeof Swiper !== 'undefined') {
         setDemoMenu(false);
         revealApp();
         whenDemo(function (demo) {
+          if (run !== demoRun) return;
           var pending = demo.play && demo.play(flow, run);
           if (pending && pending.then) {
             pending.then(function () { hideDemoName(run); }, function () { hideDemoName(run); });
@@ -1133,6 +1134,8 @@ if (typeof Swiper !== 'undefined') {
     button.addEventListener('click', function () { step(1); });
   });
   dialog.addEventListener('close', function () {
+    slideToken += 1;
+    dialog.classList.remove('is-leaving', 'is-entering');
     stopLight();
     modalFrame.src = 'about:blank';
     current = -1;
@@ -1222,6 +1225,16 @@ if (typeof Swiper !== 'undefined') {
         var panel = document.getElementById(other.getAttribute('aria-controls'));
         if (panel) panel.hidden = !on;
       });
+    });
+    tab.addEventListener('keydown', function (event) {
+      var list = Array.prototype.slice.call(tabs);
+      var index = list.indexOf(tab);
+      var keys = { ArrowRight: index + 1, ArrowLeft: index - 1, Home: 0, End: list.length - 1 };
+      if (!(event.key in keys)) return;
+      event.preventDefault();
+      var next = list[(keys[event.key] + list.length) % list.length];
+      next.focus();
+      next.click();
     });
   });
 })();

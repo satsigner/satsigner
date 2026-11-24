@@ -11,7 +11,7 @@
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon_io/favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon_io/favicon-16x16.png">
     <script>try{if(localStorage.getItem("theme")==="light")document.documentElement.setAttribute("data-theme","light")}catch(e){}</script>
-    <link rel="stylesheet" href="/pages.css?v=17">
+    <link rel="stylesheet" href="/pages.css?v=18">
   </head>
   <body>
     <nav class="page-nav">
@@ -96,12 +96,15 @@
         }
 
         function profileOf(profile) {
-          if (!profile || !profile.content) return { name: '', picture: '' }
+          if (!profile || !profile.content) return { name: '', picture: '', nip05: '' }
           try {
             var data = JSON.parse(profile.content)
             var picture = data.picture || ''
-            if (!/^https?:\/\//i.test(picture)) picture = ''
-            return { name: data.display_name || data.name || '', picture: picture, nip05: data.nip05 || '' }
+            if (typeof picture !== 'string' || !/^https?:\/\//i.test(picture)) picture = ''
+            var name = data.display_name || data.name || ''
+            if (typeof name !== 'string') name = ''
+            var nip05 = typeof data.nip05 === 'string' ? data.nip05 : ''
+            return { name: name, picture: picture, nip05: nip05 }
           } catch (e) {
             return { name: '', picture: '', nip05: '' }
           }
@@ -178,6 +181,7 @@
         var noteJson = document.getElementById('note-json')
         var noteSig = document.getElementById('note-sig')
         var cryptoLibs = null
+        var modalRequest = 0
 
         function loadCrypto() {
           if (!cryptoLibs) {
@@ -222,7 +226,11 @@
           slot.hidden = false
           slot.className = 'review-sig'
           slot.textContent = 'Checking…'
-          signatureOk(note).then(function (result) { markSig(id, slot, result) })
+          var request = modalRequest
+          signatureOk(note).then(function (result) {
+            if (slot === noteSig && (request !== modalRequest || openNote !== note)) return
+            markSig(id, slot, result)
+          })
         }
 
         list.addEventListener('click', function (event) {
@@ -237,6 +245,7 @@
           var note = notes[button.getAttribute('data-note')]
           if (!note) return
           openNote = note
+          modalRequest++
           noteSig.hidden = true
           noteSig.textContent = ''
           noteSig.className = 'review-sig'
@@ -276,8 +285,10 @@
             empty()
             return
           }
+          var rendered = {}
           function block(event, nested) {
-            var repliesHere = (replies[event.id] || []).slice().sort(function (a, b) { return a.created_at - b.created_at })
+            rendered[event.id] = true
+            var repliesHere = (replies[event.id] || []).filter(function (reply) { return !rendered[reply.id] }).sort(function (a, b) { return a.created_at - b.created_at })
             var info = profileOf(profiles[event.pubkey])
             var author = info.name || shortKey(event.pubkey)
             var initial = (author.match(/[a-z0-9]/i) || ['?'])[0].toUpperCase()
@@ -294,7 +305,7 @@
               '<span class="review-sig" data-sig-for="' + esc(event.id) + '" hidden></span>' +
               '<time datetime="' + esc(new Date(event.created_at * 1000).toISOString()) + '">' + esc(when(event.created_at)) + '</time></span></header>' +
               '<p class="review-body">' + esc(event.content || '') + '</p>'
-            if (repliesHere.length && !nested) {
+            if (repliesHere.length) {
               html += '<div class="review-replies">' + repliesHere.map(function (reply) { return block(reply, true) }).join('') + '</div>'
             }
             return html + '</article>'
