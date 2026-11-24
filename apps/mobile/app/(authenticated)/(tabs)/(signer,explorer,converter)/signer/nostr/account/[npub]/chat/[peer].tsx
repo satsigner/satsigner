@@ -15,26 +15,26 @@ import {
   NOSTR_CHAT_DEFAULT_SESSION_ID,
   NOSTR_PRIVACY_MASK
 } from '@/constants/nostr'
+import { MS_PER_SECOND } from '@/constants/time'
 import {
   useNostrChatProfiles,
   useNostrChatSubscription,
   useNostrChatThread
 } from '@/hooks/useNostrChat'
-import { useNostrChatMessageActions } from '@/hooks/useNostrChatMessageActions'
-import { useNostrChatReactions } from '@/hooks/useNostrChatReactions'
 import { useNostrChatLendSigner } from '@/hooks/useNostrChatLendSigner'
 import { useNostrChatLiveSigner } from '@/hooks/useNostrChatLiveSigner'
+import { useNostrChatMessageActions } from '@/hooks/useNostrChatMessageActions'
+import { useNostrChatReactions } from '@/hooks/useNostrChatReactions'
 import { useNostrChatSession } from '@/hooks/useNostrChatSession'
 import { useNostrChatSignRequests } from '@/hooks/useNostrChatSignRequests'
-import { useNow } from '@/hooks/useNow'
 import { getAuthorLabel } from '@/hooks/useNostrMessage'
+import { useNow } from '@/hooks/useNow'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { useNostrStore } from '@/store/nostr'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { useSettingsStore } from '@/store/settings'
-import { MS_PER_SECOND } from '@/constants/time'
 import type { NostrChatProtocol } from '@/types/models/Nostr'
 import { formatNpub } from '@/utils/format'
 import { getPubKeyHexFromNpub, safeNpubEncode } from '@/utils/nostr'
