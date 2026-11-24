@@ -66,6 +66,7 @@ import {
   listChatThreadReactions,
   listOwnChatSessionMessageIds
 } from '@/db/queries/nostrChat'
+import { listSignRequestsForMessages } from '@/db/signRequests'
 import type { AuthorDisplayInfo } from '@/hooks/useNostrMessage'
 import { queryClient } from '@/lib/queryClient'
 import { getNostrFollowCache } from '@/storage/mmkv'
@@ -83,9 +84,14 @@ import type {
   NostrChatThreadItem,
   NostrChatThreadRef,
   NostrDM,
+  NostrSignRequest,
   NostrKind4ChatEvent,
   NostrSubscriptionWindow
 } from '@/types/models/Nostr'
+import {
+  queueChatSignRequests,
+  settleChatSignRequests
+} from '@/utils/chatSignRequests'
 import { NostrPublishError } from '@/utils/errors'
 import { formatNpub } from '@/utils/format'
 import {
@@ -499,6 +505,8 @@ async function publishNip17Rumor(
 }
 
 type Nip17SendOptions = {
+  /** Machine-readable tags next to the text, e.g. a sign response. */
+  extraTags?: string[][]
   replyToId?: string
   sessionId?: string
 }
@@ -511,9 +519,13 @@ type Nip17SendOptions = {
 function buildNip17ChatTags(
   identityNpub: string,
   peerPubkey: string,
-  { replyToId, sessionId = NOSTR_CHAT_DEFAULT_SESSION_ID }: Nip17SendOptions
+  {
+    extraTags = [],
+    replyToId,
+    sessionId = NOSTR_CHAT_DEFAULT_SESSION_ID
+  }: Nip17SendOptions
 ): string[][] {
-  const tags = replyToId ? [buildReplyTag(replyToId)] : []
+  const tags = [...(replyToId ? [buildReplyTag(replyToId)] : []), ...extraTags]
   if (sessionId === NOSTR_CHAT_DEFAULT_SESSION_ID) {
     return tags
   }
@@ -1131,6 +1143,17 @@ function ingestChatRumor(
     sessionId,
     status: 'sent'
   })
+  if (!isSelfCopy && ownHex !== null) {
+    queueChatSignRequests(rumor.content, rumor.tags, {
+      identityNpub,
+      messageId: rumor.id,
+      ownPubkey: ownHex,
+      peerPubkey,
+      receivedAt: nowInSeconds(),
+      requestedAt: createdAt,
+      sessionId
+    })
+  }
   applyHeldChatReactions(identityNpub, ownHex, rumor.id)
   return true
 }
@@ -1410,6 +1433,7 @@ function settleInterruptedSendsOnce(identityNpub: string) {
 
 async function startChatPipeline(pipeline: ChatPipeline): Promise<void> {
   settleInterruptedSendsOnce(pipeline.identity.npub)
+  settleChatSignRequests(pipeline.identity.npub, nowInSeconds())
   pipeline.generation += 1
   const { generation } = pipeline
   pipeline.api.closeAllSubscriptions()
@@ -1732,9 +1756,34 @@ function loadChatThreadItems(
   const reactions = groupReactionsByMessage(
     listChatThreadReactions(thread, limit)
   )
-  return listChatThread(thread, limit).map((message) =>
-    toChatThreadItem(message, authors, reactions.get(message.id) ?? [])
+  const messages = listChatThread(thread, limit)
+  const signRequests = groupSignRequestsByMessage(
+    listSignRequestsForMessages(
+      thread.identityNpub,
+      messages
+        .filter((message) => message.direction === 'in')
+        .map((message) => message.id)
+    )
   )
+  return messages.map((message) => ({
+    ...toChatThreadItem(message, authors, reactions.get(message.id) ?? []),
+    ...(signRequests.has(message.id)
+      ? { signRequests: signRequests.get(message.id) }
+      : {})
+  }))
+}
+
+function groupSignRequestsByMessage(
+  requests: NostrSignRequest[]
+): Map<string, NostrSignRequest[]> {
+  const grouped = new Map<string, NostrSignRequest[]>()
+  for (const request of requests) {
+    grouped.set(request.messageId, [
+      ...(grouped.get(request.messageId) ?? []),
+      request
+    ])
+  }
+  return grouped
 }
 
 type ChatThreadAuthorProfile = { displayName?: string; picture?: string }

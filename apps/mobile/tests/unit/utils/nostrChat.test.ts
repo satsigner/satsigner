@@ -132,6 +132,20 @@ jest.mock<typeof import('@/db/queries/nostrChat')>(
   }
 )
 
+// Signature requests have their own tests; here they are only observed.
+jest.mock<typeof import('@/utils/chatSignRequests')>(
+  '@/utils/chatSignRequests',
+  () => ({
+    queueChatSignRequests: jest.fn(() => 0),
+    settleChatSignRequests: jest.fn()
+  })
+)
+jest.mock<
+  Pick<typeof import('@/db/signRequests'), 'listSignRequestsForMessages'>
+>('@/db/signRequests', () => ({
+  listSignRequestsForMessages: jest.fn(() => [])
+}))
+
 // In-memory decrypt-once ledger.
 jest.mock<typeof import('@/db/nostrProcessedEvents')>(
   '@/db/nostrProcessedEvents',
@@ -191,6 +205,7 @@ import * as nostrMessageState from '@/db/nostrMessageState'
 import { clearNostrFollowCache, setNostrFollowCache } from '@/storage/mmkv'
 import { useNostrChatSettingsStore } from '@/store/nostrChatSettings'
 import type { NostrChatGiftWrap } from '@/types/models/Nostr'
+import { queueChatSignRequests } from '@/utils/chatSignRequests'
 import { NostrNoRelaysError } from '@/utils/errors'
 import {
   acquireChatPipeline,
@@ -1329,6 +1344,45 @@ describe('nostrChat', () => {
       expect(deletion.tags).toContainEqual(['e', ownId])
       expect(deletion.tags).not.toContainEqual(['e', 'peer-msg'])
       expect(chatStore.has('peer-msg')).toBe(true)
+    })
+
+    it('hands a peer message in a session to the signing queue, never our own copy', async () => {
+      const { api, captured } = createFakeChatApi()
+      await subscribeToIdentityChat(api, sender)
+      const tags = [
+        ['p', senderPubkey],
+        ['session', sessionId],
+        ['sign_request', '{}']
+      ]
+
+      deliverRumor(captured.handlers, 'w1', {
+        content: 'please sign',
+        created_at: 10,
+        id: 'a'.repeat(64),
+        pubkey: peerPubkey,
+        tags
+      })
+      deliverRumor(captured.handlers, 'w2', {
+        content: 'my own copy',
+        created_at: 11,
+        id: 'b'.repeat(64),
+        pubkey: senderPubkey,
+        tags: [
+          ['p', peerPubkey],
+          ['session', sessionId]
+        ]
+      })
+
+      expect(queueChatSignRequests).toHaveBeenCalledTimes(1)
+      expect(queueChatSignRequests).toHaveBeenCalledWith('please sign', tags, {
+        identityNpub: senderNpub,
+        messageId: 'a'.repeat(64),
+        ownPubkey: senderPubkey,
+        peerPubkey,
+        receivedAt: expect.any(Number),
+        requestedAt: 10,
+        sessionId
+      })
     })
   })
 })
