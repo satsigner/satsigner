@@ -1,6 +1,7 @@
 import type { BdkWallet } from 'react-native-bdk-sdk'
 import { toast } from 'sonner-native'
 
+import { readAddressActivity } from '@/api/addressActivity'
 import { syncWallet } from '@/api/bdk'
 import { getWalletOverview, revealKnownAddresses } from '@/api/bdkWalletMappers'
 import { syncWithCoreWallet } from '@/api/coreWalletSync'
@@ -39,6 +40,11 @@ import { walletForServerChain } from '@/utils/accountWallets'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
 import { formatTimestamp } from '@/utils/format'
 import { parseAccountAddressesDetails } from '@/utils/parse'
+import {
+  canQuickCheck,
+  getQuickCheckAddresses,
+  hasActivityChanged
+} from '@/utils/quickCheck'
 import { resolveHistoricalPrices } from '@/utils/resolveHistoricalPrices'
 import { isSameServerEndpoint } from '@/utils/server'
 import { reportSyncFailure } from '@/utils/syncFailureToasts'
@@ -59,8 +65,67 @@ type WalletSyncParams = Pick<
     forceFullScan: boolean
     latest: Account
     server: Server
+    skipQuickCheck: boolean
     wallet: BdkWallet
   }
+
+type QuickCheckParams = Pick<
+  WalletSyncParams,
+  'config' | 'controls' | 'latest' | 'server'
+> & {
+  setSyncProgress: (id: string, progress: SyncProgress) => void
+}
+
+/**
+ * Asks the server only about addresses that can change if none is reused.
+ * Resolves to the account marked synced when nothing changed, or null when a
+ * real sync is needed. A failed check also returns null: the sync then runs
+ * and reports the server problem itself.
+ */
+async function quickCheckAccount({
+  config,
+  controls,
+  latest,
+  server,
+  setSyncProgress
+}: QuickCheckParams): Promise<Account | null> {
+  const addresses = getQuickCheckAddresses(latest, config.stopGap)
+  setSyncProgress(latest.id, {
+    scope: 'quick',
+    tasksDone: 0,
+    totalTasks: addresses.length,
+    unit: 'addresses'
+  })
+  try {
+    const activity = await readAddressActivity(server, addresses, {
+      onProgress: (tasksDone, totalTasks) =>
+        setSyncProgress(latest.id, {
+          scope: 'quick',
+          tasksDone,
+          totalTasks,
+          unit: 'addresses'
+        }),
+      signal: controls.signal
+    })
+    if (controls.signal.aborted || hasActivityChanged(latest, activity)) {
+      return null
+    }
+  } catch {
+    return null
+  }
+  return { ...latest, lastSyncedAt: new Date(), syncStatus: 'synced' }
+}
+
+function shouldQuickCheck(
+  latest: Account,
+  server: Server,
+  skipQuickCheck: boolean
+) {
+  if (skipQuickCheck || server.backend === 'rpc') {
+    return false
+  }
+  return canQuickCheck({ account: latest, nowMs: Date.now() })
+}
 
 async function syncWalletAccount({
   config,
@@ -72,6 +137,7 @@ async function syncWalletAccount({
   setLastKnownBlockHeight,
   setSyncProgress: storeSyncProgress,
   setSyncStatus,
+  skipQuickCheck,
   wallet
 }: WalletSyncParams): Promise<Account | null> {
   const { finishScan, reportProgress, signal } = controls
@@ -90,6 +156,23 @@ async function syncWalletAccount({
       reportProgress()
     }
     storeSyncProgress(id, progress)
+  }
+
+  if (shouldQuickCheck(latest, server, forceFullScan || skipQuickCheck)) {
+    const unchanged = await quickCheckAccount({
+      config,
+      controls,
+      latest,
+      server,
+      setSyncProgress
+    })
+    if (signal.aborted) {
+      return null
+    }
+    if (unchanged) {
+      finishScan()
+      return unchanged
+    }
   }
 
   const checkpoint = wallet.latestCheckpoint()
@@ -187,9 +270,8 @@ async function syncWalletAccount({
       server.rpcScanFromHeight,
       isGeneratedWallet,
       {
-        // Quick checks need partial sync in react-native-bdk-sdk; until then
-        // every incremental sync checks all addresses
-        // (docs/bdk-sdk-partial-sync.md).
+        // A sync that found changes still checks every address until
+        // react-native-bdk-sdk ships partial sync (docs/bdk-sdk-partial-sync.md).
         onProgress: (tasksDone, totalTasks) =>
           setSyncProgress(latest.id, {
             scope: isScanFull ? 'deep' : 'full',
@@ -289,6 +371,7 @@ async function syncWalletAccount({
 
   updatedAccount.syncStatus = 'synced'
   updatedAccount.lastSyncedAt = new Date()
+  updatedAccount.lastFullCheckAt = updatedAccount.lastSyncedAt
 
   // After a successful Electrum/Esplora sync, clear rpcLastBlockHash
   // so returning to RPC can still use listsinceblock from a fresh tip.
@@ -322,10 +405,12 @@ function handleSyncError(
   return { ...latest, syncStatus }
 }
 
+type SyncDepth = Pick<WalletSyncParams, 'forceFullScan' | 'skipQuickCheck'>
+
 async function runQueuedWalletSync(
   account: Account,
   wallet: BdkWallet,
-  forceFullScan: boolean,
+  depth: SyncDepth,
   controls: SyncTaskControls
 ): Promise<Account | null> {
   // A cancelled or stalled sync of this account may still be inside the
@@ -355,14 +440,14 @@ async function runQueuedWalletSync(
     }
     return trackAccountSyncWork(
       account.id,
-      syncWalletAccount({ ...current, controls, forceFullScan, wallet })
+      syncWalletAccount({ ...current, ...depth, controls, wallet })
     )
   })
 }
 
 type SyncTarget = Omit<
   WalletSyncParams,
-  'controls' | 'forceFullScan' | 'wallet'
+  'controls' | 'forceFullScan' | 'skipQuickCheck' | 'wallet'
 >
 
 /**
@@ -437,11 +522,12 @@ function runOnCoreNodeExclusively(
   })
 }
 
-type QueueWalletSyncParams = {
+type QueueWalletSyncParams = SyncDepth & {
   account: Account
-  forceFullScan: boolean
   isPriority: boolean
   reportError: SyncErrorReporter
+  /** A request joining a running sync also gets its result. */
+  shareResult: boolean
   wallet: BdkWallet
 }
 
@@ -449,16 +535,21 @@ type QueueWalletSyncParams = {
  * Queue a sync for this account. A second request for an account that is
  * already queued or syncing shares that job instead of starting another,
  * and resolves to null so callers don't write the same result twice.
- * `forceFullScan` replaces a running incremental sync. Never rejects.
+ * `forceFullScan` replaces a running incremental sync. `skipQuickCheck`
+ * checks every address even when a quick check would do. Never rejects.
  */
 async function queueWalletSync({
   account,
   forceFullScan,
   isPriority,
   reportError,
+  shareResult,
+  skipQuickCheck,
   wallet
 }: QueueWalletSyncParams): Promise<Account | null> {
-  if (forceFullScan) {
+  // An explicit full check or rescan replaces a running sync that may be
+  // only a quick check.
+  if (forceFullScan || skipQuickCheck) {
     cancelAccountSync(account.id)
   }
   const isDuplicate = hasCurrentSyncRun(account.id)
@@ -467,7 +558,12 @@ async function queueWalletSync({
     .enqueue(
       account.id,
       (controls) =>
-        runQueuedWalletSync(account, wallet, forceFullScan, controls),
+        runQueuedWalletSync(
+          account,
+          wallet,
+          { forceFullScan, skipQuickCheck },
+          controls
+        ),
       {
         onQueued: () => writeSyncStatus(account.id, 'queued'),
         priority: isPriority,
@@ -483,6 +579,7 @@ async function queueWalletSync({
     )
 
   if ('error' in outcome) {
+    // The request that started the sync reports the failure.
     return isDuplicate
       ? null
       : handleSyncError(account, outcome.error, reportError)
@@ -490,7 +587,12 @@ async function queueWalletSync({
   if (outcome.value === null) {
     settleCancelledSyncStatus(account.id)
   }
-  return isDuplicate ? null : outcome.value
+  return isDuplicate && !shareResult ? null : outcome.value
+}
+
+type SyncAccountOptions = {
+  isPriority?: boolean
+  reportError?: SyncErrorReporter
 }
 
 function useSyncAccountWithWallet() {
@@ -506,11 +608,52 @@ function useSyncAccountWithWallet() {
       forceFullScan,
       isPriority,
       reportError,
+      shareResult: false,
+      skipQuickCheck: false,
       wallet
     })
   }
 
-  return { syncAccountWithWallet }
+  /**
+   * Like syncAccountWithWallet as a priority sync, but a sync already running
+   * for the account resolves with its result instead of null.
+   */
+  function syncAccountNow(
+    account: Account,
+    wallet: BdkWallet
+  ): Promise<Account | null> {
+    return queueWalletSync({
+      account,
+      forceFullScan: false,
+      isPriority: true,
+      reportError: reportSyncFailure,
+      shareResult: true,
+      skipQuickCheck: false,
+      wallet
+    })
+  }
+
+  /** Checks every address, never a quick check. */
+  function checkAllAccountAddresses(
+    account: Account,
+    wallet: BdkWallet,
+    {
+      isPriority = true,
+      reportError = reportSyncFailure
+    }: SyncAccountOptions = {}
+  ): Promise<Account | null> {
+    return queueWalletSync({
+      account,
+      forceFullScan: false,
+      isPriority,
+      reportError,
+      shareResult: false,
+      skipQuickCheck: true,
+      wallet
+    })
+  }
+
+  return { checkAllAccountAddresses, syncAccountNow, syncAccountWithWallet }
 }
 
 export default useSyncAccountWithWallet

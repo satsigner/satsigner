@@ -64,6 +64,14 @@ class SettledDestroySocket extends TcpSocket.Socket {
  */
 export const ElectrumServerVersionSchema = z.tuple([z.string(), z.string()])
 
+const ElectrumBatchResponseSchema = z.array(
+  z.object({
+    error: z.unknown().optional(),
+    param: z.string(),
+    result: z.unknown().optional()
+  })
+)
+
 class ModifiedClient extends BlueWalletElectrumClient {
   // Same as the library's connectSocket, plus a connect timeout.
   override connectSocket(conn: TcpSocketInstance, port: number, host: string) {
@@ -326,6 +334,32 @@ class BaseElectrumClient {
     const scriptHash = this.addressToScriptHash(address)
     const data = await this.client.blockchainScripthash_getHistory(scriptHash)
     return ElectrumClientSchema.shape.addressTxs.parse(data)
+  }
+
+  /**
+   * The histories of many addresses in one batch request, in the order
+   * given. A missing or malformed answer for any address rejects.
+   */
+  async getAddressHistories(addresses: readonly string[]) {
+    if (addresses.length === 0) {
+      return []
+    }
+    const scriptHashes = addresses.map((address) =>
+      this.addressToScriptHash(address)
+    )
+    const responses = ElectrumBatchResponseSchema.parse(
+      await this.client.blockchainScripthash_getHistoryBatch(scriptHashes)
+    )
+    const historyByScriptHash = new Map(
+      responses.map((response) => [response.param, response])
+    )
+    return scriptHashes.map((scriptHash) => {
+      const response = historyByScriptHash.get(scriptHash)
+      if (!response || response.error !== undefined) {
+        throw new Error('Electrum server did not return an address history')
+      }
+      return ElectrumClientSchema.shape.addressTxs.parse(response.result)
+    })
   }
 
   async getAddressUnconfirmed(address: string) {

@@ -117,7 +117,6 @@ import { getAccountTotalBalance, isAutoSyncDue } from '@/utils/account'
 import { isTransactionHistoryLoading } from '@/utils/accountSync'
 import { getAutomaticTagsByTxid } from '@/utils/automaticTags'
 import { appNetworkToBdkNetwork } from '@/utils/bitcoin'
-import { formatRelativeTime } from '@/utils/date'
 import {
   getDraftIoCounts,
   getDraftLabel,
@@ -146,7 +145,11 @@ import {
 import type { ScanThroughput } from '@/utils/scanThroughput'
 import { sortAddressesByIndex, sortTransactions } from '@/utils/sort'
 import type { TransactionSortField } from '@/utils/sort'
-import { syncTickerLabels } from '@/utils/syncLabels'
+import {
+  lastFullCheckLabel,
+  lastSyncedLabel,
+  syncTickerLabels
+} from '@/utils/syncLabels'
 import { getUtxoOutpoint } from '@/utils/utxo'
 import {
   DEFAULT_UTXO_LIST_FILTER,
@@ -503,6 +506,7 @@ function DraftTransactionCard({ accountId }: { accountId: string }) {
 type TotalTransactionsProps = {
   account: Account
   handleOnRefresh: () => Promise<void>
+  handleOnCheckAll: () => Promise<void>
   handleOnForceRescan: () => Promise<void>
   handleOnExpand: (state: boolean) => void
   expand: boolean
@@ -541,31 +545,10 @@ function activityToolbarLabels({
   return [lastSyncedLabel(lastSyncedAt, nowMs)]
 }
 
-/** Toolbar title when idle — replaces static "Account activity". */
-function lastSyncedLabel(
-  lastSyncedAt: Account['lastSyncedAt'],
-  nowMs: number
-): string {
-  if (!lastSyncedAt) {
-    return t('account.neverSynced')
-  }
-  const syncedMs =
-    lastSyncedAt instanceof Date
-      ? lastSyncedAt.getTime()
-      : new Date(lastSyncedAt).getTime()
-  if (Number.isNaN(syncedMs) || syncedMs > nowMs + 60_000) {
-    return t('account.sync.status.unsynced')
-  }
-  // formatRelativeTime wraps chart labels in parentheses — strip for prose.
-  const relative = formatRelativeTime(
-    Math.floor(syncedMs / MS_PER_SECOND)
-  ).replaceAll(/^\(|\)$/g, '')
-  return t('account.lastSynced', { time: relative })
-}
-
 function AccountActivityToolbar({
   isSyncing,
   labels,
+  lastFullCheckAt,
   lastSyncedAt,
   nowMs,
   onCheckAll,
@@ -575,6 +558,7 @@ function AccountActivityToolbar({
 }: {
   isSyncing: boolean
   labels: string[]
+  lastFullCheckAt: Account['lastFullCheckAt']
   lastSyncedAt: Account['lastSyncedAt']
   nowMs: number
   onCheckAll: () => Promise<void>
@@ -613,6 +597,7 @@ function AccountActivityToolbar({
         visible={detailsVisible}
         isSyncing={isSyncing}
         lastSyncedLabel={lastSyncedLabel(lastSyncedAt, nowMs)}
+        lastFullCheckLabel={lastFullCheckLabel(lastFullCheckAt, nowMs)}
         onCheckAll={handleCheckAll}
         onDeepRescan={handleDeepRescan}
         onClose={() => setDetailsVisible(false)}
@@ -742,6 +727,7 @@ function SyncScanStats({
 function TotalTransactions({
   account,
   handleOnRefresh,
+  handleOnCheckAll,
   handleOnForceRescan,
   handleOnExpand,
   expand,
@@ -865,9 +851,10 @@ function TotalTransactions({
       <AccountActivityToolbar
         isSyncing={isSyncing}
         labels={activityLabels}
+        lastFullCheckAt={account.lastFullCheckAt}
         lastSyncedAt={account.lastSyncedAt}
         nowMs={nowMs}
-        onCheckAll={handleOnRefresh}
+        onCheckAll={handleOnCheckAll}
         onDeepRescan={handleOnForceRescan}
         leftActions={
           <SSHStack>
@@ -1265,23 +1252,36 @@ async function syncDerivedAddressPage({
   updateAccount({ ...account, addresses: newAddresses })
 }
 
+/**
+ * How much a refresh checks: `auto` lets the sync use a quick check, `all`
+ * checks every address, `deep` also looks past the last used address.
+ */
+type RefreshDepth = 'auto' | 'all' | 'deep'
+
+type AccountWallet = NonNullable<ReturnType<typeof useGetAccountWallet>>
+
 type RunRefreshAccountSyncParams = {
   account: Account
-  forceFullScan: boolean
+  checkAllAccountAddresses: (
+    account: Account,
+    wallet: AccountWallet
+  ) => Promise<Account | null>
+  depth: RefreshDepth
   isImportAddress: boolean
   syncAccountWithAddress: (account: Account) => Promise<Account>
   syncAccountWithWallet: (
     account: Account,
-    wallet: NonNullable<ReturnType<typeof useGetAccountWallet>>,
+    wallet: AccountWallet,
     forceFullScan?: boolean,
     isPriority?: boolean
   ) => Promise<Account | null>
-  wallet: NonNullable<ReturnType<typeof useGetAccountWallet>>
+  wallet: AccountWallet
 }
 
 function runRefreshAccountSync({
   account,
-  forceFullScan,
+  checkAllAccountAddresses,
+  depth,
   isImportAddress,
   syncAccountWithAddress,
   syncAccountWithWallet,
@@ -1290,7 +1290,10 @@ function runRefreshAccountSync({
   if (isImportAddress) {
     return syncAccountWithAddress(account)
   }
-  return syncAccountWithWallet(account, wallet, forceFullScan, true)
+  if (depth === 'all') {
+    return checkAllAccountAddresses(account, wallet)
+  }
+  return syncAccountWithWallet(account, wallet, depth === 'deep', true)
 }
 
 function DerivedAddresses({
@@ -1582,6 +1585,7 @@ function DerivedAddresses({
 type SpendableOutputsProps = {
   account: Account
   handleOnRefresh: () => Promise<void>
+  handleOnCheckAll: () => Promise<void>
   handleOnForceRescan: () => Promise<void>
   handleOnExpand: (state: boolean) => void
   expand: boolean
@@ -1601,6 +1605,7 @@ type SpendableOutputListRow =
 function SpendableOutputs({
   account,
   handleOnRefresh,
+  handleOnCheckAll,
   handleOnForceRescan,
   handleOnExpand,
   expand,
@@ -1713,9 +1718,10 @@ function SpendableOutputs({
       <AccountActivityToolbar
         isSyncing={isSyncing}
         labels={activityLabels}
+        lastFullCheckAt={account.lastFullCheckAt}
         lastSyncedAt={account.lastSyncedAt}
         nowMs={nowMs}
-        onCheckAll={handleOnRefresh}
+        onCheckAll={handleOnCheckAll}
         onDeepRescan={handleOnForceRescan}
         leftActions={
           <SSHStack>
@@ -2034,7 +2040,8 @@ export default function AccountView() {
         state.configs[state.selectedNetwork].config.timeDiffBeforeAutoSync
       ])
     )
-  const { syncAccountWithWallet } = useSyncAccountWithWallet()
+  const { checkAllAccountAddresses, syncAccountWithWallet } =
+    useSyncAccountWithWallet()
   const { syncAccountWithAddress } = useSyncAccountWithAddress()
 
   const [refreshing, setRefreshing] = useState(false)
@@ -2183,7 +2190,7 @@ export default function AccountView() {
     )
   }
 
-  async function refreshAccount(forceFullScan = false) {
+  async function refreshAccount(depth: RefreshDepth) {
     if (!account) {
       return
     }
@@ -2201,7 +2208,8 @@ export default function AccountView() {
     try {
       const updatedAccount = await runRefreshAccountSync({
         account,
-        forceFullScan,
+        checkAllAccountAddresses,
+        depth,
         isImportAddress,
         syncAccountWithAddress,
         syncAccountWithWallet,
@@ -2224,23 +2232,28 @@ export default function AccountView() {
     }
   }
 
-  async function handleOnRefresh(forceFullScan = false) {
+  async function refreshWithDepth(depth: RefreshDepth) {
     setRefreshing(true)
-    await Promise.all([
-      fetchPrices(fiatPriceApiUrl),
-      refreshAccount(forceFullScan)
-    ])
+    await Promise.all([fetchPrices(fiatPriceApiUrl), refreshAccount(depth)])
     refreshAccountLabels()
     setRefreshing(false)
+  }
+
+  function handleOnRefresh() {
+    return refreshWithDepth('auto')
+  }
+
+  function handleOnCheckAll() {
+    return refreshWithDepth('all')
   }
 
   function handleOnForceRescan() {
     const isImportAddress = account?.keys[0]?.creationType === 'importAddress'
     if (isImportAddress) {
-      return handleOnRefresh()
+      return refreshWithDepth('auto')
     }
     toast.info(t('account.sync.fullRescanStarted'))
-    return handleOnRefresh(true)
+    return refreshWithDepth('deep')
   }
 
   function handleOnExpand(state: boolean) {
@@ -2277,6 +2290,7 @@ export default function AccountView() {
           <TotalTransactions
             account={account}
             handleOnRefresh={handleOnRefresh}
+            handleOnCheckAll={handleOnCheckAll}
             handleOnForceRescan={handleOnForceRescan}
             handleOnExpand={handleOnExpand}
             expand={expand}
@@ -2309,6 +2323,7 @@ export default function AccountView() {
           <SpendableOutputs
             account={account}
             handleOnRefresh={handleOnRefresh}
+            handleOnCheckAll={handleOnCheckAll}
             handleOnForceRescan={handleOnForceRescan}
             handleOnExpand={handleOnExpand}
             expand={expand}
