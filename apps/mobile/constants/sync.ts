@@ -60,12 +60,26 @@ const QUICK_CHECK_MAX_ADDRESSES = 50
 // check kind and back.
 const SYNC_LABEL_TICK_MS = 3000
 
+// Building a transaction from an account last synced longer ago than this
+// shows a warning first.
+const SEND_SYNC_WARNING_AFTER_MS = 24 * 60 * 60_000
+
+// Addresses per Electrum batch request in a quick check. Servers cap batch
+// sizes; this stays well under common limits.
+const QUICK_CHECK_ELECTRUM_BATCH_SIZE = 50
+
+// Esplora address lookups run at once in a quick check.
+const QUICK_CHECK_ESPLORA_PARALLEL_REQUESTS = 4
+
 export {
   CORE_NODE_WAIT_HEARTBEAT_MS,
   FULL_ADDRESS_CHECK_AFTER_MS,
   MIN_USABLE_CHECKPOINT_HEIGHT,
+  QUICK_CHECK_ELECTRUM_BATCH_SIZE,
+  QUICK_CHECK_ESPLORA_PARALLEL_REQUESTS,
   QUICK_CHECK_MAX_ADDRESSES,
   QUICK_CHECK_MIN_ADDRESSES,
+  SEND_SYNC_WARNING_AFTER_MS,
   SUPERSEDED_SYNC_WAIT_TIMEOUT_MS,
   SYNC_CANCELLED_ERROR,
   SYNC_CONCURRENCY,

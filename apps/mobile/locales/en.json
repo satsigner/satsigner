@@ -360,8 +360,7 @@
     "sync.details.checkAll": "Check all addresses",
     "sync.details.deepRescan": "Deep rescan",
     "sync.details.deepRescanWarning": "Walks past your last used address to find funds on addresses this wallet has never shown. Slower.",
-    "sync.details.explanation": "Your wallet asks the server for the history of each of its addresses to find new and newly confirmed payments. Soon after a sync only recent addresses need checking; after two weeks every address is checked again.",
-    "sync.details.quickCheckPending": "Quick checks are not available yet: every sync checks all addresses.",
+    "sync.details.explanation": "Your wallet asks the server for the history of its addresses. Most syncs are a quick check: only addresses that hold coins, have unconfirmed transactions, or come after the last used one. Every two weeks, and when you tap Check all addresses, every address is checked.",
     "sync.details.title": "Account sync",
     "sync.status.queued": "Queued",
     "sync.status.synced": "Synced",
@@ -435,7 +434,10 @@
     "search.directionAll": "All",
     "search.directionReceived": "Received",
     "search.directionSent": "Sent",
-    "search.clear": "Clear"
+    "search.clear": "Clear",
+    "sync.details.reuseNote": "A payment to an address that was already used is only found by a full check.",
+    "sync.details.lastFullCheck": "Last full check %{time}",
+    "sync.details.neverFullCheck": "No full check yet"
   },
   "accounts": {
     "change": "Change",
@@ -4141,7 +4143,17 @@
     "output.special.witnessCommitment": "Witness commitment",
     "payjoin.receive": "Payjoin receive",
     "payjoin.send": "Payjoin send",
-    "readyToBroadcast": "Ready to broadcast"
+    "readyToBroadcast": "Ready to broadcast",
+    "syncWarning.title": "Account may be out of date",
+    "syncWarning.spentTitle": "Coins may already be spent",
+    "syncWarning.spentDescription": "If you spent from this account on another device, the network will reject the transaction. No funds are at risk.",
+    "syncWarning.privacyTitle": "Change may reuse an address",
+    "syncWarning.privacyDescription": "If the account received payments this device has not seen, the change could go to an address that was already used, linking your transactions.",
+    "syncWarning.check": "Check for changes",
+    "syncWarning.checkHint": "Asks the server only about addresses that can still change. Usually a few seconds, even over Tor.",
+    "syncWarning.fullCheckHint": "This account needs a full check first. Over Tor that can take a long time for accounts with many addresses.",
+    "syncWarning.continue": "Continue without checking",
+    "syncWarning.checkFailed": "Could not check the account. You can continue without checking."
   },
   "upcoming": {
     "bitcoin.description": "Visualise the latest blocks and mempool key points",

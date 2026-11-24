@@ -41,6 +41,7 @@ function makeAccountRow(overrides: Partial<AccountRow> = {}): AccountRow {
       }
     ]),
     keys_required: 1,
+    last_full_check_at: null,
     last_synced_at: '2024-06-15T12:00:00.000Z',
     name: 'Test Account',
     network: 'bitcoin',

@@ -34,6 +34,7 @@ type AccountRow = {
   num_utxos: number
   sats_in_mempool: number
   created_at: string
+  last_full_check_at: string | null
   last_synced_at: string | null
   sync_status: SyncStatus
   sync_progress_total: number | null
@@ -292,6 +293,9 @@ function rowToAccount(
     ),
     keysRequired: row.keys_required,
     labels,
+    lastFullCheckAt: row.last_full_check_at
+      ? new Date(row.last_full_check_at)
+      : undefined,
     lastSyncedAt,
     name: row.name,
     network: row.network,
