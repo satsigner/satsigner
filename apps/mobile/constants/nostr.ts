@@ -502,6 +502,45 @@ export const NOSTR_CHAT_SESSION_ID_BYTES = 16
 export const NOSTR_CHAT_SESSION_ID_RE = /^[0-9a-f]{32}$/
 export const NOSTR_CHAT_SESSION_TITLE_MAX = 80
 export const NOSTR_CHAT_SESSIONS_PER_PEER_MAX = 50
+// Signature requests carried in a chat session: NIP-46 JSON-RPC, as a tag or
+// as a fenced block in the text so agents that only see text can use them.
+export const NOSTR_SIGN_REQUEST_TAG = 'sign_request'
+export const NOSTR_SIGN_RESPONSE_TAG = 'sign_response'
+export const NOSTR_SIGN_REQUEST_BLOCK = 'nostr-sign-request'
+export const NOSTR_SIGN_RESPONSE_BLOCK = 'nostr-sign-response'
+export const NOSTR_BUNKER_TAG = 'bunker'
+export const NOSTR_SIGN_REQUEST_BATCH_MAX = 20
+export const NOSTR_SIGN_REQUESTS_PENDING_MAX = 40
+export const NOSTR_SIGN_REQUEST_MAX_BYTES = 64 * 1024
+export const NOSTR_SIGN_REQUEST_MAX_TTL_SECS = 7 * SECONDS_PER_DAY
+export const NOSTR_SIGN_REQUEST_DEFAULT_TTL_SECS = SECONDS_PER_DAY
+export const NOSTR_SIGN_REQUEST_RETENTION_SECS = 30 * SECONDS_PER_DAY
+export const NOSTR_SIGN_REQUEST_LABEL_MAX = 120
+// An event may not be dated further than this from when it was requested
+// (or, for a live signer, from now): a lent signer must not back-date.
+export const NOSTR_SIGN_MAX_CLOCK_SKEW_SECS = 10 * SECONDS_PER_MINUTE
+export const NOSTR_NIP46_OFFER_TTL_MS = 10 * SECONDS_PER_MINUTE * MS_PER_SECOND
+export const NOSTR_NIP46_OFFER_SECRET_BYTES = 32
+export const NOSTR_NIP46_BUNKER_PREFIX = 'bunker://'
+export const NOSTR_NIP46_CONNECT_ACK = 'ack'
+// Kinds whose signature can do lasting damage to the identity: the card
+// warns loudly. Replaceable lists (10000-19999) are covered by range.
+export const NOSTR_SIGN_HIGH_RISK_KINDS: number[] = [
+  nostrKinds.Metadata,
+  nostrKinds.Contacts,
+  nostrKinds.EventDeletion,
+  nostrKinds.ClientAuth
+]
+export const NOSTR_REPLACEABLE_LIST_KIND_MIN = 10_000
+export const NOSTR_REPLACEABLE_LIST_KIND_MAX = 19_999
+export const NOSTR_ZAPSTORE_APP_KIND = 32_267
+export const NOSTR_ZAPSTORE_RELEASE_KIND = 30_063
+export const NOSTR_ZAPSTORE_ASSET_KIND = 3063
+export const NOSTR_ZAPSTORE_CERT_HASH_TAG = 'apk_certificate_hash'
+// Satsigner's Android release certificate (tools/release/keystore.mjs). An
+// asset for our package signed by anything else is flagged on the card.
+export const SATSIGNER_RELEASE_CERT_SHA256 =
+  'e0d6e692fad1aa1626ff549acee347c2ebce8be50d0744cbd0d3a67539f27ed7'
 export const NOSTR_GIFT_WRAP_KEY_SALT = 'satsigner/nip59-wrap/v1'
 export const NOSTR_CHAT_POW_DEFAULT_MIN_INBOUND = 0
 export const NOSTR_CHAT_POW_MAX_MS = 30 * MS_PER_SECOND

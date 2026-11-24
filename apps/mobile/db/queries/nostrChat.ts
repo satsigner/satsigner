@@ -36,6 +36,7 @@ type ChatConversationRow = {
   last_message_at: number
   last_message_preview: string
   peer_pubkey: string
+  has_sign_requests?: number | null
   session_id: string
   title: string | null
   unread_count: number | null
@@ -80,6 +81,15 @@ function rowToChatMessage(row: ChatMessageRow): NostrChatMessage {
   }
 }
 
+// Whether the session (alias m) waits for the user's signature.
+const HAS_SIGN_REQUESTS_SQL = `EXISTS (
+  SELECT 1 FROM nostr_sign_requests r
+   WHERE r.identity_npub = m.identity_npub
+     AND r.peer_pubkey = m.peer_pubkey
+     AND r.session_id = m.session_id
+     AND r.status = 'pending'
+)`
+
 // SQLite fills bare columns (content) from the row that produced MAX(), so
 // one grouped query yields each conversation's latest preview.
 const MESSAGE_CONVERSATIONS_SQL = `
@@ -89,7 +99,8 @@ const MESSAGE_CONVERSATIONS_SQL = `
          m.content AS last_message_preview,
          MAX(m.created_at) AS last_message_at,
          SUM(CASE WHEN m.read = 0 AND m.direction = 'in' THEN 1 ELSE 0 END)
-           AS unread_count
+           AS unread_count,
+         ${HAS_SIGN_REQUESTS_SQL} AS has_sign_requests
     FROM nostr_chat_messages m
     LEFT JOIN nostr_chat_sessions s
       ON s.identity_npub = m.identity_npub
@@ -102,7 +113,8 @@ const MESSAGE_CONVERSATIONS_SQL = `
 // A named session with no message yet, so it can be reopened from the list.
 const EMPTY_SESSIONS_SQL = `
   SELECT s.peer_pubkey, s.session_id, s.title, '' AS last_message_preview,
-         s.created_at AS last_message_at, 0 AS unread_count
+         s.created_at AS last_message_at, 0 AS unread_count,
+         0 AS has_sign_requests
     FROM nostr_chat_sessions s
    WHERE s.identity_npub = ? AND s.archived = 0 AND s.session_id != ''
      AND NOT EXISTS (
@@ -121,7 +133,8 @@ const NIP04_CONVERSATIONS_SQL = `
          content AS last_message_preview,
          MAX(created_at) AS last_message_at,
          SUM(CASE WHEN read = 0 AND direction = 'in' THEN 1 ELSE 0 END)
-           AS unread_count
+           AS unread_count,
+         0 AS has_sign_requests
     FROM nostr_chat_messages
    WHERE identity_npub = ? AND protocol = 'nip04'
    GROUP BY peer_pubkey`
@@ -156,6 +169,7 @@ function listChatConversations(
     peerPubkey: row.peer_pubkey,
     sessionId: row.session_id ?? '',
     ...(row.title ? { title: row.title } : {}),
+    ...(row.has_sign_requests ? { hasSignRequests: true } : {}),
     unreadCount: row.unread_count ?? 0
   }))
 }
@@ -256,6 +270,21 @@ function hasOutgoingChatMessage(
     `SELECT id FROM nostr_chat_messages
       WHERE identity_npub = ? AND peer_pubkey = ? AND direction = 'out' LIMIT 1`,
     [identityNpub, peerPubkey]
+  )
+  return rows.length > 0
+}
+
+/** Whether we wrote in this very session: who may ask us to sign in it. */
+function hasOutgoingChatSessionMessage(
+  identityNpub: string,
+  peerPubkey: string,
+  sessionId: string
+): boolean {
+  const { rows } = getDb().execute<{ id: string }>(
+    `SELECT id FROM nostr_chat_messages
+      WHERE identity_npub = ? AND peer_pubkey = ? AND session_id = ?
+        AND direction = 'out' LIMIT 1`,
+    [identityNpub, peerPubkey, sessionId]
   )
   return rows.length > 0
 }
@@ -426,6 +455,7 @@ export {
   getOldestChatMessageCreatedAt,
   hasChatMessage,
   hasOutgoingChatMessage,
+  hasOutgoingChatSessionMessage,
   listChatConversations,
   listChatReplies,
   listChatThread,

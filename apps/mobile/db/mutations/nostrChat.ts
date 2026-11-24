@@ -155,6 +155,11 @@ function deleteChatSession(session: ChatSessionKey) {
         WHERE identity_npub = ? AND peer_pubkey = ? AND session_id = ?`,
       params
     )
+    tx.execute(
+      `DELETE FROM nostr_sign_requests
+        WHERE identity_npub = ? AND peer_pubkey = ? AND session_id = ?`,
+      params
+    )
   })
 }
 
@@ -221,6 +226,9 @@ function deleteChatMessagesForIdentity(identityNpub: string) {
     identityNpub
   ])
   getDb().execute('DELETE FROM nostr_chat_sessions WHERE identity_npub = ?', [
+    identityNpub
+  ])
+  getDb().execute('DELETE FROM nostr_sign_requests WHERE identity_npub = ?', [
     identityNpub
   ])
   clearNostrProcessedEvents(chatProcessedScope(identityNpub))

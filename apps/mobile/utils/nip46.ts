@@ -197,3 +197,14 @@ export function canNostrIdentitySignRemotely(
 ): boolean {
   return identity?.isWatchOnly === false && Boolean(identity.nsec)
 }
+
+/** What the sessions list calls a client, before and after it connects. */
+export function getNip46SessionName(session: Nip46Session): string {
+  if (session.clientPubkey === '') {
+    return t('nip46.offerWaiting')
+  }
+  if (session.origin?.kind === 'chat') {
+    return session.clientName ?? t('nip46.lentFromChat')
+  }
+  return session.clientName ?? t('nip46.unknownApp')
+}

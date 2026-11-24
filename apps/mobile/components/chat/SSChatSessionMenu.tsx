@@ -30,9 +30,12 @@ type SSChatSessionMenuProps = {
   onRestore: (sessionId: string) => void
   /** The parent closes the menu once deletion is done. */
   onDelete: (everywhere: boolean) => void
+  /** Offered only when the chat identity can sign. */
+  onLendSigner?: () => void
+  lending?: boolean
 }
 
-type MenuStep = 'actions' | 'archived' | 'delete' | 'new' | 'rename'
+type MenuStep = 'actions' | 'archived' | 'delete' | 'lend' | 'new' | 'rename'
 
 function ArchivedSessionRow({
   session,
@@ -72,7 +75,9 @@ function SSChatSessionMenu({
   onRename,
   onArchive,
   onRestore,
-  onDelete
+  onDelete,
+  onLendSigner,
+  lending = false
 }: SSChatSessionMenuProps) {
   const [step, setStep] = useState<MenuStep>('actions')
   const [draft, setDraft] = useState('')
@@ -126,6 +131,15 @@ function SSChatSessionMenu({
     onRestore(sessionId)
   }
 
+  function openLend() {
+    setStep('lend')
+  }
+
+  function confirmLend() {
+    close()
+    onLendSigner?.()
+  }
+
   function deleteHere() {
     onDelete(false)
   }
@@ -156,6 +170,14 @@ function SSChatSessionMenu({
               onPress={confirmArchive}
               variant="outline"
             />
+            {onLendSigner ? (
+              <SSButton
+                label={t('nip46.lend.action')}
+                onPress={openLend}
+                variant="outline"
+                loading={lending}
+              />
+            ) : null}
             {archivedSessions.length > 0 ? (
               <SSButton
                 label={t('nostrIdentity.chat.sessions.archived', {
@@ -208,6 +230,19 @@ function SSChatSessionMenu({
               />
             ))
           : null}
+        {step === 'lend' ? (
+          <>
+            <SSText center color="muted">
+              {t('nip46.lend.warning')}
+            </SSText>
+            <SSButton label={t('nip46.lend.confirm')} onPress={confirmLend} />
+            <SSButton
+              label={t('common.cancel')}
+              onPress={close}
+              variant="outline"
+            />
+          </>
+        ) : null}
         {step === 'delete' ? (
           <>
             <SSText center color="muted">

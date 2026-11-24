@@ -123,14 +123,28 @@ export const Nip46RequestSchema = z.object({
   status: z.enum(['approved', 'pending', 'rejected'])
 })
 
+/** Where a bunker session came from: lent from a chat session, or paired by hand. */
+export const Nip46SessionOriginSchema = z.discriminatedUnion('kind', [
+  z.object({
+    kind: z.literal('chat'),
+    peerPubkey: z.string(),
+    sessionId: z.string()
+  }),
+  z.object({ kind: z.literal('manual') })
+])
+
 export const Nip46SessionSchema = z.object({
   clientName: z.string().optional(),
+  /** Empty for a `bunker://` offer until a client connects with its secret. */
   clientPubkey: z.string(),
   connectionError: z.string().optional(),
   connectionStatus: Nip46ConnectionStatusSchema.optional(),
   createdAt: z.number(),
+  /** An unused `bunker://` offer stops answering after this time (ms). */
+  expiresAt: z.number().optional(),
   id: z.string(),
   lastActiveAt: z.number(),
+  origin: Nip46SessionOriginSchema.optional(),
   permissions: z.record(Nip46MethodSchema, Nip46PermissionPolicySchema),
   relays: z.array(z.string()),
   secret: z.string().optional(),
@@ -321,6 +335,7 @@ export type Nip46ParsedUri = z.infer<typeof Nip46ParsedUriSchema>
 export type Nip46PermissionPolicy = z.infer<typeof Nip46PermissionPolicySchema>
 export type Nip46Request = z.infer<typeof Nip46RequestSchema>
 export type Nip46Session = z.infer<typeof Nip46SessionSchema>
+export type Nip46SessionOrigin = z.infer<typeof Nip46SessionOriginSchema>
 export type NostrAccount = z.infer<typeof NostrAccountSchema>
 export type NostrDecodedContent = z.infer<typeof NostrDecodedContentSchema>
 export type NostrDerivedKeys = z.infer<typeof NostrDerivedKeysSchema>
@@ -615,6 +630,8 @@ export type NostrChatConversation = Pick<
   NostrChatMessage,
   'peerPubkey' | 'sessionId'
 > & {
+  /** Something in this session waits for the user's signature. */
+  hasSignRequests?: boolean
   lastMessageAt: number
   lastMessagePreview: string
   title?: string
@@ -663,6 +680,39 @@ export type NostrChatThreadItem = {
   dm: NostrDM
   failed: boolean
   reactions: NostrChatReaction[]
+  /** Signature requests this message carries (from the peer). */
+  signRequests?: NostrSignRequest[]
+}
+
+/**
+ * pending: waiting for the user. signed / rejected: decided, and the answer
+ * is stored so a resend never signs again. invalid: can't be signed (wrong
+ * key, malformed, too old); declining answers it with `error`.
+ */
+export type NostrSignRequestStatus =
+  | 'expired'
+  | 'invalid'
+  | 'pending'
+  | 'rejected'
+  | 'signed'
+
+/** One NIP-46 request a peer sent in a chat session, to sign later. */
+export type NostrSignRequest = Pick<
+  NostrChatMessage,
+  'identityNpub' | 'peerPubkey' | 'sessionId'
+> & {
+  answered: boolean
+  error?: string
+  expiresAt: number
+  label?: string
+  /** The chat message (rumor) that carried it; one message is one batch. */
+  messageId: string
+  method: Nip46Method
+  params: string[]
+  requestedAt: number
+  requestId: string
+  result?: string
+  status: NostrSignRequestStatus
 }
 
 export type NostrErrorCode =
