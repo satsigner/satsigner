@@ -9,6 +9,7 @@ import type {
   Nip46Session
 } from '@/types/models/Nostr'
 import { toRestoredNip46Session } from '@/utils/nip46'
+import { isOpenBunkerOffer } from '@/utils/nip46Bunker'
 
 type Nip46State = {
   pendingRequests: Nip46Request[]
@@ -44,11 +45,13 @@ const useNip46Store = create<Nip46State & Nip46Actions>()(
       // Pairing a known client again updates its session in place, so the
       // caller must run the session it gets back, not the one it passed in.
       addSession: (session) => {
-        const existing = get().sessions.find(
-          (s) =>
-            s.clientPubkey === session.clientPubkey &&
-            s.signerNpub === session.signerNpub
-        )
+        const existing = isOpenBunkerOffer(session)
+          ? undefined
+          : get().sessions.find(
+              (s) =>
+                s.clientPubkey === session.clientPubkey &&
+                s.signerNpub === session.signerNpub
+            )
         if (!existing) {
           set((state) => ({ sessions: [...state.sessions, session] }))
           return session
@@ -85,11 +88,14 @@ const useNip46Store = create<Nip46State & Nip46Actions>()(
         get().sessions.filter((s) => s.signerNpub === npub),
 
       // No bunker survives a restart or a lock, so no stored session is still
-      // live and no request is left to answer.
+      // live and no request is left to answer. An offer nobody claimed can't
+      // be claimed any more: its link was single use for this run.
       markSessionsDisconnected: () => {
         set((state) => ({
           pendingRequests: [],
-          sessions: state.sessions.map(toRestoredNip46Session)
+          sessions: state.sessions
+            .filter((session) => !isOpenBunkerOffer(session))
+            .map(toRestoredNip46Session)
         }))
       },
 

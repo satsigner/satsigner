@@ -128,16 +128,11 @@ export function useNostrChatMessageDetail(
     if (!detail?.canReply) {
       return
     }
-    setReplyTo(
-      identityChatKey(
-        identityNpub,
-        detail.message.protocol,
-        detail.message.peerPubkey
-      ),
-      detail.message.id
-    )
+    setReplyTo(identityChatKey(detail.message), detail.message.id)
     router.dismissTo(
-      nostrChatThreadHref(identityNpub, peerNpub, detail.message.protocol)
+      nostrChatThreadHref(identityNpub, peerNpub, detail.message.protocol, {
+        sessionId: detail.message.sessionId
+      })
     )
   }
 

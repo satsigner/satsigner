@@ -1,3 +1,4 @@
+import { NOSTR_CHAT_DEFAULT_SESSION_ID } from '@/constants/nostr'
 import {
   MS_PER_SECOND,
   SECONDS_PER_DAY as DAY,
@@ -362,6 +363,7 @@ function conversation(
     lastMessagePreview: preview,
     peerNpub: safeNpubEncode(peerHex),
     peerPubkey: peerHex,
+    sessionId: NOSTR_CHAT_DEFAULT_SESSION_ID,
     unreadCount
   }
 }

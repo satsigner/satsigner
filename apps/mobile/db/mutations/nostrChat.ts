@@ -1,4 +1,9 @@
-import type { NostrChatMessage, NostrChatReaction } from '@/types/models/Nostr'
+import type {
+  NostrChatMessage,
+  NostrChatReaction,
+  NostrChatSession,
+  NostrChatThreadRef
+} from '@/types/models/Nostr'
 
 import { getDb, runTransaction } from '../connection'
 import { boolToInt } from '../mappers'
@@ -14,8 +19,8 @@ function insertChatMessage(message: NostrChatMessage): boolean {
   const { rowsAffected } = db.execute(
     `INSERT OR IGNORE INTO nostr_chat_messages (
       id, identity_npub, peer_pubkey, protocol, direction,
-      content, status, read, created_at, reply_to_id
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      content, status, read, created_at, reply_to_id, session_id
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       message.id,
       message.identityNpub,
@@ -26,7 +31,8 @@ function insertChatMessage(message: NostrChatMessage): boolean {
       message.status,
       boolToInt(message.read),
       message.created_at,
-      message.replyToId ?? null
+      message.replyToId ?? null,
+      message.sessionId
     ]
   )
   return (rowsAffected ?? 0) > 0
@@ -58,17 +64,90 @@ function failInterruptedChatSends(identityNpub: string) {
 }
 
 /** Returns how many messages flipped to read. */
-function markChatThreadRead(
-  identityNpub: string,
-  protocol: string,
-  peerPubkey: string
-): number {
+function markChatThreadRead(thread: NostrChatThreadRef): number {
   const { rowsAffected } = getDb().execute(
     `UPDATE nostr_chat_messages SET read = 1
-      WHERE identity_npub = ? AND protocol = ? AND peer_pubkey = ? AND read = 0`,
-    [identityNpub, protocol, peerPubkey]
+      WHERE identity_npub = ? AND protocol = ? AND peer_pubkey = ?
+        AND session_id = ? AND read = 0`,
+    [thread.identityNpub, thread.protocol, thread.peerPubkey, thread.sessionId]
   )
   return rowsAffected ?? 0
+}
+
+/**
+ * Keeps the first title a session got: a later subject from the peer can't
+ * rename it under the user.
+ */
+function insertChatSession(session: NostrChatSession): boolean {
+  const { rowsAffected } = getDb().execute(
+    `INSERT OR IGNORE INTO nostr_chat_sessions (
+      identity_npub, peer_pubkey, session_id, title, created_at, archived
+    ) VALUES (?, ?, ?, ?, ?, ?)`,
+    [
+      session.identityNpub,
+      session.peerPubkey,
+      session.sessionId,
+      session.title ?? null,
+      session.createdAt,
+      boolToInt(session.archived)
+    ]
+  )
+  return (rowsAffected ?? 0) > 0
+}
+
+type ChatSessionKey = Pick<
+  NostrChatSession,
+  'identityNpub' | 'peerPubkey' | 'sessionId'
+>
+
+function sessionKeyParams(session: ChatSessionKey): string[] {
+  return [session.identityNpub, session.peerPubkey, session.sessionId]
+}
+
+function renameChatSession(session: ChatSessionKey, title: string | null) {
+  getDb().execute(
+    `UPDATE nostr_chat_sessions SET title = ?
+      WHERE identity_npub = ? AND peer_pubkey = ? AND session_id = ?`,
+    [title, ...sessionKeyParams(session)]
+  )
+}
+
+function setChatSessionArchived(session: ChatSessionKey, archived: boolean) {
+  getDb().execute(
+    `UPDATE nostr_chat_sessions SET archived = ?
+      WHERE identity_npub = ? AND peer_pubkey = ? AND session_id = ?`,
+    [boolToInt(archived), ...sessionKeyParams(session)]
+  )
+}
+
+/** Drops the session's messages and their reactions, then the session row. */
+function deleteChatSession(session: ChatSessionKey) {
+  const params = sessionKeyParams(session)
+  runTransaction((tx) => {
+    tx.execute(
+      `DELETE FROM nostr_chat_reactions
+        WHERE identity_npub = ? AND message_id IN (
+          SELECT id FROM nostr_chat_messages
+           WHERE identity_npub = ? AND peer_pubkey = ? AND session_id = ?
+        )`,
+      [session.identityNpub, ...params]
+    )
+    tx.execute(
+      `DELETE FROM nostr_chat_messages
+        WHERE identity_npub = ? AND peer_pubkey = ? AND session_id = ?`,
+      params
+    )
+    tx.execute(
+      `DELETE FROM nostr_chat_sessions
+        WHERE identity_npub = ? AND peer_pubkey = ? AND session_id = ?`,
+      params
+    )
+    tx.execute(
+      `DELETE FROM nostr_sign_requests
+        WHERE identity_npub = ? AND peer_pubkey = ? AND session_id = ?`,
+      params
+    )
+  })
 }
 
 /** A deleted message takes its reactions with it. */
@@ -133,6 +212,12 @@ function deleteChatMessagesForIdentity(identityNpub: string) {
   getDb().execute('DELETE FROM nostr_chat_reactions WHERE identity_npub = ?', [
     identityNpub
   ])
+  getDb().execute('DELETE FROM nostr_chat_sessions WHERE identity_npub = ?', [
+    identityNpub
+  ])
+  getDb().execute('DELETE FROM nostr_sign_requests WHERE identity_npub = ?', [
+    identityNpub
+  ])
   clearNostrProcessedEvents(chatProcessedScope(identityNpub))
   clearMessageState(chatProcessedScope(identityNpub))
 }
@@ -141,9 +226,14 @@ export {
   deleteChatMessages,
   deleteChatMessagesForIdentity,
   deleteChatReactions,
+  deleteChatSession,
   failInterruptedChatSends,
   insertChatMessage,
   insertChatReaction,
+  insertChatSession,
   markChatThreadRead,
+  renameChatSession,
+  setChatSessionArchived,
   updateChatMessageStatus
 }
+export type { ChatSessionKey }
