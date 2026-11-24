@@ -14,9 +14,42 @@ type ReadOptions = {
   signal?: AbortSignal
 }
 
+const CANCELLED_MESSAGE = 'Address activity read cancelled'
+
 function throwIfAborted(signal: AbortSignal | undefined) {
   if (signal?.aborted) {
-    throw new Error('Address activity read cancelled')
+    throw new Error(CANCELLED_MESSAGE)
+  }
+}
+
+/**
+ * Settles with `request`, or rejects as soon as `signal` aborts. Aborting
+ * calls `onAbort` (closing the socket) so the request itself settles too.
+ */
+async function raceAbort<T>(
+  request: Promise<T>,
+  signal: AbortSignal | undefined,
+  onAbort: () => void
+): Promise<T> {
+  if (!signal) {
+    return request
+  }
+  const listener: { handle?: () => void } = {}
+  const aborted = new Promise<never>((_resolve, reject) => {
+    // Reject first: onAbort can reject `request` synchronously, and the
+    // race must report the cancellation, not the closed socket.
+    listener.handle = () => {
+      reject(new Error(CANCELLED_MESSAGE))
+      onAbort()
+    }
+    signal.addEventListener('abort', listener.handle, { once: true })
+  })
+  try {
+    return await Promise.race([request, aborted])
+  } finally {
+    if (listener.handle) {
+      signal.removeEventListener('abort', listener.handle)
+    }
   }
 }
 
@@ -38,7 +71,11 @@ async function readElectrumActivity(
     )) {
       throwIfAborted(signal)
       // oxlint-disable-next-line no-await-in-loop -- one batch at a time on one socket
-      const histories = await client.getAddressHistories(batch)
+      const histories = await raceAbort(
+        client.getAddressHistories(batch),
+        signal,
+        () => client.close()
+      )
       for (const [index, history] of histories.entries()) {
         activity.push({
           address: batch[index],

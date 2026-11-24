@@ -536,6 +536,9 @@ export default function IOPreview() {
   const [dustChangeModalVisible, setDustChangeModalVisible] = useState(false)
   const [pendingDustAmount, setPendingDustAmount] = useState(0)
   const [syncWarningVisible, setSyncWarningVisible] = useState(false)
+  // Bumped when the warning closes, so a check finishing afterwards doesn't
+  // navigate again.
+  const syncWarningAttemptRef = useRef(0)
   const { checkAccount, isChecking } = useAccountSendSyncCheck(id)
 
   const dustErrorMessage = dustErrorOverride
@@ -1164,22 +1167,32 @@ export default function IOPreview() {
     navigateToPreview()
   }
 
+  function closeSyncWarning() {
+    syncWarningAttemptRef.current += 1
+    setSyncWarningVisible(false)
+  }
+
   async function handleSyncWarningCheck() {
+    syncWarningAttemptRef.current += 1
+    const attempt = syncWarningAttemptRef.current
     const isSynced = await checkAccount().catch(() => false)
+    if (attempt !== syncWarningAttemptRef.current) {
+      return
+    }
     if (!isSynced) {
       toast.error(t('transaction.syncWarning.checkFailed'))
       return
     }
-    setSyncWarningVisible(false)
+    closeSyncWarning()
     navigateToPreview()
   }
 
   function handleSyncWarningCancel() {
-    setSyncWarningVisible(false)
+    closeSyncWarning()
   }
 
   function handleSyncWarningContinue() {
-    setSyncWarningVisible(false)
+    closeSyncWarning()
     navigateToPreview()
   }
 

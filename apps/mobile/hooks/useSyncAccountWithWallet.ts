@@ -407,6 +407,29 @@ function handleSyncError(
 
 type SyncDepth = Pick<WalletSyncParams, 'forceFullScan' | 'skipQuickCheck'>
 
+// How deep the account's current job goes: a deep rescan (2) also checks
+// every address (1), which a default sync (0) may skip.
+const depthOfCurrentJob = new Map<string, number>()
+
+function depthRank({ forceFullScan, skipQuickCheck }: SyncDepth) {
+  if (forceFullScan) {
+    return 2
+  }
+  return skipQuickCheck ? 1 : 0
+}
+
+/**
+ * A deeper request replaces the account's current job; anything else joins
+ * it. So a "Check all addresses" never cancels a queued deep rescan.
+ */
+function replacesCurrentJob(accountId: string, depth: SyncDepth) {
+  if (!hasCurrentSyncRun(accountId)) {
+    return false
+  }
+  const requested = depthRank(depth)
+  return requested > 0 && requested > (depthOfCurrentJob.get(accountId) ?? 0)
+}
+
 async function runQueuedWalletSync(
   account: Account,
   wallet: BdkWallet,
@@ -547,23 +570,19 @@ async function queueWalletSync({
   skipQuickCheck,
   wallet
 }: QueueWalletSyncParams): Promise<Account | null> {
-  // An explicit full check or rescan replaces a running sync that may be
-  // only a quick check.
-  if (forceFullScan || skipQuickCheck) {
+  const depth = { forceFullScan, skipQuickCheck }
+  if (replacesCurrentJob(account.id, depth)) {
     cancelAccountSync(account.id)
   }
   const isDuplicate = hasCurrentSyncRun(account.id)
+  if (!isDuplicate) {
+    depthOfCurrentJob.set(account.id, depthRank(depth))
+  }
 
   const outcome = await walletSyncQueue
     .enqueue(
       account.id,
-      (controls) =>
-        runQueuedWalletSync(
-          account,
-          wallet,
-          { forceFullScan, skipQuickCheck },
-          controls
-        ),
+      (controls) => runQueuedWalletSync(account, wallet, depth, controls),
       {
         onQueued: () => writeSyncStatus(account.id, 'queued'),
         priority: isPriority,
@@ -577,6 +596,9 @@ async function queueWalletSync({
       (value) => ({ value }),
       (error: unknown) => ({ error })
     )
+  if (!hasCurrentSyncRun(account.id)) {
+    depthOfCurrentJob.delete(account.id)
+  }
 
   if ('error' in outcome) {
     // The request that started the sync reports the failure.

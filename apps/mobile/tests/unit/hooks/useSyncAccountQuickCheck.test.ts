@@ -256,22 +256,62 @@ describe('useSyncAccountWithWallet quick check', () => {
   it('gives a sync already running to a request that shares its result', async () => {
     const account = makeAccount()
     useAccountsStore.setState({ accounts: [account] })
-    const gate: { release?: () => void } = {}
-    jest.mocked(readAddressActivity).mockReturnValue(
-      new Promise((resolve) => {
-        gate.release = () => resolve(UNCHANGED)
-      })
-    )
+    const { promise: gate, resolve: release } =
+      Promise.withResolvers<typeof UNCHANGED>()
+    jest.mocked(readAddressActivity).mockReturnValue(gate)
     const hook = renderWalletSync()
 
     const background = hook.current?.syncAccountWithWallet(account, wallet)
     const shared = hook.current?.syncAccountNow(account, wallet)
     const duplicate = hook.current?.syncAccountWithWallet(account, wallet)
-    gate.release?.()
+    release(UNCHANGED)
 
     await expect(background).resolves.toMatchObject({ syncStatus: 'synced' })
     await expect(shared).resolves.toMatchObject({ syncStatus: 'synced' })
     await expect(duplicate).resolves.toBeNull()
     expect(readAddressActivity).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('useSyncAccountWithWallet sync depth', () => {
+  beforeEach(() => {
+    cancelAllAccountSyncs()
+    jest.mocked(readAddressActivity).mockReset()
+    jest.mocked(syncWallet).mockClear()
+  })
+
+  it('keeps a queued deep rescan when checking all addresses', async () => {
+    const account = makeAccount()
+    useAccountsStore.setState({ accounts: [account] })
+    const { promise: gate, resolve: release } =
+      Promise.withResolvers<undefined>()
+    jest.mocked(syncWallet).mockReturnValueOnce(gate)
+    const hook = renderWalletSync()
+
+    const deep = hook.current?.syncAccountWithWallet(account, wallet, true)
+    const checkAll = hook.current?.checkAllAccountAddresses(account, wallet)
+    release(undefined)
+
+    await expect(deep).resolves.toMatchObject({ syncStatus: 'synced' })
+    await expect(checkAll).resolves.toBeNull()
+    expect(syncWallet).toHaveBeenCalledTimes(1)
+    expect(jest.mocked(syncWallet).mock.calls[0][4]).toBe(true)
+  })
+
+  it('replaces a quick check with a check of every address', async () => {
+    const account = makeAccount()
+    useAccountsStore.setState({ accounts: [account] })
+    const { promise: gate, resolve: release } =
+      Promise.withResolvers<typeof UNCHANGED>()
+    jest.mocked(readAddressActivity).mockReturnValueOnce(gate)
+    const hook = renderWalletSync()
+
+    const quick = hook.current?.syncAccountWithWallet(account, wallet)
+    const checkAll = hook.current?.checkAllAccountAddresses(account, wallet)
+    release(UNCHANGED)
+
+    await expect(quick).resolves.toBeNull()
+    await expect(checkAll).resolves.toMatchObject({ syncStatus: 'synced' })
+    expect(syncWallet).toHaveBeenCalledTimes(1)
   })
 })
