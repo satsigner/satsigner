@@ -49,7 +49,9 @@ class SsQrScannerView(context: Context, appContext: AppContext) : ExpoView(conte
     BarcodeReader.Options(
       formats = setOf(BarcodeReader.Format.QR_CODE),
       tryHarder = true,
-      tryRotate = true
+      tryRotate = true,
+      // Terminals often draw QR codes light-on-dark once ANSI colors are stripped.
+      tryInvert = true
     )
   )
   private var cameraProvider: ProcessCameraProvider? = null
