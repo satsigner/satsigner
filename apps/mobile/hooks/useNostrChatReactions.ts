@@ -4,7 +4,7 @@ import { NostrAPI } from '@/api/nostr'
 import type { ChatIdentity } from '@/utils/nostrChat'
 import {
   getChatPipelineApi,
-  removeChatReaction,
+  removeChatReactions,
   sendChatReaction
 } from '@/utils/nostrChat'
 import { getNostrContactsRelays } from '@/utils/nostrContacts'
@@ -58,12 +58,12 @@ function useNostrChatReactions(
     )
   }
 
-  function unreact(reactionId: string) {
+  function unreact(reactionIds: string[]) {
     if (!signer) {
       return
     }
     void withChatApi(signer, (api) =>
-      removeChatReaction(api, signer, peerNpub, reactionId)
+      removeChatReactions(api, signer, peerNpub, reactionIds)
     )
   }
 

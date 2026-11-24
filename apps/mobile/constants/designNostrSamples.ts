@@ -192,7 +192,7 @@ const STANDARD_REACTIONS: NostrChatReaction[] = [
 ]
 
 const PAYMENT_REACTIONS: NostrChatReaction[] = [
-  reaction('5', '2', ALICE_HEX, '👀', NOW - 14 * MINUTE),
+  reaction('5', '2', BOB_HEX, '👀', NOW - 14 * MINUTE),
   reaction('6', '4', BOB_HEX, '⚠️', NOW - 5 * MINUTE),
   reaction('7', '1', ME_HEX, '🙏', NOW - 19 * MINUTE)
 ]

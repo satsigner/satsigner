@@ -8,6 +8,7 @@ import { t } from '@/locales'
 import { Colors, Layout, Sizes, Typography } from '@/styles'
 import type { Transaction } from '@/types/models/Transaction'
 import type { DisplayPreferences } from '@/types/ui/displayPreferences'
+import { isAutomaticTag } from '@/utils/automaticTags'
 import {
   getConfirmations,
   getConfirmationsColorStyle
@@ -19,7 +20,6 @@ import {
   formatTxId
 } from '@/utils/format'
 import { parseLabel } from '@/utils/parse'
-import { isAutomaticTag } from '@/utils/transaction'
 import { getWalletTransactionEffect } from '@/utils/walletOwnership'
 
 import { SSIconIncoming, SSIconOutgoing } from './icons'

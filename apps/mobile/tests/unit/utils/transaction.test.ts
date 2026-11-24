@@ -15,7 +15,6 @@ import {
   getPreviewTransactionHex,
   getRawTransactionSizes,
   getTransactionIdDisplay,
-  isAutomaticTag,
   isSelfSend,
   legacyEstimateTransactionSize,
   mapBuildTransactionError,
@@ -984,13 +983,6 @@ describe('getRawTransactionSizes', () => {
       vsize: 0,
       weight: 0
     })
-  })
-})
-
-describe('isAutomaticTag', () => {
-  it('flags tags added by sync, not user tags', () => {
-    expect(isAutomaticTag('selfsend')).toBe(true)
-    expect(isAutomaticTag('food')).toBe(false)
   })
 })
 

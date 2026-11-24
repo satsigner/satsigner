@@ -2,7 +2,8 @@ import type { Address } from '@/types/models/Address'
 import type { Transaction } from '@/types/models/Transaction'
 import {
   buildAutomaticTagContext,
-  getAutomaticTagsByTxid
+  getAutomaticTagsByTxid,
+  isAutomaticTag
 } from '@/utils/automaticTags'
 
 const OWN = 'tb1qown'
@@ -144,5 +145,13 @@ describe('buildAutomaticTagContext', () => {
     })
     expect(context.ownAddresses.has(OWN)).toBe(true)
     expect(context.ownedOutpoints.has('funding:2')).toBe(true)
+  })
+})
+
+describe('isAutomaticTag', () => {
+  it('flags tags added by the app, not user tags', () => {
+    expect(isAutomaticTag('selfsend')).toBe(true)
+    expect(isAutomaticTag('dust')).toBe(true)
+    expect(isAutomaticTag('food')).toBe(false)
   })
 })

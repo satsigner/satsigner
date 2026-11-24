@@ -10,6 +10,7 @@ const OL_RE = /^(\d+)[.)]\s*(.+)$/
 const QUOTE_RE = /^>\s?(.+)$/
 const HR_RE = /^(\*{3,}|-{3,}|_{3,})$/
 const CODE_FENCE = '```'
+const CODE_FENCE_RUN_RE = /^`+/
 const CODE_LANGUAGE_RE = /^[\w#+.-]{1,20}$/
 
 function trimLineStart(line: string): string {
@@ -30,7 +31,7 @@ export function isSafeHttpUrl(url: string): boolean {
 
 /** The label after an opening fence, kept only when it looks like a language name. */
 function parseCodeLanguage(fenceLine: string): string | undefined {
-  const label = fenceLine.trim().slice(CODE_FENCE.length).trim()
+  const label = fenceLine.trim().replace(CODE_FENCE_RUN_RE, '').trim()
   return CODE_LANGUAGE_RE.test(label) ? label : undefined
 }
 

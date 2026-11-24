@@ -57,7 +57,7 @@ type ChatThreadRowContext = {
   paymentActions: ChatPaymentActions
   ownHex: string | null
   peerHex: string | null
-  onRemoveReaction?: (reactionId: string) => void
+  onRemoveReaction?: (reactionIds: string[]) => void
   formattedNpubs: Map<string, AuthorDisplayInfo>
   messagesById: ReadonlyMap<string, NostrDM>
   todayStart: number
@@ -139,13 +139,11 @@ function ChatThreadRow({ row }: { row: ChatRow<NostrChatThreadItem> }) {
             actions={context.paymentActions}
             requests={paymentRequests}
           />
-          {context.onRemoveReaction ? (
-            <SSChatReactions
-              summaries={summarizeChatReactions(reactions, context.ownHex)}
-              agentStatus={agentStatus}
-              onRemove={context.onRemoveReaction}
-            />
-          ) : null}
+          <SSChatReactions
+            summaries={summarizeChatReactions(reactions, context.ownHex)}
+            agentStatus={agentStatus}
+            onRemove={context.onRemoveReaction}
+          />
         </>
       }
     />
@@ -189,8 +187,8 @@ type SSChatThreadProps = {
   onCancelReply?: () => void
   /** Hex pubkey of the peer, whose 👀 ✅ ⚠️ reactions read as agent status. */
   peerHex?: string
-  /** Reactions are shown (NIP-17 threads) only when this is set. */
-  onRemoveReaction?: (reactionId: string) => void
+  /** Lets my reaction chips take my reactions back; without it they are read-only. */
+  onRemoveReaction?: (reactionIds: string[]) => void
 }
 
 /**
@@ -232,8 +230,23 @@ export default function SSChatThread({
   const todayStart = useLocalDayStart()
   const displayPreferences = useDisplayPreferences()
   const nowMs = useNow()
-  const invoicePay = useChatInvoicePay()
-  const bitcoinPay = useChatBitcoinRequestPay()
+  const {
+    canPay: canPayInvoice,
+    copy: copyPaymentRequest,
+    pay: payInvoice,
+    paymentMethods,
+    paymentSheetRef,
+    pendingAmountSats: pendingInvoiceAmountSats,
+    selectMethod
+  } = useChatInvoicePay()
+  const {
+    accountSheetRef,
+    canPay: canPayBitcoinRequest,
+    pay: payBitcoinRequest,
+    pendingAccounts,
+    pendingAmountSats: pendingBitcoinAmountSats,
+    selectAccount
+  } = useChatBitcoinRequestPay()
 
   function handleSend() {
     const text = inputValue.trim()
@@ -265,19 +278,19 @@ export default function SSChatThread({
   }
 
   function handlePaymentCopy(text: string) {
-    void invoicePay.copy(text)
+    void copyPaymentRequest(text)
   }
 
   function handlePaymentPay(request: ChatPaymentRequest) {
     if (request.kind === 'lightning') {
-      invoicePay.pay(request)
+      payInvoice(request)
       return
     }
-    bitcoinPay.pay(request)
+    payBitcoinRequest(request)
   }
 
   function canPayBitcoin(request: ChatPaymentRequest) {
-    return request.kind === 'bitcoin' && bitcoinPay.canPay(request)
+    return request.kind === 'bitcoin' && canPayBitcoinRequest(request)
   }
 
   const rowContext: ChatThreadRowContext = {
@@ -292,7 +305,7 @@ export default function SSChatThread({
     ownNpub,
     paymentActions: {
       canPayBitcoin,
-      canPayInvoice: invoicePay.canPay,
+      canPayInvoice,
       displayPreferences,
       nowMs,
       onCopy: handlePaymentCopy,
@@ -363,17 +376,18 @@ export default function SSChatThread({
         onCancelReply={onCancelReply}
       />
       <SSPaymentMethodPicker
-        ref={invoicePay.paymentSheetRef}
-        onSelect={invoicePay.selectMethod}
-        methods={invoicePay.paymentMethods}
-        amountSats={invoicePay.pendingAmountSats}
+        ref={paymentSheetRef}
+        onSelect={selectMethod}
+        methods={paymentMethods}
+        amountSats={pendingInvoiceAmountSats}
+        privacyMode={displayPreferences.privacyMode}
       />
       <SSChatAccountPicker
-        ref={bitcoinPay.accountSheetRef}
-        accounts={bitcoinPay.pendingAccounts}
-        amountSats={bitcoinPay.pendingAmountSats}
+        ref={accountSheetRef}
+        accounts={pendingAccounts}
+        amountSats={pendingBitcoinAmountSats}
         privacyMode={displayPreferences.privacyMode}
-        onSelect={bitcoinPay.selectAccount}
+        onSelect={selectAccount}
       />
     </KeyboardAvoidingView>
   )

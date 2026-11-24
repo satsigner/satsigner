@@ -148,6 +148,7 @@ import {
   insertChatMessage,
   updateChatMessageStatus
 } from '@/db/mutations/nostrChat'
+import * as nostrMessageState from '@/db/nostrMessageState'
 import { clearNostrFollowCache, setNostrFollowCache } from '@/storage/mmkv'
 import { useNostrChatSettingsStore } from '@/store/nostrChatSettings'
 import type { NostrChatGiftWrap } from '@/types/models/Nostr'
@@ -163,7 +164,7 @@ import {
   getChatPipelineStatus,
   ingestChatMessage,
   restartChatPipeline,
-  removeChatReaction,
+  removeChatReactions,
   sendChatReaction,
   sendNip04Chat,
   sendNip17Chat,
@@ -463,6 +464,28 @@ describe('nostrChat', () => {
       expect(processedWraps.has(`chat:${senderNpub}|w-early`)).toBe(false)
     })
 
+    it('applies a reaction once its target message arrives', async () => {
+      const { api, captured } = createFakeChatApi()
+      await subscribeToIdentityChat(api, sender)
+      deliverRumor(
+        captured.handlers,
+        'w-ahead',
+        reactionRumor('a6', peerPubkey)
+      )
+      deliverRumor(captured.handlers, 'w-msg', {
+        content: 'from peer',
+        created_at: 1,
+        id: messageId,
+        pubkey: peerPubkey,
+        tags: [['p', senderPubkey]]
+      })
+
+      expect([...reactionStore.values()]).toStrictEqual([
+        expect.objectContaining({ author: peerPubkey, messageId })
+      ])
+      expect(processedWraps.has(`chat:${senderNpub}|w-ahead`)).toBe(true)
+    })
+
     it('removes a reaction only when its author deletes it', async () => {
       const captured = await subscribeWithPeerMessage()
       const rumor = reactionRumor('a4', peerPubkey)
@@ -483,6 +506,43 @@ describe('nostrChat', () => {
       deletionFrom(peerPubkey, 'w-del2')
       expect(reactionStore.size).toBe(0)
       expect(storedMessages()).toHaveLength(1)
+    })
+
+    it('keeps a reaction removed when its deletion arrives first', async () => {
+      const tombstones = new Map<string, string>()
+      jest
+        .spyOn(nostrMessageState, 'tombstoneMessages')
+        .mockImplementation((_scope, entries) => {
+          for (const { author, messageId: id } of entries) {
+            tombstones.set(id, author)
+          }
+        })
+      jest
+        .spyOn(nostrMessageState, 'getTombstoneAuthors')
+        .mockImplementation(
+          (_scope, ids) =>
+            new Map(
+              ids
+                .filter((id) => tombstones.has(id))
+                .map((id): [string, string] => [id, tombstones.get(id) ?? ''])
+            )
+        )
+      const captured = await subscribeWithPeerMessage()
+      const rumor = reactionRumor('a5', peerPubkey)
+
+      deliverRumor(captured.handlers, 'w-del5', {
+        id: 'w-del5'.padStart(64, 'd'),
+        kind: 5,
+        pubkey: peerPubkey,
+        tags: [
+          ['e', rumor.id],
+          ['k', '7']
+        ]
+      })
+      deliverRumor(captured.handlers, 'w-r5', rumor)
+
+      expect(reactionStore.size).toBe(0)
+      expect(processedWraps.has(`chat:${senderNpub}|w-r5`)).toBe(true)
     })
 
     it('sends a gift-wrapped kind 7 to the peer and keeps it locally', async () => {
@@ -531,20 +591,47 @@ describe('nostrChat', () => {
       expect(reactionStore.size).toBe(0)
     })
 
-    it('takes a reaction back with a gift-wrapped kind 5 naming it', async () => {
+    it('takes reactions back with one gift-wrapped kind 5 naming them', async () => {
       const api = new NostrAPI([])
       const published: Awaited<ReturnType<NDKEvent['toNostrEvent']>>[] = []
       jest.spyOn(api, 'publishEvent').mockImplementation(async (event) => {
         published.push(await event.toNostrEvent())
       })
-      const reactionId = 'f'.repeat(64)
-      reactionStore.set(reactionId, { author: senderPubkey, id: reactionId })
+      const tombstone = jest.spyOn(nostrMessageState, 'tombstoneMessages')
+      const reactionIds = ['f'.repeat(64), 'e'.repeat(64)]
+      for (const id of reactionIds) {
+        reactionStore.set(id, { author: senderPubkey, id })
+      }
 
-      await removeChatReaction(api, sender, peerNpub, reactionId)
+      await removeChatReactions(api, sender, peerNpub, reactionIds)
 
       const rumor = unwrapPublished(published[0], peerSecretKey)
       expect(rumor.kind).toBe(5)
-      expect(rumor.tags).toContainEqual(['e', reactionId])
+      expect(rumor.tags).toContainEqual(['e', reactionIds[0]])
+      expect(rumor.tags).toContainEqual(['e', reactionIds[1]])
+      expect(reactionStore.size).toBe(0)
+      expect(tombstone).toHaveBeenCalledWith(
+        `chat:${senderNpub}`,
+        reactionIds.map((messageId) => ({ author: senderPubkey, messageId })),
+        expect.any(Number)
+      )
+    })
+
+    it('does not react to a message the peer never got', async () => {
+      const api = new NostrAPI([])
+      const publish = jest
+        .spyOn(api, 'publishEvent')
+        .mockRejectedValueOnce(new Error('down'))
+        .mockResolvedValue()
+      await expect(
+        sendNip17Chat(api, sender, peerNpub, 'never delivered')
+      ).rejects.toThrow('down')
+      const [failed] = storedMessages()
+      publish.mockClear()
+
+      await sendChatReaction(api, sender, peerNpub, failed?.id ?? '', '👍')
+
+      expect(publish).not.toHaveBeenCalled()
       expect(reactionStore.size).toBe(0)
     })
   })

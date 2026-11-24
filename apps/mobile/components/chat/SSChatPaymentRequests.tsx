@@ -1,13 +1,16 @@
 import SSChatPaymentRequestCard from '@/components/chat/SSChatPaymentRequestCard'
 import type { DisplayPreferences } from '@/types/ui/displayPreferences'
 import {
-  getRequestKey,
+  getPaymentRequestText,
   isChatPaymentRequestExpired
 } from '@/utils/chatPaymentRequests'
-import type { ChatPaymentRequest } from '@/utils/chatPaymentRequests'
+import type {
+  ChatInvoice,
+  ChatPaymentRequest
+} from '@/utils/chatPaymentRequests'
 
 type ChatPaymentActions = {
-  canPayInvoice: boolean
+  canPayInvoice: (request: ChatInvoice) => boolean
   canPayBitcoin: (request: ChatPaymentRequest) => boolean
   displayPreferences: DisplayPreferences
   nowMs: number
@@ -25,7 +28,7 @@ function canPayRequest(
   actions: ChatPaymentActions
 ) {
   return request.kind === 'lightning'
-    ? actions.canPayInvoice
+    ? actions.canPayInvoice(request)
     : actions.canPayBitcoin(request)
 }
 
@@ -39,7 +42,7 @@ function SSChatPaymentRequests({
   }
   return requests.map((request) => (
     <SSChatPaymentRequestCard
-      key={getRequestKey(request)}
+      key={getPaymentRequestText(request)}
       request={request}
       displayPreferences={actions.displayPreferences}
       nowMs={actions.nowMs}

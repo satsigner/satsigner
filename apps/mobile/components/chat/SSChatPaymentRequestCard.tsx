@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native'
 import { SSIconLightning } from '@/components/icons'
 import SSAmountDisplay from '@/components/SSAmountDisplay'
 import SSButton from '@/components/SSButton'
+import SSClipboardCopy from '@/components/SSClipboardCopy'
 import SSText from '@/components/SSText'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
@@ -10,7 +11,10 @@ import { t } from '@/locales'
 import { Colors, Typography } from '@/styles'
 import type { Network } from '@/types/settings/blockchain'
 import type { DisplayPreferences } from '@/types/ui/displayPreferences'
-import { getChatInvoiceTiming } from '@/utils/chatPaymentRequests'
+import {
+  getChatInvoiceTiming,
+  getPaymentRequestText
+} from '@/utils/chatPaymentRequests'
 import type {
   ChatBitcoinRequest,
   ChatInvoice,
@@ -48,10 +52,6 @@ function shortenInvoice(invoice: string) {
     return invoice
   }
   return `${invoice.slice(0, INVOICE_PREVIEW_CHARS)}…${invoice.slice(-INVOICE_PREVIEW_CHARS)}`
-}
-
-function getCopyText(request: ChatPaymentRequest) {
-  return request.kind === 'lightning' ? request.invoice : request.uri
 }
 
 function getTitle(request: ChatPaymentRequest) {
@@ -155,9 +155,11 @@ function BitcoinDetails({
           {request.message}
         </SSText>
       ) : null}
-      <SSText type="mono" size="xxs" color="muted" numberOfLines={1}>
-        {formatAddress(request.address)}
-      </SSText>
+      <SSClipboardCopy text={request.address}>
+        <SSText type="mono" size="xxs" color="muted" numberOfLines={1}>
+          {formatAddress(request.address)}
+        </SSText>
+      </SSClipboardCopy>
       {request.hasLightningFallback ? (
         <SSHStack gap="xxs" style={styles.centered}>
           <SSIconLightning
@@ -257,7 +259,7 @@ function SSChatPaymentRequestCard({
   }
 
   function handleCopy() {
-    onCopy(getCopyText(request))
+    onCopy(getPaymentRequestText(request))
   }
 
   return (

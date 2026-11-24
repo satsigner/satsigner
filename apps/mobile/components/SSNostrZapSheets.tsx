@@ -123,6 +123,7 @@ function SSNostrZapSheets({
         amountSats={payAmount}
         btcPrice={btcPrice}
         fiatCurrency={fiatCurrency}
+        privacyMode={privacyMode}
       />
     </>
   )

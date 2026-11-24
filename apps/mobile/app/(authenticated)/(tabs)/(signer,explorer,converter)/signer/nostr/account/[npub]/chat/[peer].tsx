@@ -22,7 +22,10 @@ import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { useSettingsStore } from '@/store/settings'
 import type { NostrChatProtocol } from '@/types/models/Nostr'
 import { getPubKeyHexFromNpub, safeNpubEncode } from '@/utils/nostr'
-import { buildChatThreadAuthors } from '@/utils/nostrChat'
+import {
+  buildChatThreadAuthors,
+  isChatThreadItemDelivered
+} from '@/utils/nostrChat'
 import { getNostrErrorMessage } from '@/utils/nostrErrorMessage'
 import {
   nostrAuthorProfileHref,
@@ -89,6 +92,13 @@ export default function NostrChatThread() {
     onDetails: handleOpenMessage,
     onReply: setReplyTo
   })
+  const selectedItem = items.find(
+    (item) => item.dm.id === messageActions.selectedMessage?.id
+  )
+  const canReactToSelected =
+    canReact &&
+    selectedItem !== undefined &&
+    isChatThreadItemDelivered(selectedItem)
 
   if (!identity || peerPubkey === null) {
     return (
@@ -193,7 +203,7 @@ export default function NostrChatThread() {
         onCopy={messageActions.handleCopy}
         onDetails={messageActions.handleDetails}
         onClose={messageActions.closeActions}
-        onReact={canReact ? handleReact : undefined}
+        onReact={canReactToSelected ? handleReact : undefined}
       />
     </SSMainLayout>
   )

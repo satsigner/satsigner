@@ -11,6 +11,10 @@ function getPriceDateTimestamp(date: Date) {
   )
 }
 
+function isSamePriceDay(first: Date, second: Date) {
+  return getPriceDateTimestamp(first) === getPriceDateTimestamp(second)
+}
+
 async function fetchPriceAtTimestamp(
   currency: Currency,
   timestamp: number | undefined
@@ -22,4 +26,4 @@ async function fetchPriceAtTimestamp(
   return prices?.[currency] ?? null
 }
 
-export { fetchPriceAtTimestamp, getPriceDateTimestamp }
+export { fetchPriceAtTimestamp, getPriceDateTimestamp, isSamePriceDay }

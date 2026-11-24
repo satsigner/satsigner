@@ -48,15 +48,15 @@ function loadPriceBundle(currency: Currency): PriceBundle {
   return parsed
 }
 
+function isUsablePrice(price: number | null | undefined): price is number {
+  return typeof price === 'number' && Number.isFinite(price) && price >= 0
+}
+
 /**
  * Closest bundled close at or before `timestamp`.
  * Returns null if the timestamp is before the first row or after the last
  * (newer than the dataset — do not clamp to last close).
  */
-function isUsablePrice(price: number | null | undefined): price is number {
-  return typeof price === 'number' && Number.isFinite(price) && price >= 0
-}
-
 function findClosestPrice(
   times: number[],
   prices: (number | null)[],
@@ -116,18 +116,25 @@ function getLocalPriceSeries(
   return series
 }
 
+// Rows are UTC days. A local date on the same calendar day formats as that
+// day in every time zone.
+function getCalendarDay(timestamp: number) {
+  const date = new Date(timestamp * MS_PER_SECOND)
+  return new Date(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())
+}
+
 function getLocalPriceCoverage(
   currency: Currency
 ): { first: Date; last: Date } | null {
-  const { times } = loadPriceBundle(currency)
-  const first = times.at(0)
-  const last = times.at(-1)
+  const series = getLocalPriceSeries(currency)
+  const first = series.at(0)
+  const last = series.at(-1)
   if (first === undefined || last === undefined) {
     return null
   }
   return {
-    first: new Date(first * MS_PER_SECOND),
-    last: new Date(last * MS_PER_SECOND)
+    first: getCalendarDay(first.time),
+    last: getCalendarDay(last.time)
   }
 }
 

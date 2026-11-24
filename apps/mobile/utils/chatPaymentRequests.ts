@@ -22,8 +22,11 @@ const BOLT11_IN_TEXT_RE =
   /(?<![a-z0-9])(?:lightning:)?(ln(?:bcrt|bc|tbs|tb)[0-9a-z]{50,})/gi
 
 // A bitcoin: URI runs until whitespace or a character that can't appear
-// unencoded in a URI and usually closes markdown or prose around it.
-const BITCOIN_URI_IN_TEXT_RE = /(?<![a-z0-9])bitcoin:[^\s<>"'`()[\]{}]+/gi
+// unencoded in a URI and usually closes markdown or prose around it. BIP21
+// values may hold parentheses, so a balanced `(...)` group stays in the URI
+// while an unmatched `)` (a Markdown link or a parenthetical) ends it.
+const BITCOIN_URI_IN_TEXT_RE =
+  /(?<![a-z0-9])bitcoin:(?:[^\s<>"'`()[\]{}]|\([^\s<>"'`()[\]{}]*\))+/gi
 const URI_TRAILING_PUNCTUATION_RE = /[.,;:!?*_~]+$/
 
 type ChatInvoice = {
@@ -143,7 +146,7 @@ function findInvoiceMatches(text: string, skip: TextMatch[]): TextMatch[] {
     }))
 }
 
-function getRequestKey(request: ChatPaymentRequest) {
+function getPaymentRequestText(request: ChatPaymentRequest) {
   return request.kind === 'lightning' ? request.invoice : request.uri
 }
 
@@ -163,7 +166,7 @@ function findChatPaymentRequests(text: string): ChatPaymentRequest[] {
   const seen = new Set<string>()
   const unique: ChatPaymentRequest[] = []
   for (const request of requests) {
-    const key = getRequestKey(request)
+    const key = getPaymentRequestText(request)
     if (!seen.has(key)) {
       seen.add(key)
       unique.push(request)
@@ -215,7 +218,7 @@ function isChatPaymentRequestExpired(
 export {
   findChatPaymentRequests,
   getChatInvoiceTiming,
-  getRequestKey,
+  getPaymentRequestText,
   hasChatInvoice,
   isChatInvoiceExpired,
   isChatPaymentRequestExpired

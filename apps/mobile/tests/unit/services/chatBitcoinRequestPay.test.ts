@@ -8,7 +8,8 @@ import { useTransactionBuilderStore } from '@/store/transactionBuilder'
 import type { Account } from '@/types/models/Account'
 import type { ChatBitcoinRequest } from '@/utils/chatPaymentRequests'
 
-const ADDRESS = 'tb1qzyg3zyg3zyg3zyg3zyg3zyg3zyg3zyg3t3jqk5'
+const ADDRESS = 'tb1qw508d6qejxtdg4y5r3zarvary0c5xw7kxpjzsx'
+const MAINNET_ADDRESS = 'bc1qw508d6qejxtdg4y5r3zarvary0c5xw7kv8f3t4'
 const IO_PREVIEW = '/signer/bitcoin/account/[id]/signAndSend/ioPreview'
 
 function account(id: string, network: Account['network']): Account {
@@ -61,23 +62,32 @@ function request(amountSats: number): ChatBitcoinRequest {
 }
 
 describe('getChatBitcoinPayAccounts', () => {
-  it('only offers accounts on the request network', () => {
-    const accounts = [
-      account('main', 'bitcoin'),
-      account('sig', 'signet'),
-      account('test', 'testnet')
-    ]
+  const accounts = [
+    account('main', 'bitcoin'),
+    account('sig', 'signet'),
+    account('test', 'testnet')
+  ]
+
+  it('offers signet and testnet accounts for a test network address', () => {
     expect(
-      getChatBitcoinPayAccounts(accounts, { network: 'signet' }).map(
+      getChatBitcoinPayAccounts(accounts, { address: ADDRESS }).map(
         ({ id }) => id
       )
-    ).toStrictEqual(['sig'])
+    ).toStrictEqual(['sig', 'test'])
   })
 
-  it('offers nothing when the network is unknown', () => {
+  it('offers only mainnet accounts for a mainnet address', () => {
     expect(
-      getChatBitcoinPayAccounts([account('main', 'bitcoin')], {
-        network: null
+      getChatBitcoinPayAccounts(accounts, { address: MAINNET_ADDRESS }).map(
+        ({ id }) => id
+      )
+    ).toStrictEqual(['main'])
+  })
+
+  it('offers nothing when no account is on the address network', () => {
+    expect(
+      getChatBitcoinPayAccounts([account('sig', 'signet')], {
+        address: MAINNET_ADDRESS
       })
     ).toStrictEqual([])
   })
@@ -106,9 +116,32 @@ describe('startChatBitcoinRequestPay', () => {
       label: 'Pizza night',
       to: ADDRESS
     })
-    expect(navigate).toHaveBeenCalledWith(
-      expect.objectContaining({ pathname: IO_PREVIEW })
+    expect(navigate).toHaveBeenCalledWith({
+      params: { autoSelectFromUri: expect.any(String), id: 'sig' },
+      pathname: IO_PREVIEW
+    })
+  })
+
+  it('starts a fresh draft and keeps the draft of the account left behind', () => {
+    const store = useTransactionBuilderStore.getState()
+    store.setAccountId('sig')
+    store.addOutput({ amount: 1000, label: 'old sig', to: ADDRESS })
+    store.setAccountId('other')
+    store.addOutput({ amount: 2000, label: 'other draft', to: ADDRESS })
+
+    startChatBitcoinRequestPay(
+      account('sig', 'signet'),
+      request(25_000),
+      jest.fn()
     )
+
+    const builder = useTransactionBuilderStore.getState()
+    expect(builder.outputs.map(({ label }) => label)).toStrictEqual([
+      'Pizza night'
+    ])
+    expect(
+      builder.drafts.other?.outputs.map(({ label }) => label)
+    ).toStrictEqual(['other draft'])
   })
 
   it('leaves the amount for the user to fill when the URI has none', () => {

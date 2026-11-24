@@ -95,10 +95,10 @@ function SSDatePicker({
   const [months, setMonths] = useState<number[]>([])
   const [years, setYears] = useState<number[]>([])
   const [selectedYear, setSelectedYear] = useState<number>(() =>
-    new Date().getFullYear()
+    (value ?? new Date()).getFullYear()
   )
   const [selectedMonth, setSelectedMonth] = useState<number>(
-    () => new Date().getMonth() + 1
+    () => (value ?? new Date()).getMonth() + 1
   )
 
   useMountEffect(() => {

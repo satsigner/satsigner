@@ -41,6 +41,11 @@ describe('parseMarkdownBlocks', () => {
     ])
   })
 
+  it('reads the language label after a longer opening fence', () => {
+    const [block] = parseMarkdownBlocks('````ts\nconst a = 1\n````')
+    expect(block).toMatchObject({ language: 'ts', type: 'code' })
+  })
+
   it('drops a fence label that is not a language name', () => {
     const blocks = parseMarkdownBlocks('```<script>alert(1)</script>\nx\n```')
     expect(blocks).toStrictEqual([{ type: 'code', value: 'x' }])
