@@ -1,24 +1,35 @@
 import { Nip46BunkerService } from '@/api/nostrNip446'
 import {
   NIP46_ACTIVITY_WRITE_INTERVAL_MS,
-  NOSTR_NIP46_SUPPORTED_METHODS
+  NOSTR_NIP46_CONNECT_ACK,
+  NOSTR_NIP46_SUPPORTED_METHODS,
+  NOSTR_SIGN_MAX_CLOCK_SKEW_SECS
 } from '@/constants/nostr'
+import { MS_PER_SECOND } from '@/constants/time'
 import {
+  cancelNip46OfferExpiry,
   getNip46Runtime,
   isNip46SessionActive,
   registerNip46Session,
+  scheduleNip46OfferExpiry,
   stopAllNip46Sessions,
   stopNip46Session
 } from '@/services/nip46Sessions'
 import { useAuthStore } from '@/store/auth'
 import { useNip46Store } from '@/store/nip46'
 import type {
+  Nip46IncomingRequest,
   Nip46Method,
   Nip46Request,
   Nip46Session
 } from '@/types/models/Nostr'
 import { isAppLocked } from '@/utils/appLifecycle'
-import { buildNip46ResponsePayload, canAutoApproveRequest } from '@/utils/nip46'
+import {
+  buildNip46ResponsePayload,
+  canAutoApproveRequest,
+  getEventPreview
+} from '@/utils/nip46'
+import { claimsBunkerOffer, isOpenBunkerOffer } from '@/utils/nip46Bunker'
 import {
   handleConnect,
   handleGetPublicKey,
@@ -95,6 +106,27 @@ function getSessionById(sessionId: string): Nip46Session | undefined {
   return useNip46Store.getState().sessions.find((s) => s.id === sessionId)
 }
 
+/**
+ * A signer lent from a chat refuses to sign events dated far from now: an
+ * agent must not back-date (or pre-date) what the user approves.
+ */
+function assertFreshEvent(
+  session: Nip46Session | undefined,
+  request: Nip46Request
+) {
+  if (session?.origin?.kind !== 'chat' || request.method !== 'sign_event') {
+    return
+  }
+  const createdAt = getEventPreview(request.params)?.createdAt
+  const now = Date.now() / MS_PER_SECOND
+  if (
+    createdAt === undefined ||
+    Math.abs(createdAt - now) > NOSTR_SIGN_MAX_CLOCK_SKEW_SECS
+  ) {
+    throw new Error('created_at too far from now')
+  }
+}
+
 function buildRequestResponse(
   request: Nip46Request,
   signerPubkeyHex: string,
@@ -102,6 +134,7 @@ function buildRequestResponse(
   expectedSecret: string | undefined
 ) {
   try {
+    assertFreshEvent(getSessionById(request.sessionId), request)
     const result = executeHandler(
       request.method,
       request.params,
@@ -207,7 +240,14 @@ export function approveNip46Request(
     // the user may still reject it. Never persist a blanket permission for
     // requests that must always be approved explicitly (decryption,
     // sensitive sign_event kinds).
-    if (alwaysAllow && canAutoApproveRequest(request.method, request.params)) {
+    if (
+      alwaysAllow &&
+      canAutoApproveSessionRequest(
+        getSessionById(request.sessionId),
+        request.method,
+        request.params
+      )
+    ) {
       useNip46Store
         .getState()
         .updatePermission(request.sessionId, request.method, 'always_allow')
@@ -238,11 +278,131 @@ export function rejectNip46Request(
   })
 }
 
+function canAutoApproveSessionRequest(
+  session: Nip46Session | undefined,
+  method: Nip46Method,
+  params: string[]
+): boolean {
+  return (
+    session?.origin?.kind !== 'chat' && canAutoApproveRequest(method, params)
+  )
+}
+
+function handleSessionRequest(
+  sessionId: string,
+  request: Nip46IncomingRequest
+) {
+  const { addPendingRequest, updateSession } = useNip46Store.getState()
+  if (!isValidMethod(request.method)) {
+    return
+  }
+
+  const currentSession = getSessionById(sessionId)
+  if (!currentSession) {
+    return
+  }
+
+  const permission = currentSession.permissions[request.method]
+  const now = Date.now()
+  if (
+    now < currentSession.lastActiveAt ||
+    shouldRecordNip46Activity(currentSession.lastActiveAt, now)
+  ) {
+    updateSession(sessionId, { lastActiveAt: now })
+  }
+
+  // A stored "always allow" is honored only for requests that are safe to
+  // auto-approve; decryption and sensitive sign_event kinds always require
+  // explicit approval. A signer lent to an agent never auto-approves.
+  if (
+    permission === 'always_allow' &&
+    canAutoApproveSessionRequest(currentSession, request.method, request.params)
+  ) {
+    fireAndForget(
+      respondToRequest(sessionId, {
+        id: request.id,
+        method: request.method,
+        params: request.params,
+        receivedAt: Date.now(),
+        sessionId,
+        status: 'approved'
+      })
+    )
+    return
+  }
+
+  if (permission === 'always_reject') {
+    fireAndForget(sendError(sessionId, request.id, 'Rejected by user'))
+    return
+  }
+
+  addPendingRequest({
+    id: request.id,
+    method: request.method,
+    params: request.params,
+    receivedAt: Date.now(),
+    sessionId,
+    status: 'pending'
+  })
+}
+
+/** An offer nobody claimed in time is stopped and forgotten. */
+function scheduleOfferExpiry(session: Nip46Session) {
+  if (session.expiresAt === undefined) {
+    return
+  }
+  scheduleNip46OfferExpiry(
+    session.id,
+    Math.max(0, session.expiresAt - Date.now()),
+    () => {
+      const current = getSessionById(session.id)
+      if (!current || !isOpenBunkerOffer(current)) {
+        return
+      }
+      stopNip46Session(session.id)
+      useNip46Store.getState().removeSession(session.id)
+    }
+  )
+}
+
+/**
+ * The first `connect` with the offer's secret, before it expires, makes that
+ * client the session's only client. The secret is dropped so it can't pair
+ * a second client, and the client gets the `ack` NIP-46 expects.
+ */
+function claimBunkerOffer(
+  sessionId: string,
+  request: Nip46IncomingRequest,
+  clientPubkey: string,
+  signerPubkeyHex: string
+): boolean {
+  const session = getSessionById(sessionId)
+  if (
+    !session ||
+    !claimsBunkerOffer(session, request, signerPubkeyHex, Date.now())
+  ) {
+    return false
+  }
+  cancelNip46OfferExpiry(sessionId)
+  useNip46Store.getState().updateSession(sessionId, {
+    clientPubkey,
+    expiresAt: undefined,
+    lastActiveAt: Date.now(),
+    secret: undefined
+  })
+  fireAndForget(
+    sendPayload(sessionId, () =>
+      buildNip46ResponsePayload(request.id, NOSTR_NIP46_CONNECT_ACK, null)
+    )
+  )
+  return true
+}
+
 export async function startNip46Session(
   session: Nip46Session,
   nsec: string
 ): Promise<void> {
-  const { addPendingRequest, updateSession } = useNip46Store.getState()
+  const { updateSession } = useNip46Store.getState()
   const secretKey = getSecretFromNsec(nsec)
   if (!secretKey) {
     throw new Error('Invalid nsec')
@@ -274,63 +434,27 @@ export async function startNip46Session(
 
     registerNip46Session(session.id, service, secretKey)
 
+    const onRequest = (request: Nip46IncomingRequest) =>
+      handleSessionRequest(session.id, request)
+
+    if (isOpenBunkerOffer(session)) {
+      scheduleOfferExpiry(session)
+      service.subscribeToOffer(
+        signerPubkeyHex,
+        secretKey,
+        (request, clientPubkey) =>
+          claimBunkerOffer(session.id, request, clientPubkey, signerPubkeyHex),
+        onRequest
+      )
+      updateSession(session.id, { connectionStatus: 'connected' })
+      return
+    }
+
     service.subscribe(
       signerPubkeyHex,
       secretKey,
       session.clientPubkey,
-      (request) => {
-        if (!isValidMethod(request.method)) {
-          return
-        }
-
-        const currentSession = getSessionById(session.id)
-        if (!currentSession) {
-          return
-        }
-
-        const permission = currentSession.permissions[request.method]
-        const now = Date.now()
-        if (
-          now < currentSession.lastActiveAt ||
-          shouldRecordNip46Activity(currentSession.lastActiveAt, now)
-        ) {
-          updateSession(session.id, { lastActiveAt: now })
-        }
-
-        // A stored "always allow" is honored only for requests that are
-        // safe to auto-approve; decryption and sensitive sign_event kinds
-        // always require explicit approval.
-        if (
-          permission === 'always_allow' &&
-          canAutoApproveRequest(request.method, request.params)
-        ) {
-          fireAndForget(
-            respondToRequest(session.id, {
-              id: request.id,
-              method: request.method,
-              params: request.params,
-              receivedAt: Date.now(),
-              sessionId: session.id,
-              status: 'approved'
-            })
-          )
-          return
-        }
-
-        if (permission === 'always_reject') {
-          fireAndForget(sendError(session.id, request.id, 'Rejected by user'))
-          return
-        }
-
-        addPendingRequest({
-          id: request.id,
-          method: request.method,
-          params: request.params,
-          receivedAt: Date.now(),
-          sessionId: session.id,
-          status: 'pending'
-        })
-      }
+      onRequest
     )
 
     const connectPayload = buildNip46ResponsePayload(
