@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Screenshot Composer · satsigner</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon_io/favicon-32x32.png">
+    <script>try{if(localStorage.getItem("theme")==="light")document.documentElement.setAttribute("data-theme","light")}catch(e){}</script>
+    <link rel="stylesheet" href="/pages.css">
+    <link rel="stylesheet" href="release.css">
+    <link rel="stylesheet" href="shots.css">
+  </head>
+  <body>
+    <nav class="page-nav kit-nav">
+      <a class="page-nav-logo" href="/"><img src="/imgs/satSigner_symbol.png" alt=""><span>SATSIGNER</span></a>
+      <div class="page-nav-links">
+        <a href="./">Release Kit</a>
+      </div>
+    </nav>
+
+    <main class="page kit shots-page">
+      <h1>Screenshots</h1>
+      <p class="kit-hint">Each slide renders a live Studio screen. Captions and screens come from <code>release/data.js</code>. To export exact-size PNGs, serve the site and run <code>node release/tools/export-shots.mjs</code>. Files land in <code>release/out/</code>.</p>
+      <div class="shots-formats" id="shots-formats" role="tablist"></div>
+      <div class="shots-grid" id="shots-grid"></div>
+    </main>
+
+    <script src="data.js"></script>
+    <script src="shots.js"></script>
+  </body>
+</html>
