@@ -51,7 +51,10 @@ class SsQrScannerView(context: Context, appContext: AppContext) : ExpoView(conte
       tryHarder = true,
       tryRotate = true,
       // Terminals often draw QR codes light-on-dark once ANSI colors are stripped.
-      tryInvert = true
+      tryInvert = true,
+      // Off by default in the Android wrapper. Full HD frames of a soft or
+      // screen-sized QR code only decode once downscaled.
+      tryDownscale = true
     )
   )
   private var cameraProvider: ProcessCameraProvider? = null
