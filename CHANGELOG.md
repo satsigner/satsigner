@@ -28,6 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The "Ensure wallet data is updated" screen before sending lets you
   continue instead of looping back.
 - Scrolling up in a chat no longer snaps back to the newest message.
+- The Android scanner reads light-on-dark QR codes, such as a Lightning
+  invoice shown in a dark terminal.
 
 ## [0.3.9] - 2026-11-17
 
