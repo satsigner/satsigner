@@ -1,6 +1,6 @@
 # Plan: Agent Chat Sessions and Remote Signing
 
-**Status**: Part A implemented on `feat/nostr-chat-sessions`; Part B on `feat/nostr-chat-signing`
+**Status**: Part A implemented on `feat/nostr-chat-sessions`; Part B on `feat/nostr-chat-signing`; Part C (§12) is research only
 **Date**: 2026-11-24
 **Scope**: `apps/mobile` (identity chat, NIP-17 only, and the NIP-46 signer), plus a small upstream change to the agent bridge (`@pi-nostr/durable-nip17`)
 
@@ -20,6 +20,10 @@ Two features for working with an AI agent on nostr (a pi agent through
   NIP-46 bunker, or later, through a sign request sent in the chat session.
   In the second case, the agent picks the work up again once the signature
   arrives.
+- **Part C, agent status (§12):** the session shows what the pi terminal
+  footer shows: model, thinking level, context window, token use and the
+  routstr balance. The agent sends it as private session metadata, and the
+  user can change some of it (model, thinking level) from Satsigner.
 
 ## 2. Where things stand
 
@@ -567,3 +571,259 @@ Recommended (to confirm):
 6. **Keep grants, but ship them last** (phase 9). Batches already turn a
    Zapstore release into one tap. Grants only help with long tasks that keep
    asking. If phases 5–8 feel fine without them, drop them.
+
+## 12. Part C: agent status in the session
+
+### 12.1 What the terminal shows
+
+The pi footer with the `routstr-balance` extension:
+
+```
+↑24 ↓3.0k R125k W11k CH99.1% 1.5%/1.0M (auto)      (routstr) claude-opus-5.5 • medium
+⚡ 47709 + 437 sat ($28.86) · session 115 sat ($0.069)
+```
+
+| Shown                       | Meaning                                     | Where the bridge gets it                                                                                           |
+| --------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `↑24 ↓3.0k`                 | input / output tokens in the pi session     | RPC `get_session_stats` → `tokens.input`, `tokens.output`                                                          |
+| `R125k W11k`                | prompt cache read / write tokens            | `get_session_stats` → `tokens.cacheRead`, `tokens.cacheWrite`                                                      |
+| `CH99.1%`                   | cache hit rate of the **last** request      | the last assistant `message_end` usage: `cacheRead / (input + cacheRead + cacheWrite)`                             |
+| `1.5%/1.0M (auto)`          | context used / context window, auto-compact | `get_session_stats` → `contextUsage` (`tokens`, `contextWindow`, `percent`); `get_state` → `autoCompactionEnabled` |
+| `(routstr) claude-opus-5.5` | provider and model                          | `get_state` → `model.provider`, `model.id`                                                                         |
+| `medium`                    | thinking level                              | `get_state` → `thinkingLevel` (only when `model.reasoning`)                                                        |
+| `47709 + 437 sat`           | routstr wallet + API key balance            | `routstrd balance` (`topup.mjs#readBalance` already parses it)                                                     |
+| `($28.86)`                  | fiat value                                  | mempool.space price. **Satsigner computes this itself**, see §12.6                                                 |
+| `session 115 sat`           | routstr spend since the pi session started  | `routstrd usage`, summed for `client: pi-agent` after the session start                                            |
+
+The bridge (`pi-nip17-bridge/responder.mjs`) already holds an `RpcClient`,
+calls `getState()` every minute for its health check, and keeps the routstr
+balance in `status.routstrSats`. Today it only shows them in
+`bridge-status.json`, the local dashboard and the `!pi status` reply. All the
+data is there; it just never reaches the chat.
+
+### 12.2 Options
+
+1. **Text in the reply.** The bridge appends a footer line to every answer.
+   Works in every client, but it is noise in the thread, it is stale between
+   replies, and Satsigner would have to parse prose. Rejected.
+2. **A tag on every kind 14 reply.** `["agent_status", "<json>"]` on the
+   bridge's answers. No extra wraps. But the status only moves when the agent
+   speaks, so a top-up or a model switch stays invisible until the next answer.
+3. **A status rumor in the session (recommended).** A separate gift-wrapped
+   rumor that only carries state. Sent after each turn and on every change
+   (model, thinking level, top-up, compaction). Clients that don't know it
+   ignore it, as Satsigner and the bridge already do with unknown kinds.
+4. **A public event** (NIP-78 kind 30078, a profile field). Rejected: the
+   balance, the model and how much the user works with the agent would be
+   public and signed by the agent's key.
+
+Recommended: option 3. Option 2 adds nothing on top of it, since the bridge
+sends the status rumor right after each reply anyway.
+
+### 12.3 Protocol: session state rumor
+
+A kind 30078 rumor (NIP-78 "application data"), **only ever inside a NIP-17
+gift wrap**, so relays see a kind 1059 like any message. NIP-78 is
+addressable, which gives the right semantics for free: one current document
+per `(author, d)`, newest `created_at` wins.
+
+```
+kind 30078   (rumor, never published unwrapped)
+content: "<json>"
+tags:
+  ["d", "nip17-session-state"]
+  ["p", <other participant>]
+  ["session", <session id>]      // absent = default session
+```
+
+- **Each participant publishes its own document.** The agent publishes what
+  it runs on; the user publishes what they ask for. Nobody edits someone
+  else's document, so there is nothing to merge, and the seal already proves
+  who wrote it. In a group chat every member's document shows; that answers
+  "all users in a chat can see it" without a shared mutable object.
+- **Scope.** Fields under `session` belong to that session (context, tokens).
+  Fields under `agent` are the same for every session (balance, default
+  model). The bridge sends the `agent` part in every session's document, so
+  a client never has to look elsewhere.
+- **Wraps.** Sent with kind 1059 to the peer only, without a self copy
+  (the agent has no other device that needs it). Frequent pulses while a
+  turn runs, if wanted later, use kind 21059 (ephemeral, not stored), as the
+  typing indicator in `rich-dm-research.md` does.
+- **Rate.** At most one document per session per `NOSTR_CHAT_STATE_MIN_INTERVAL`
+  (30 s), except right after a reply or a change the user asked for.
+
+Agent document (`content`):
+
+```json
+{
+  "v": 1,
+  "agent": {
+    "name": "pi",
+    "provider": "routstr",
+    "balance": { "unit": "sat", "wallet": 47709, "apiKeys": 437, "low": false }
+  },
+  "session": {
+    "model": {
+      "provider": "routstr",
+      "id": "claude-opus-5.5",
+      "name": "Anthropic: Claude Opus 5.5",
+      "reasoning": true,
+      "vision": true
+    },
+    "thinkingLevel": "medium",
+    "context": { "tokens": 15000, "window": 1000000, "autoCompact": true },
+    "tokens": {
+      "input": 24,
+      "output": 3000,
+      "cacheRead": 125000,
+      "cacheWrite": 11000
+    },
+    "cacheHitRate": 0.991,
+    "spent": { "unit": "sat", "amount": 115 },
+    "busy": false
+  },
+  "options": {
+    "models": [
+      { "provider": "routstr", "id": "claude-opus-5.5" },
+      { "provider": "routstr", "id": "glm-5.3" }
+    ],
+    "thinkingLevels": ["off", "low", "medium", "high", "xhigh", "max"]
+  }
+}
+```
+
+User document (`content`): only what the user wants changed.
+
+```json
+{
+  "v": 1,
+  "want": {
+    "model": { "provider": "routstr", "id": "glm-5.3" },
+    "thinkingLevel": "high"
+  }
+}
+```
+
+The agent applies a `want` (RPC `set_model`, `set_thinking_level`), then
+sends its new document. The user's document is a request, the agent's is the
+truth: Satsigner always shows the agent's values, with "switching…" while a
+`want` it sent is newer than the agent's last document.
+
+The session title stays the NIP-17 `subject` (Part A). It is not repeated
+here.
+
+### 12.4 Agent side (pi-nip17-bridge, then upstream)
+
+`responder.mjs` already has every input:
+
+- `pi.getState()` and `pi.getSessionStats()` after each `agent_settled`,
+  plus the last assistant usage from `onPiEvent` for the cache hit rate.
+- `status.routstrSats` from `topup.mjs`. Return wallet and API keys
+  separately instead of the sum, and keep the session spend by summing
+  `routstrd usage` entries since the pi session started (the same rule as
+  `routstr-balance.ts#sumSessionSats`).
+- `getAvailableModels()` and `getAvailableThinkingLevels()` for `options`.
+
+Changes:
+
+1. `sendSessionState(to, sessionId)`: build the document, wrap it like
+   `react()` does, publish to the peer only.
+2. Call it after each reply, after `!pi new` / `!pi restart`, after a top-up
+   lands, and after a model or thinking change.
+3. `handleRumor`: accept kind 30078 with `d = nip17-session-state` from an
+   admin. Validate `want` against `options` (never a free-form model id),
+   apply it, answer with the new document. Anything else in it is ignored.
+4. Upstream, the same in `@pi-nostr/durable-nip17` once Part A's session
+   patch (§4) lands, so the state is per durable conversation.
+
+**Caveat until §4 lands:** the bridge runs **one** pi process for every
+conversation. Context, tokens and model are then the same in every session,
+and switching the model in one session switches it in all of them. The
+document should say so (`"session": { "shared": true, ... }`) and Satsigner
+should then show "shared by all sessions" under the values.
+
+### 12.5 Satsigner
+
+- **Parse.** `utils/nostrChatState.ts`: a zod schema for both documents,
+  every field optional, numbers finite and non-negative, strings capped
+  (`NOSTR_CHAT_STATE_STRING_MAX`), arrays capped, whole content capped
+  (`NOSTR_CHAT_STATE_MAX_BYTES`). Unknown fields dropped. Pure and unit
+  tested.
+- **Ingest.** `ingestChatRumor` gets a fourth branch next to deletion and
+  reaction: kind 30078 with that `d`. The session comes from the tag, with
+  the same `resolveChatSessionId` and per-peer session cap as messages. The
+  author must be the peer or us (seal-authenticated, as for messages).
+  Older than the stored one → dropped.
+- **Store.** New table in the next schema version, one row per
+  `(identity_npub, peer_pubkey, session_id, author)` with `content` and
+  `created_at`. Wipes (`deleteChatMessagesForIdentity`, `secureWipe`) clear
+  it, as with `nostr_chat_sessions`.
+- **Hooks.** `useNostrChatSessionState(thread)` (TanStack Query, invalidated
+  by the chat event observer) and `useNostrChatSessionStateUpdate(thread)`,
+  which sends the user document with the existing wrap helpers.
+- **UI.**
+  - Thread header, under the session title: one compact line,
+    `claude-opus-5.5 · medium · 1.5% of 1M · ⚡ 48.1k sat`. The context part
+    turns warning at 70% and error at 90%, as in the pi footer.
+  - Tap → `SSChatSessionStateSheet`: everything in §12.1, "updated 2 min
+    ago", the model and thinking pickers (from `options`), and a "Top up"
+    row when `balance.low` (it scrolls to the invoice the bridge already
+    sends; nothing is paid automatically).
+  - The line hides when the peer never sent a document, so ordinary
+    contacts look as today. Stale after `NOSTR_CHAT_STATE_STALE_MS`
+    (10 min): greyed, with the age.
+  - Components only render props; formatting (`formatTokens`, percent,
+    staleness) lives in `utils/nostrChatState.ts`.
+  - New i18n keys under `nostrChat.sessionState.*`.
+
+### 12.6 Security and privacy
+
+- **Never public.** The document only exists inside NIP-44 payloads and
+  local SQLite. No public kind 30078, no profile field.
+- **Untrusted input.** Every value comes from the peer. Plain-text rendering
+  only, capped strings, numbers checked. The model list only fills a picker;
+  a model id is never opened as a link or run.
+- **Fiat.** The agent sends sats only. Satsigner converts with its own price
+  source and the user's currency, so an agent can't show a misleading fiat
+  amount, and it follows the user's privacy settings.
+- **Privacy mode** masks the balance and spend, like other amounts.
+- **No automatic action.** A low balance shows a hint; paying stays the
+  normal invoice card flow. A `want` the agent didn't confirm changes
+  nothing on screen except "switching…".
+- **Agent side.** Only admins can send a `want`. Model ids must be in
+  `options`. The document never carries keys, invoices, cashu tokens, file
+  paths or prompt text, and goes through `redact()` like everything else.
+- **Metadata.** A status wrap after each reply doubles the wraps the agent's
+  relay sees for that conversation, nothing more. The 30 s floor stops a
+  busy agent from flooding the user's inbox relays.
+
+### 12.7 Tests
+
+- Unit: schema caps and bad values, newest-wins, author check, session
+  resolution and cap, formatting (tokens, percent, staleness, masking).
+- Relay: the agent document lands in the right session and updates the
+  header; a `want` round-trips; a document from a stranger is dropped.
+- Bridge: the document matches `get_state` / `get_session_stats`; a `want`
+  for a model outside `options` is refused.
+
+### 12.8 Phases
+
+1. Bridge: send the agent document after each reply (no `want` yet).
+2. Satsigner: parse, store, header line and sheet, read only.
+3. `want`: model and thinking pickers, applied by the bridge.
+4. Upstream to `@pi-nostr/durable-nip17` with §4, so the values are per
+   session.
+
+### 12.9 Open questions
+
+1. **Kind.** NIP-78 kind 30078 inside the wrap reads well, but a reviewer
+   may object to reusing an addressable public kind as a rumor. The
+   alternative is a new kind proposed with `session` and `sign_request` in
+   the same NIP (§11.4). Decide with the pi-nostr maintainer.
+2. **Session spend.** routstr usage is per request, not per pi session. With
+   one shared pi process the "session" sum counts every conversation. Per
+   session spend needs the §4 patch, or routstr's `request` id stored per
+   turn by the bridge.
+3. **Should the user document carry more?** For example a per-session
+   budget cap ("stop at 500 sat"). Useful, but it is a new policy the agent
+   must enforce; leave it for after phase 3.
