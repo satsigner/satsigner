@@ -38,8 +38,7 @@ const AT_BOTTOM = CONTENT - VIEWPORT
 const SCROLLED_UP = 400
 
 function renderScroll() {
-  const result: { current?: ReturnType<typeof useNostrChatScroll<string>> } =
-    {}
+  const result: { current?: ReturnType<typeof useNostrChatScroll<string>> } = {}
   function Probe() {
     result.current = useNostrChatScroll<string>('newest')
     return null
