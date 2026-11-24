@@ -622,6 +622,8 @@ export type NostrChatSession = Pick<
   archived: boolean
   createdAt: number
   title?: string
+  /** The user set or cleared the title; a peer's subject no longer applies. */
+  titleLocked?: boolean
 }
 
 export type NostrChatConversation = Pick<

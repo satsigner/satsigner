@@ -23,6 +23,8 @@ type OpenConversation = (peerNpub: string, sessionId: string) => void
 type SSNostrConversationListProps = {
   conversations: NostrChatConversationItem[]
   onOpenPeer: OpenConversation
+  /** Masks session titles. */
+  privacyMode?: boolean
 }
 
 const OpenPeerContext = createContext<OpenConversation | null>(null)
@@ -112,7 +114,8 @@ function renderConversation({ item }: ListRenderItemInfo<LabeledConversation>) {
 
 export default function SSNostrConversationList({
   conversations,
-  onOpenPeer
+  onOpenPeer,
+  privacyMode = false
 }: SSNostrConversationListProps) {
   if (conversations.length === 0) {
     return (
@@ -127,7 +130,7 @@ export default function SSNostrConversationList({
   return (
     <OpenPeerContext value={onOpenPeer}>
       <FlashList
-        data={labelConversationSessions(conversations)}
+        data={labelConversationSessions(conversations, privacyMode)}
         renderItem={renderConversation}
         keyExtractor={getConversationKey}
       />

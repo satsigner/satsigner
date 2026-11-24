@@ -1,3 +1,4 @@
+import { NOSTR_PRIVACY_MASK } from '@/constants/nostr'
 import { getDb } from '@/db/connection'
 import type { NostrChatConversationItem } from '@/types/models/Nostr'
 import {
@@ -140,6 +141,21 @@ describe('nostrChatSessions', () => {
       'Main chat',
       'Release',
       'Untitled session',
+      undefined
+    ])
+  })
+
+  it('masks session titles in privacy mode', () => {
+    const labeled = labelConversationSessions(
+      [
+        { ...conversation('peer-1', 'a'), title: 'Secret project' },
+        conversation('peer-2', '')
+      ],
+      true
+    )
+
+    expect(labeled.map((item) => item.sessionLabel)).toStrictEqual([
+      NOSTR_PRIVACY_MASK,
       undefined
     ])
   })

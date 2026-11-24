@@ -28,6 +28,7 @@ import {
 } from '@/constants/nostr'
 import { MS_PER_SECOND } from '@/constants/time'
 import {
+  adoptChatSessionSubject,
   deleteChatMessages,
   deleteChatReactions,
   failInterruptedChatSends,
@@ -57,6 +58,7 @@ import {
   getChatReplyParentSessionId,
   getChatSession,
   getNewestSentChatMessageCreatedAt,
+  hasDeliveredChatSessionMessage,
   getOldestChatMessageCreatedAt,
   hasChatMessage,
   hasOutgoingChatMessage,
@@ -166,6 +168,12 @@ type ChatIdentity = {
 }
 
 const nostrChatQueryKeys = {
+  archivedSessions: (identityNpub: string, peerPubkey: string) => [
+    'nostrChat',
+    identityNpub,
+    'archivedSessions',
+    peerPubkey
+  ],
   conversations: (identityNpub: string, protocol: NostrChatProtocol) => [
     'nostrChat',
     identityNpub,
@@ -529,25 +537,19 @@ function buildNip17ChatTags(
   if (sessionId === NOSTR_CHAT_DEFAULT_SESSION_ID) {
     return tags
   }
+  // The title rides along until the peer has one of our messages in the
+  // session: a first send that failed doesn't use it up.
   const session = getChatSession(identityNpub, peerPubkey, sessionId)
-  const isFirstMessage =
+  const subject =
     session !== null &&
-    !hasSessionMessages({
-      identityNpub,
-      peerPubkey,
-      protocol: 'nip17',
-      sessionId
-    })
-  const subject = isFirstMessage ? session.title : undefined
+    !hasDeliveredChatSessionMessage(identityNpub, peerPubkey, sessionId)
+      ? session.title
+      : undefined
   return [
     ...tags,
     buildSessionTag(sessionId),
     ...(subject ? [buildSubjectTag(subject)] : [])
   ]
-}
-
-function hasSessionMessages(thread: NostrChatThreadRef): boolean {
-  return listChatThread(thread, 1).length > 0
 }
 
 async function sendNip17Chat(
@@ -1159,16 +1161,16 @@ function ingestChatRumor(
 }
 
 /**
- * A message's own session tag wins. Without one, a reply joins its parent's
- * session, so a peer whose client drops the tag (an agent bridge without
- * session support) still answers in the right thread. Otherwise it belongs
- * to the default session.
+ * A message's own session tag wins, even a malformed one (which reads as the
+ * default session). Without a tag, a reply joins its parent's session, so a
+ * peer whose client drops the tag (an agent bridge without session support)
+ * still answers in the right thread. Otherwise it is the default session.
  */
 function resolveChatSessionId(
-  taggedSessionId: string,
+  taggedSessionId: string | null,
   parentSessionId: string | null
 ): string {
-  if (taggedSessionId !== NOSTR_CHAT_DEFAULT_SESSION_ID) {
+  if (taggedSessionId !== null) {
     return taggedSessionId
   }
   return parentSessionId ?? NOSTR_CHAT_DEFAULT_SESSION_ID
@@ -1185,7 +1187,9 @@ type ChatSessionAdmission = {
 /**
  * Records a session the first time a message names it. A peer can mint
  * session ids at will, so past the per-peer cap a new one is refused and its
- * message dropped; known sessions and the default one always pass.
+ * message dropped; known sessions and the default one always pass. Wraps
+ * arrive out of order, so the subject may come after the session exists: it
+ * still names it unless it has a title or the user set one.
  */
 function admitChatSession({
   createdAt,
@@ -1194,10 +1198,13 @@ function admitChatSession({
   sessionId,
   title
 }: ChatSessionAdmission): boolean {
-  if (
-    sessionId === NOSTR_CHAT_DEFAULT_SESSION_ID ||
-    getChatSession(identityNpub, peerPubkey, sessionId) !== null
-  ) {
+  if (sessionId === NOSTR_CHAT_DEFAULT_SESSION_ID) {
+    return true
+  }
+  if (getChatSession(identityNpub, peerPubkey, sessionId) !== null) {
+    if (title) {
+      adoptChatSessionSubject({ identityNpub, peerPubkey, sessionId }, title)
+    }
     return true
   }
   if (

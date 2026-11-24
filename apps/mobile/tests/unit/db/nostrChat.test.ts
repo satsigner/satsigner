@@ -1,9 +1,11 @@
 import { getDb } from '@/db/connection'
 import {
+  adoptChatSessionSubject,
   deleteChatMessagesForIdentity,
   deleteChatSession,
   insertChatSession,
-  markChatThreadRead
+  markChatThreadRead,
+  renameChatSession
 } from '@/db/mutations/nostrChat'
 import {
   getChatReplyParent,
@@ -11,8 +13,10 @@ import {
   getChatSession,
   getNewestSentChatMessageCreatedAt,
   listChatConversations,
+  listArchivedChatSessions,
   listChatReplies,
   listChatThread,
+  listOwnChatSessionMessageIds,
   listPeersWrittenTo
 } from '@/db/queries/nostrChat'
 
@@ -71,7 +75,7 @@ describe('nostr chat queries', () => {
       expect(execute).toHaveBeenCalledTimes(1)
       expect(execute).toHaveBeenCalledWith(
         expect.stringContaining('GROUP BY m.peer_pubkey, m.session_id'),
-        ['npub1me', 'nip17']
+        ['npub1me', 'npub1me']
       )
     })
 
@@ -80,8 +84,26 @@ describe('nostr chat queries', () => {
 
       expect(execute).toHaveBeenCalledWith(
         expect.stringContaining('COALESCE(s.archived, 0) = 0'),
-        ['npub1me', 'nip17']
+        ['npub1me', 'npub1me']
       )
+    })
+
+    it('lists named sessions that have no message yet', () => {
+      listChatConversations('npub1me', 'nip17')
+
+      expect(execute).toHaveBeenCalledWith(
+        expect.stringMatching(/UNION ALL[\s\S]*NOT EXISTS/),
+        ['npub1me', 'npub1me']
+      )
+    })
+
+    it('never applies session rows to NIP-04 threads', () => {
+      listChatConversations('npub1me', 'nip04')
+
+      const [[sql, params]] = execute.mock.calls
+      expect(sql).not.toContain('nostr_chat_sessions')
+      expect(sql).toContain("protocol = 'nip04'")
+      expect(params).toStrictEqual(['npub1me'])
     })
   })
 
@@ -305,7 +327,48 @@ describe('nostr chat queries', () => {
 
       expect(execute).toHaveBeenCalledWith(
         expect.stringContaining('INSERT OR IGNORE INTO nostr_chat_sessions'),
-        ['npub1me', 'peer-1', 'a'.repeat(32), 'First', 1, 0]
+        ['npub1me', 'peer-1', 'a'.repeat(32), 'First', 0, 1, 0]
+      )
+    })
+
+    it('locks a title the user set', () => {
+      renameChatSession(
+        { identityNpub: 'npub1me', peerPubkey: 'peer-1', sessionId: 'a' },
+        null
+      )
+
+      expect(execute).toHaveBeenCalledWith(
+        expect.stringContaining('title_locked = 1'),
+        [null, 'npub1me', 'peer-1', 'a']
+      )
+    })
+
+    it('adopts a late subject only for an unnamed, unlocked session', () => {
+      adoptChatSessionSubject(
+        { identityNpub: 'npub1me', peerPubkey: 'peer-1', sessionId: 'a' },
+        'Late title'
+      )
+
+      expect(execute).toHaveBeenCalledWith(
+        expect.stringContaining('title IS NULL AND title_locked = 0'),
+        ['Late title', 'npub1me', 'peer-1', 'a']
+      )
+    })
+
+    it('includes every message we sent when deleting a session for everyone', () => {
+      listOwnChatSessionMessageIds('npub1me', 'peer-1', 'a')
+
+      const [[sql]] = execute.mock.calls
+      expect(sql).toContain("direction = 'out'")
+      expect(sql).not.toContain('status')
+    })
+
+    it('lists archived sessions to restore them', () => {
+      listArchivedChatSessions('npub1me', 'peer-1')
+
+      expect(execute).toHaveBeenCalledWith(
+        expect.stringContaining('archived = 1'),
+        ['npub1me', 'peer-1']
       )
     })
 
