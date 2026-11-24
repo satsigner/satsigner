@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.10] - 2026-11-24
+
 ### Added
 
 - Parallel sessions in a NIP-17 chat with the same contact, so an agent can
@@ -16,11 +18,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   open. Only the chat's own identity signs.
 - Quick sync check: only the addresses that can change are asked about, and
   the full rescan is skipped when nothing changed.
+- The website lives in the repo under `apps/website`, with a bug bounty page
+  that sends reports as private NIP-17 messages.
+- Release console: compare and sync every branch and tag between GitHub and
+  ngit.
 
 ### Fixed
 
 - The "Ensure wallet data is updated" screen before sending lets you
   continue instead of looping back.
+- Scrolling up in a chat no longer snaps back to the newest message.
 
 ## [0.3.9] - 2026-11-17
 
