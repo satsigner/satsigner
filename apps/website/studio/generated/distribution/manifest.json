@@ -1,0 +1,761 @@
+{
+  "generated": "2026-11-03T22:38:16.836Z",
+  "files": [
+    {
+      "file": "app-store-see-every-sat.jpg",
+      "path": "/studio/generated/distribution/app-store-see-every-sat.jpg",
+      "bytes": 252959,
+      "w": 1320,
+      "h": 2868,
+      "caption": "",
+      "kind": "board"
+    },
+    {
+      "file": "app-store-see-every-sat.png",
+      "path": "/studio/generated/distribution/app-store-see-every-sat.png",
+      "bytes": 1098759,
+      "w": 1320,
+      "h": 2868,
+      "caption": "",
+      "kind": "board"
+    },
+    {
+      "file": "app-store-build-the-transaction.jpg",
+      "path": "/studio/generated/distribution/app-store-build-the-transaction.jpg",
+      "bytes": 202972,
+      "w": 1320,
+      "h": 2868,
+      "caption": "",
+      "kind": "board"
+    },
+    {
+      "file": "app-store-build-the-transaction.png",
+      "path": "/studio/generated/distribution/app-store-build-the-transaction.png",
+      "bytes": 1067355,
+      "w": 1320,
+      "h": 2868,
+      "caption": "",
+      "kind": "board"
+    },
+    {
+      "file": "app-store-sign-together.jpg",
+      "path": "/studio/generated/distribution/app-store-sign-together.jpg",
+      "bytes": 206089,
+      "w": 1320,
+      "h": 2868,
+      "caption": "",
+      "kind": "board"
+    },
+    {
+      "file": "app-store-sign-together.png",
+      "path": "/studio/generated/distribution/app-store-sign-together.png",
+      "bytes": 1036583,
+      "w": 1320,
+      "h": 2868,
+      "caption": "",
+      "kind": "board"
+    },
+    {
+      "file": "app-store-one-balance-every-account.jpg",
+      "path": "/studio/generated/distribution/app-store-one-balance-every-account.jpg",
+      "bytes": 325955,
+      "w": 1320,
+      "h": 2868,
+      "caption": "",
+      "kind": "board"
+    },
+    {
+      "file": "app-store-one-balance-every-account.png",
+      "path": "/studio/generated/distribution/app-store-one-balance-every-account.png",
+      "bytes": 1189405,
+      "w": 1320,
+      "h": 2868,
+      "caption": "",
+      "kind": "board"
+    },
+    {
+      "file": "app-store-sign-off-line.jpg",
+      "path": "/studio/generated/distribution/app-store-sign-off-line.jpg",
+      "bytes": 201394,
+      "w": 1320,
+      "h": 2868,
+      "caption": "",
+      "kind": "board"
+    },
+    {
+      "file": "app-store-sign-off-line.png",
+      "path": "/studio/generated/distribution/app-store-sign-off-line.png",
+      "bytes": 974895,
+      "w": 1320,
+      "h": 2868,
+      "caption": "",
+      "kind": "board"
+    },
+    {
+      "file": "app-store-a-new-address.jpg",
+      "path": "/studio/generated/distribution/app-store-a-new-address.jpg",
+      "bytes": 220374,
+      "w": 1320,
+      "h": 2868,
+      "caption": "",
+      "kind": "board"
+    },
+    {
+      "file": "app-store-a-new-address.png",
+      "path": "/studio/generated/distribution/app-store-a-new-address.png",
+      "bytes": 1002631,
+      "w": 1320,
+      "h": 2868,
+      "caption": "",
+      "kind": "board"
+    },
+    {
+      "file": "app-store-your-own-node.jpg",
+      "path": "/studio/generated/distribution/app-store-your-own-node.jpg",
+      "bytes": 243427,
+      "w": 1320,
+      "h": 2868,
+      "caption": "",
+      "kind": "board"
+    },
+    {
+      "file": "app-store-your-own-node.png",
+      "path": "/studio/generated/distribution/app-store-your-own-node.png",
+      "bytes": 1082949,
+      "w": 1320,
+      "h": 2868,
+      "caption": "",
+      "kind": "board"
+    },
+    {
+      "file": "app-store-messages-too.jpg",
+      "path": "/studio/generated/distribution/app-store-messages-too.jpg",
+      "bytes": 163018,
+      "w": 1320,
+      "h": 2868,
+      "caption": "",
+      "kind": "board"
+    },
+    {
+      "file": "app-store-messages-too.png",
+      "path": "/studio/generated/distribution/app-store-messages-too.png",
+      "bytes": 1000787,
+      "w": 1320,
+      "h": 2868,
+      "caption": "",
+      "kind": "board"
+    },
+    {
+      "file": "play-see-every-sat.jpg",
+      "path": "/studio/generated/distribution/play-see-every-sat.jpg",
+      "bytes": 160834,
+      "w": 1080,
+      "h": 1920,
+      "caption": "",
+      "kind": "board"
+    },
+    {
+      "file": "play-see-every-sat.png",
+      "path": "/studio/generated/distribution/play-see-every-sat.png",
+      "bytes": 683827,
+      "w": 1080,
+      "h": 1920,
+      "caption": "",
+      "kind": "board"
+    },
+    {
+      "file": "play-build-the-transaction.jpg",
+      "path": "/studio/generated/distribution/play-build-the-transaction.jpg",
+      "bytes": 127928,
+      "w": 1080,
+      "h": 1920,
+      "caption": "",
+      "kind": "board"
+    },
+    {
+      "file": "play-build-the-transaction.png",
+      "path": "/studio/generated/distribution/play-build-the-transaction.png",
+      "bytes": 645220,
+      "w": 1080,
+      "h": 1920,
+      "caption": "",
+      "kind": "board"
+    },
+    {
+      "file": "play-sign-together.jpg",
+      "path": "/studio/generated/distribution/play-sign-together.jpg",
+      "bytes": 131516,
+      "w": 1080,
+      "h": 1920,
+      "caption": "",
+      "kind": "board"
+    },
+    {
+      "file": "play-sign-together.png",
+      "path": "/studio/generated/distribution/play-sign-together.png",
+      "bytes": 624278,
+      "w": 1080,
+      "h": 1920,
+      "caption": "",
+      "kind": "board"
+    },
+    {
+      "file": "play-one-balance-every-account.jpg",
+      "path": "/studio/generated/distribution/play-one-balance-every-account.jpg",
+      "bytes": 208095,
+      "w": 1080,
+      "h": 1920,
+      "caption": "",
+      "kind": "board"
+    },
+    {
+      "file": "play-one-balance-every-account.png",
+      "path": "/studio/generated/distribution/play-one-balance-every-account.png",
+      "bytes": 745178,
+      "w": 1080,
+      "h": 1920,
+      "caption": "",
+      "kind": "board"
+    },
+    {
+      "file": "play-sign-off-line.jpg",
+      "path": "/studio/generated/distribution/play-sign-off-line.jpg",
+      "bytes": 136501,
+      "w": 1080,
+      "h": 1920,
+      "caption": "",
+      "kind": "board"
+    },
+    {
+      "file": "play-sign-off-line.png",
+      "path": "/studio/generated/distribution/play-sign-off-line.png",
+      "bytes": 602107,
+      "w": 1080,
+      "h": 1920,
+      "caption": "",
+      "kind": "board"
+    },
+    {
+      "file": "play-a-new-address.jpg",
+      "path": "/studio/generated/distribution/play-a-new-address.jpg",
+      "bytes": 144840,
+      "w": 1080,
+      "h": 1920,
+      "caption": "",
+      "kind": "board"
+    },
+    {
+      "file": "play-a-new-address.png",
+      "path": "/studio/generated/distribution/play-a-new-address.png",
+      "bytes": 613099,
+      "w": 1080,
+      "h": 1920,
+      "caption": "",
+      "kind": "board"
+    },
+    {
+      "file": "play-your-own-node.jpg",
+      "path": "/studio/generated/distribution/play-your-own-node.jpg",
+      "bytes": 155408,
+      "w": 1080,
+      "h": 1920,
+      "caption": "",
+      "kind": "board"
+    },
+    {
+      "file": "play-your-own-node.png",
+      "path": "/studio/generated/distribution/play-your-own-node.png",
+      "bytes": 655206,
+      "w": 1080,
+      "h": 1920,
+      "caption": "",
+      "kind": "board"
+    },
+    {
+      "file": "play-messages-too.jpg",
+      "path": "/studio/generated/distribution/play-messages-too.jpg",
+      "bytes": 102478,
+      "w": 1080,
+      "h": 1920,
+      "caption": "",
+      "kind": "board"
+    },
+    {
+      "file": "play-messages-too.png",
+      "path": "/studio/generated/distribution/play-messages-too.png",
+      "bytes": 622968,
+      "w": 1080,
+      "h": 1920,
+      "caption": "",
+      "kind": "board"
+    },
+    {
+      "file": "play-feature.jpg",
+      "path": "/studio/generated/distribution/play-feature.jpg",
+      "bytes": 49563,
+      "w": 1024,
+      "h": 500,
+      "caption": "",
+      "kind": "board"
+    },
+    {
+      "file": "play-feature.png",
+      "path": "/studio/generated/distribution/play-feature.png",
+      "bytes": 241080,
+      "w": 1024,
+      "h": 500,
+      "caption": "",
+      "kind": "board"
+    },
+    {
+      "file": "open-graph.jpg",
+      "path": "/studio/generated/distribution/open-graph.jpg",
+      "bytes": 81842,
+      "w": 1200,
+      "h": 630,
+      "caption": "",
+      "kind": "board"
+    },
+    {
+      "file": "open-graph.png",
+      "path": "/studio/generated/distribution/open-graph.png",
+      "bytes": 381040,
+      "w": 1200,
+      "h": 630,
+      "caption": "",
+      "kind": "board"
+    },
+    {
+      "file": "social-see-every-sat-square.jpg",
+      "path": "/studio/generated/distribution/social-see-every-sat-square.jpg",
+      "bytes": 120180,
+      "w": 1080,
+      "h": 1080,
+      "caption": "Square · Instagram, Facebook, LinkedIn, Nostr",
+      "kind": "board"
+    },
+    {
+      "file": "social-see-every-sat-square.png",
+      "path": "/studio/generated/distribution/social-see-every-sat-square.png",
+      "bytes": 576640,
+      "w": 1080,
+      "h": 1080,
+      "caption": "Square · Instagram, Facebook, LinkedIn, Nostr",
+      "kind": "board"
+    },
+    {
+      "file": "social-see-every-sat-portrait.jpg",
+      "path": "/studio/generated/distribution/social-see-every-sat-portrait.jpg",
+      "bytes": 130567,
+      "w": 1080,
+      "h": 1350,
+      "caption": "Portrait · Instagram, LinkedIn, Facebook",
+      "kind": "board"
+    },
+    {
+      "file": "social-see-every-sat-portrait.png",
+      "path": "/studio/generated/distribution/social-see-every-sat-portrait.png",
+      "bytes": 593592,
+      "w": 1080,
+      "h": 1350,
+      "caption": "Portrait · Instagram, LinkedIn, Facebook",
+      "kind": "board"
+    },
+    {
+      "file": "social-see-every-sat-story.jpg",
+      "path": "/studio/generated/distribution/social-see-every-sat-story.jpg",
+      "bytes": 184290,
+      "w": 1080,
+      "h": 1920,
+      "caption": "Story · Stories, Reels, TikTok, Shorts",
+      "kind": "board"
+    },
+    {
+      "file": "social-see-every-sat-story.png",
+      "path": "/studio/generated/distribution/social-see-every-sat-story.png",
+      "bytes": 822602,
+      "w": 1080,
+      "h": 1920,
+      "caption": "Story · Stories, Reels, TikTok, Shorts",
+      "kind": "board"
+    },
+    {
+      "file": "social-see-every-sat-landscape.jpg",
+      "path": "/studio/generated/distribution/social-see-every-sat-landscape.jpg",
+      "bytes": 124922,
+      "w": 1600,
+      "h": 900,
+      "caption": "Landscape · X, LinkedIn",
+      "kind": "board"
+    },
+    {
+      "file": "social-see-every-sat-landscape.png",
+      "path": "/studio/generated/distribution/social-see-every-sat-landscape.png",
+      "bytes": 773222,
+      "w": 1600,
+      "h": 900,
+      "caption": "Landscape · X, LinkedIn",
+      "kind": "board"
+    },
+    {
+      "file": "social-sign-off-line-square.jpg",
+      "path": "/studio/generated/distribution/social-sign-off-line-square.jpg",
+      "bytes": 81938,
+      "w": 1080,
+      "h": 1080,
+      "caption": "Square · Instagram, Facebook, LinkedIn, Nostr",
+      "kind": "board"
+    },
+    {
+      "file": "social-sign-off-line-square.png",
+      "path": "/studio/generated/distribution/social-sign-off-line-square.png",
+      "bytes": 520851,
+      "w": 1080,
+      "h": 1080,
+      "caption": "Square · Instagram, Facebook, LinkedIn, Nostr",
+      "kind": "board"
+    },
+    {
+      "file": "social-sign-off-line-portrait.jpg",
+      "path": "/studio/generated/distribution/social-sign-off-line-portrait.jpg",
+      "bytes": 103513,
+      "w": 1080,
+      "h": 1350,
+      "caption": "Portrait · Instagram, LinkedIn, Facebook",
+      "kind": "board"
+    },
+    {
+      "file": "social-sign-off-line-portrait.png",
+      "path": "/studio/generated/distribution/social-sign-off-line-portrait.png",
+      "bytes": 526173,
+      "w": 1080,
+      "h": 1350,
+      "caption": "Portrait · Instagram, LinkedIn, Facebook",
+      "kind": "board"
+    },
+    {
+      "file": "social-sign-off-line-story.jpg",
+      "path": "/studio/generated/distribution/social-sign-off-line-story.jpg",
+      "bytes": 128383,
+      "w": 1080,
+      "h": 1920,
+      "caption": "Story · Stories, Reels, TikTok, Shorts",
+      "kind": "board"
+    },
+    {
+      "file": "social-sign-off-line-story.png",
+      "path": "/studio/generated/distribution/social-sign-off-line-story.png",
+      "bytes": 697075,
+      "w": 1080,
+      "h": 1920,
+      "caption": "Story · Stories, Reels, TikTok, Shorts",
+      "kind": "board"
+    },
+    {
+      "file": "social-sign-off-line-landscape.jpg",
+      "path": "/studio/generated/distribution/social-sign-off-line-landscape.jpg",
+      "bytes": 92069,
+      "w": 1600,
+      "h": 900,
+      "caption": "Landscape · X, LinkedIn",
+      "kind": "board"
+    },
+    {
+      "file": "social-sign-off-line-landscape.png",
+      "path": "/studio/generated/distribution/social-sign-off-line-landscape.png",
+      "bytes": 719306,
+      "w": 1600,
+      "h": 900,
+      "caption": "Landscape · X, LinkedIn",
+      "kind": "board"
+    },
+    {
+      "file": "social-the-stack-square.jpg",
+      "path": "/studio/generated/distribution/social-the-stack-square.jpg",
+      "bytes": 50954,
+      "w": 1080,
+      "h": 1080,
+      "caption": "Square · Instagram, Facebook, LinkedIn, Nostr",
+      "kind": "board"
+    },
+    {
+      "file": "social-the-stack-square.png",
+      "path": "/studio/generated/distribution/social-the-stack-square.png",
+      "bytes": 69761,
+      "w": 1080,
+      "h": 1080,
+      "caption": "Square · Instagram, Facebook, LinkedIn, Nostr",
+      "kind": "board"
+    },
+    {
+      "file": "social-the-stack-portrait.jpg",
+      "path": "/studio/generated/distribution/social-the-stack-portrait.jpg",
+      "bytes": 55771,
+      "w": 1080,
+      "h": 1350,
+      "caption": "Portrait · Instagram, LinkedIn, Facebook",
+      "kind": "board"
+    },
+    {
+      "file": "social-the-stack-portrait.png",
+      "path": "/studio/generated/distribution/social-the-stack-portrait.png",
+      "bytes": 79909,
+      "w": 1080,
+      "h": 1350,
+      "caption": "Portrait · Instagram, LinkedIn, Facebook",
+      "kind": "board"
+    },
+    {
+      "file": "social-the-stack-story.jpg",
+      "path": "/studio/generated/distribution/social-the-stack-story.jpg",
+      "bytes": 67455,
+      "w": 1080,
+      "h": 1920,
+      "caption": "Story · Stories, Reels, TikTok, Shorts",
+      "kind": "board"
+    },
+    {
+      "file": "social-the-stack-story.png",
+      "path": "/studio/generated/distribution/social-the-stack-story.png",
+      "bytes": 100819,
+      "w": 1080,
+      "h": 1920,
+      "caption": "Story · Stories, Reels, TikTok, Shorts",
+      "kind": "board"
+    },
+    {
+      "file": "social-the-stack-landscape.jpg",
+      "path": "/studio/generated/distribution/social-the-stack-landscape.jpg",
+      "bytes": 59106,
+      "w": 1600,
+      "h": 900,
+      "caption": "Landscape · X, LinkedIn",
+      "kind": "board"
+    },
+    {
+      "file": "social-the-stack-landscape.png",
+      "path": "/studio/generated/distribution/social-the-stack-landscape.png",
+      "bytes": 82083,
+      "w": 1600,
+      "h": 900,
+      "caption": "Landscape · X, LinkedIn",
+      "kind": "board"
+    },
+    {
+      "file": "social-next-release-square.jpg",
+      "path": "/studio/generated/distribution/social-next-release-square.jpg",
+      "bytes": 49415,
+      "w": 1080,
+      "h": 1080,
+      "caption": "Square · Instagram, Facebook, LinkedIn, Nostr",
+      "kind": "board"
+    },
+    {
+      "file": "social-next-release-square.png",
+      "path": "/studio/generated/distribution/social-next-release-square.png",
+      "bytes": 75723,
+      "w": 1080,
+      "h": 1080,
+      "caption": "Square · Instagram, Facebook, LinkedIn, Nostr",
+      "kind": "board"
+    },
+    {
+      "file": "social-next-release-portrait.jpg",
+      "path": "/studio/generated/distribution/social-next-release-portrait.jpg",
+      "bytes": 59283,
+      "w": 1080,
+      "h": 1350,
+      "caption": "Portrait · Instagram, LinkedIn, Facebook",
+      "kind": "board"
+    },
+    {
+      "file": "social-next-release-portrait.png",
+      "path": "/studio/generated/distribution/social-next-release-portrait.png",
+      "bytes": 89165,
+      "w": 1080,
+      "h": 1350,
+      "caption": "Portrait · Instagram, LinkedIn, Facebook",
+      "kind": "board"
+    },
+    {
+      "file": "social-next-release-story.jpg",
+      "path": "/studio/generated/distribution/social-next-release-story.jpg",
+      "bytes": 71261,
+      "w": 1080,
+      "h": 1920,
+      "caption": "Story · Stories, Reels, TikTok, Shorts",
+      "kind": "board"
+    },
+    {
+      "file": "social-next-release-story.png",
+      "path": "/studio/generated/distribution/social-next-release-story.png",
+      "bytes": 111355,
+      "w": 1080,
+      "h": 1920,
+      "caption": "Story · Stories, Reels, TikTok, Shorts",
+      "kind": "board"
+    },
+    {
+      "file": "social-next-release-landscape.jpg",
+      "path": "/studio/generated/distribution/social-next-release-landscape.jpg",
+      "bytes": 59614,
+      "w": 1600,
+      "h": 900,
+      "caption": "Landscape · X, LinkedIn",
+      "kind": "board"
+    },
+    {
+      "file": "social-next-release-landscape.png",
+      "path": "/studio/generated/distribution/social-next-release-landscape.png",
+      "bytes": 86648,
+      "w": 1600,
+      "h": 900,
+      "caption": "Landscape · X, LinkedIn",
+      "kind": "board"
+    },
+    {
+      "file": "social-orb-square.jpg",
+      "path": "/studio/generated/distribution/social-orb-square.jpg",
+      "bytes": 80279,
+      "w": 1080,
+      "h": 1080,
+      "caption": "Sphere · Square · Instagram, Facebook, LinkedIn, Nostr",
+      "kind": "board"
+    },
+    {
+      "file": "social-orb-square.png",
+      "path": "/studio/generated/distribution/social-orb-square.png",
+      "bytes": 717523,
+      "w": 1080,
+      "h": 1080,
+      "caption": "Sphere · Square · Instagram, Facebook, LinkedIn, Nostr",
+      "kind": "board"
+    },
+    {
+      "file": "social-orb-portrait.jpg",
+      "path": "/studio/generated/distribution/social-orb-portrait.jpg",
+      "bytes": 84727,
+      "w": 1080,
+      "h": 1350,
+      "caption": "Sphere · Portrait · Instagram, LinkedIn, Facebook",
+      "kind": "board"
+    },
+    {
+      "file": "social-orb-portrait.png",
+      "path": "/studio/generated/distribution/social-orb-portrait.png",
+      "bytes": 742770,
+      "w": 1080,
+      "h": 1350,
+      "caption": "Sphere · Portrait · Instagram, LinkedIn, Facebook",
+      "kind": "board"
+    },
+    {
+      "file": "social-orb-story.jpg",
+      "path": "/studio/generated/distribution/social-orb-story.jpg",
+      "bytes": 85560,
+      "w": 1080,
+      "h": 1920,
+      "caption": "Sphere · Story · Stories, Reels, TikTok, Shorts",
+      "kind": "board"
+    },
+    {
+      "file": "social-orb-story.png",
+      "path": "/studio/generated/distribution/social-orb-story.png",
+      "bytes": 766221,
+      "w": 1080,
+      "h": 1920,
+      "caption": "Sphere · Story · Stories, Reels, TikTok, Shorts",
+      "kind": "board"
+    },
+    {
+      "file": "social-orb-landscape.jpg",
+      "path": "/studio/generated/distribution/social-orb-landscape.jpg",
+      "bytes": 86849,
+      "w": 1600,
+      "h": 900,
+      "caption": "Sphere · Landscape · X, LinkedIn",
+      "kind": "board"
+    },
+    {
+      "file": "social-orb-landscape.png",
+      "path": "/studio/generated/distribution/social-orb-landscape.png",
+      "bytes": 721154,
+      "w": 1600,
+      "h": 900,
+      "caption": "Sphere · Landscape · X, LinkedIn",
+      "kind": "board"
+    },
+    {
+      "file": "logo-symbol.jpg",
+      "path": "/studio/generated/distribution/logo-symbol.jpg",
+      "bytes": 5425,
+      "w": 160,
+      "h": 160,
+      "caption": "Logo",
+      "kind": "mark"
+    },
+    {
+      "file": "logo-symbol.png",
+      "path": "/studio/generated/distribution/logo-symbol.png",
+      "bytes": 17977,
+      "w": 160,
+      "h": 160,
+      "caption": "Logo",
+      "kind": "mark"
+    },
+    {
+      "file": "chicklet-zapstore.jpg",
+      "path": "/studio/generated/distribution/chicklet-zapstore.jpg",
+      "bytes": 3064,
+      "w": 131,
+      "h": 40,
+      "caption": "Zapstore chicklet",
+      "kind": "mark"
+    },
+    {
+      "file": "chicklet-zapstore.png",
+      "path": "/studio/generated/distribution/chicklet-zapstore.png",
+      "bytes": 1878,
+      "w": 131,
+      "h": 40,
+      "caption": "Zapstore chicklet",
+      "kind": "mark"
+    },
+    {
+      "file": "chicklet-testflight.jpg",
+      "path": "/studio/generated/distribution/chicklet-testflight.jpg",
+      "bytes": 3036,
+      "w": 131,
+      "h": 40,
+      "caption": "TestFlight chicklet",
+      "kind": "mark"
+    },
+    {
+      "file": "chicklet-testflight.png",
+      "path": "/studio/generated/distribution/chicklet-testflight.png",
+      "bytes": 4310,
+      "w": 131,
+      "h": 40,
+      "caption": "TestFlight chicklet",
+      "kind": "mark"
+    },
+    {
+      "file": "app-store-icon-1024.png",
+      "path": "/studio/generated/distribution/app-store-icon-1024.png",
+      "bytes": 158572,
+      "kind": "asset"
+    },
+    {
+      "file": "play-icon-512.png",
+      "path": "/studio/generated/distribution/play-icon-512.png",
+      "bytes": 50689,
+      "kind": "asset"
+    },
+    {
+      "file": "store-text.md",
+      "path": "/studio/generated/distribution/store-text.md",
+      "bytes": 10503,
+      "kind": "text"
+    }
+  ]
+}
