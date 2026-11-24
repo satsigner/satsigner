@@ -184,11 +184,17 @@ export default function NostrChatThread() {
   }
 
   async function deleteSessionOrReport(everywhere: boolean) {
+    if (everywhere && !session.canDeleteEverywhere) {
+      toast.error(t('nostrIdentity.chat.sessions.deleteNeedsKey'))
+      return
+    }
     try {
       await session.deleteSession(everywhere)
     } catch (error) {
       toast.error(getNostrErrorMessage(error))
+      return
     }
+    setSessionMenuVisible(false)
   }
 
   function handleDeleteSession(everywhere: boolean) {
@@ -282,11 +288,15 @@ export default function NostrChatThread() {
         visible={sessionMenuVisible}
         title={session.title}
         isDefault={session.isDefault}
+        privacyMode={privacyMode}
+        canDeleteEverywhere={session.canDeleteEverywhere}
         deleting={session.deleting}
+        archivedSessions={session.archivedSessions}
         onClose={closeSessionMenu}
         onStartNew={session.startNew}
         onRename={session.rename}
         onArchive={session.archive}
+        onRestore={session.restore}
         onDelete={handleDeleteSession}
       />
     </SSMainLayout>

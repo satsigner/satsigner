@@ -74,20 +74,19 @@ function markChatThreadRead(thread: NostrChatThreadRef): number {
   return rowsAffected ?? 0
 }
 
-/**
- * Keeps the first title a session got: a later subject from the peer can't
- * rename it under the user.
- */
+/** INSERT OR IGNORE: an existing session keeps its title and flags. */
 function insertChatSession(session: NostrChatSession): boolean {
   const { rowsAffected } = getDb().execute(
     `INSERT OR IGNORE INTO nostr_chat_sessions (
-      identity_npub, peer_pubkey, session_id, title, created_at, archived
-    ) VALUES (?, ?, ?, ?, ?, ?)`,
+      identity_npub, peer_pubkey, session_id, title, title_locked,
+      created_at, archived
+    ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
     [
       session.identityNpub,
       session.peerPubkey,
       session.sessionId,
       session.title ?? null,
+      boolToInt(session.titleLocked ?? false),
       session.createdAt,
       boolToInt(session.archived)
     ]
@@ -104,10 +103,24 @@ function sessionKeyParams(session: ChatSessionKey): string[] {
   return [session.identityNpub, session.peerPubkey, session.sessionId]
 }
 
+/** A rename (or clearing the title) locks it against a peer's subject. */
 function renameChatSession(session: ChatSessionKey, title: string | null) {
   getDb().execute(
-    `UPDATE nostr_chat_sessions SET title = ?
+    `UPDATE nostr_chat_sessions SET title = ?, title_locked = 1
       WHERE identity_npub = ? AND peer_pubkey = ? AND session_id = ?`,
+    [title, ...sessionKeyParams(session)]
+  )
+}
+
+/**
+ * A subject that arrives after the session was created (wraps arrive out of
+ * order) still names it, unless it already has a title or the user locked it.
+ */
+function adoptChatSessionSubject(session: ChatSessionKey, title: string) {
+  getDb().execute(
+    `UPDATE nostr_chat_sessions SET title = ?
+      WHERE identity_npub = ? AND peer_pubkey = ? AND session_id = ?
+        AND title IS NULL AND title_locked = 0`,
     [title, ...sessionKeyParams(session)]
   )
 }
@@ -215,6 +228,7 @@ function deleteChatMessagesForIdentity(identityNpub: string) {
 }
 
 export {
+  adoptChatSessionSubject,
   deleteChatMessages,
   deleteChatMessagesForIdentity,
   deleteChatReactions,

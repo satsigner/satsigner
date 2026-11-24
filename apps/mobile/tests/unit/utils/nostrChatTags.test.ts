@@ -60,16 +60,20 @@ describe('session tags', () => {
     expect(getSessionId([['p', OTHER], buildSessionTag(SESSION)])).toBe(SESSION)
   })
 
-  it('reads a missing tag as the default session', () => {
-    expect(getSessionId([['p', OTHER]])).toBe('')
-    expect(getSessionId(undefined)).toBe('')
+  it('reads a missing tag as no session, so a reply can inherit one', () => {
+    expect(getSessionId([['p', OTHER]])).toBeNull()
+    expect(getSessionId(undefined)).toBeNull()
   })
 
   it('reads a malformed id as the default session', () => {
     expect(getSessionId([['session', 'C'.repeat(32)]])).toBe('')
     expect(getSessionId([['session', 'c'.repeat(31)]])).toBe('')
     expect(getSessionId([['session', `${SESSION}x`]])).toBe('')
-    expect(getSessionId([['session']])).toBe('')
+    expect(getSessionId([['session', '']])).toBe('')
+  })
+
+  it('reads a session tag without a value as no tag', () => {
+    expect(getSessionId([['session']])).toBeNull()
   })
 
   it('accepts only 32 lowercase hex characters as a session id', () => {

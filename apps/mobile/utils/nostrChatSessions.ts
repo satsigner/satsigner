@@ -3,7 +3,8 @@ import QuickCrypto from 'react-native-quick-crypto'
 
 import {
   NOSTR_CHAT_DEFAULT_SESSION_ID,
-  NOSTR_CHAT_SESSION_ID_BYTES
+  NOSTR_CHAT_SESSION_ID_BYTES,
+  NOSTR_PRIVACY_MASK
 } from '@/constants/nostr'
 import { MS_PER_SECOND } from '@/constants/time'
 import {
@@ -96,18 +97,25 @@ function getSessionLabel(
     : t('nostrIdentity.chat.sessions.untitled')
 }
 
-/** Rows name their session only when it has a title or the peer has several. */
+/**
+ * Rows name their session only when it has a title or the peer has several.
+ * In privacy mode a named row shows the mask instead of its title.
+ */
 function labelConversationSessions(
-  conversations: NostrChatConversationItem[]
+  conversations: NostrChatConversationItem[],
+  privacyMode = false
 ): LabeledConversation[] {
   const counts = countSessionsByPeer(conversations)
-  return conversations.map((conversation) => ({
-    ...conversation,
-    sessionLabel: getSessionLabel(
+  return conversations.map((conversation) => {
+    const label = getSessionLabel(
       conversation,
       counts.get(conversation.peerPubkey) ?? 0
     )
-  }))
+    return {
+      ...conversation,
+      sessionLabel: label && privacyMode ? NOSTR_PRIVACY_MASK : label
+    }
+  })
 }
 
 function getConversationKey(item: NostrChatConversationItem): string {
