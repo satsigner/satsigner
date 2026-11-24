@@ -12,6 +12,7 @@ import SSChatDaySeparator from '@/components/chat/SSChatDaySeparator'
 import SSChatPaymentRequests from '@/components/chat/SSChatPaymentRequests'
 import type { ChatPaymentActions } from '@/components/chat/SSChatPaymentRequests'
 import SSChatReactions from '@/components/chat/SSChatReactions'
+import SSChatSignRequestCard from '@/components/chat/SSChatSignRequestCard'
 import SSNewMessagesPill from '@/components/chat/SSNewMessagesPill'
 import SSNostrMessage from '@/components/SSNostrMessage'
 import SSPaymentMethodPicker from '@/components/SSPaymentMethodPicker'
@@ -37,6 +38,7 @@ import {
   hasChatInvoice
 } from '@/utils/chatPaymentRequests'
 import type { ChatPaymentRequest } from '@/utils/chatPaymentRequests'
+import { buildSignBatchView } from '@/utils/nip46EventSummary'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
 import {
   getChatAgentStatus,
@@ -53,8 +55,20 @@ import { getDmText } from '@/utils/nostrDms'
 
 type VisibleComponents = Map<string, { sankey: boolean; status: boolean }>
 
+/** Approve / reject / resend for a message's batch of signature requests. */
+type ChatSignActions = {
+  busyMessageId: string | null
+  canSign: boolean
+  nowSeconds: number
+  onApprove: (messageId: string) => void
+  onReject: (messageId: string) => void
+  onResend: (messageId: string) => void
+  signerLabel: string
+}
+
 type ChatThreadRowContext = {
   paymentActions: ChatPaymentActions
+  signActions?: ChatSignActions
   ownHex: string | null
   peerHex: string | null
   onRemoveReaction?: (reactionIds: string[]) => void
@@ -105,6 +119,8 @@ function ChatThreadRow({ row }: { row: ChatRow<NostrChatThreadItem> }) {
     ? buildReplyPreview(dm.replyToId, context.messagesById)
     : undefined
   const paymentRequests = findChatPaymentRequests(getDmText(dm) ?? '')
+  const { signActions } = context
+  const signRequests = row.item.signRequests ?? []
   return (
     <SSNostrMessage
       item={dm}
@@ -139,6 +155,18 @@ function ChatThreadRow({ row }: { row: ChatRow<NostrChatThreadItem> }) {
             actions={context.paymentActions}
             requests={paymentRequests}
           />
+          {signActions && signRequests.length > 0 ? (
+            <SSChatSignRequestCard
+              view={buildSignBatchView(signRequests, signActions.nowSeconds)}
+              signerLabel={signActions.signerLabel}
+              busy={signActions.busyMessageId === dm.id}
+              canSign={signActions.canSign}
+              messageId={dm.id}
+              onApprove={signActions.onApprove}
+              onReject={signActions.onReject}
+              onResend={signActions.onResend}
+            />
+          ) : null}
           <SSChatReactions
             summaries={summarizeChatReactions(reactions, context.ownHex)}
             agentStatus={agentStatus}
@@ -189,6 +217,8 @@ type SSChatThreadProps = {
   peerHex?: string
   /** Lets my reaction chips take my reactions back; without it they are read-only. */
   onRemoveReaction?: (reactionIds: string[]) => void
+  /** Signature request cards; without it requests show as plain text. */
+  signActions?: ChatSignActions
 }
 
 /**
@@ -196,6 +226,8 @@ type SSChatThreadProps = {
  * the bitcoin devices group chat (SSNostrMessage), "new messages" pill, and
  * the shared composer.
  */
+export type { ChatSignActions }
+
 export default function SSChatThread({
   items,
   formattedNpubs,
@@ -213,7 +245,8 @@ export default function SSChatThread({
   replyTo,
   onCancelReply,
   peerHex,
-  onRemoveReaction
+  onRemoveReaction,
+  signActions
 }: SSChatThreadProps) {
   const [visibleComponents, setVisibleComponents] = useState(
     NO_VISIBLE_COMPONENTS
@@ -312,6 +345,7 @@ export default function SSChatThread({
       onPay: handlePaymentPay
     },
     peerHex: peerHex ?? null,
+    signActions,
     todayStart,
     visibleComponents
   }
