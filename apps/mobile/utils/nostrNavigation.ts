@@ -102,13 +102,20 @@ export function nostrZapDetailHref(npub: string, zapId: string): Href {
   }
 }
 
+/** The default session has no `session` param, as before sessions existed. */
 export function nostrChatThreadHref(
   npub: string,
   peerNpub: string,
-  protocol: NostrChatProtocol
+  protocol: NostrChatProtocol,
+  { sessionId }: { sessionId?: string } = {}
 ): Href {
   return {
-    params: { npub, peer: peerNpub, protocol },
+    params: {
+      npub,
+      peer: peerNpub,
+      protocol,
+      ...(sessionId ? { session: sessionId } : {})
+    },
     pathname: '/signer/nostr/account/[npub]/chat/[peer]'
   }
 }

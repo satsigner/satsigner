@@ -11,14 +11,21 @@ import { useNostrStore } from '@/store/nostr'
 import { Colors } from '@/styles'
 import type { NostrChatConversationItem } from '@/types/models/Nostr'
 import { formatNpub } from '@/utils/format'
+import {
+  getConversationKey,
+  labelConversationSessions
+} from '@/utils/nostrChatSessions'
+import type { LabeledConversation } from '@/utils/nostrChatSessions'
 import { isNonEmptyString } from '@/utils/string'
+
+type OpenConversation = (peerNpub: string, sessionId: string) => void
 
 type SSNostrConversationListProps = {
   conversations: NostrChatConversationItem[]
-  onOpenPeer: (peerNpub: string) => void
+  onOpenPeer: OpenConversation
 }
 
-const OpenPeerContext = createContext<((peerNpub: string) => void) | null>(null)
+const OpenPeerContext = createContext<OpenConversation | null>(null)
 
 function formatConversationTime(timestamp: number): string {
   const date = new Date(timestamp * MS_PER_SECOND)
@@ -36,16 +43,16 @@ function getRowStyle({ pressed }: { pressed: boolean }) {
 function ConversationRow({
   conversation
 }: {
-  conversation: NostrChatConversationItem
+  conversation: LabeledConversation
 }) {
-  const { peerNpub } = conversation
+  const { peerNpub, sessionId, sessionLabel } = conversation
   const onOpenPeer = use(OpenPeerContext)
   const profile = useNostrStore((state) => state.profiles[peerNpub])
   const displayName = profile?.displayName
   const label = displayName ?? formatNpub(peerNpub)
 
   function handlePress() {
-    onOpenPeer?.(peerNpub)
+    onOpenPeer?.(peerNpub, sessionId)
   }
 
   return (
@@ -69,6 +76,11 @@ function ConversationRow({
         <SSText weight="medium" numberOfLines={1}>
           {label}
         </SSText>
+        {isNonEmptyString(sessionLabel) ? (
+          <SSText size="xs" numberOfLines={1}>
+            {sessionLabel}
+          </SSText>
+        ) : null}
         {isNonEmptyString(displayName) ? (
           <SSText size="xs" color="muted">
             {formatNpub(peerNpub)}
@@ -94,14 +106,8 @@ function ConversationRow({
   )
 }
 
-function renderConversation({
-  item
-}: ListRenderItemInfo<NostrChatConversationItem>) {
+function renderConversation({ item }: ListRenderItemInfo<LabeledConversation>) {
   return <ConversationRow conversation={item} />
-}
-
-function getConversationKey(item: NostrChatConversationItem) {
-  return item.peerPubkey
 }
 
 export default function SSNostrConversationList({
@@ -121,7 +127,7 @@ export default function SSNostrConversationList({
   return (
     <OpenPeerContext value={onOpenPeer}>
       <FlashList
-        data={conversations}
+        data={labelConversationSessions(conversations)}
         renderItem={renderConversation}
         keyExtractor={getConversationKey}
       />

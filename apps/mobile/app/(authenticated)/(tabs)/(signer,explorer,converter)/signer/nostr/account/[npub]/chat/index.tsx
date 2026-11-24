@@ -55,11 +55,11 @@ function ChatConversationsScene({ protocol }: { protocol: NostrChatProtocol }) {
     inbox.visibleConversations.map((conversation) => conversation.peerNpub)
   )
 
-  function handleOpenPeer(peerNpub: string) {
+  function handleOpenPeer(peerNpub: string, sessionId: string) {
     if (!isNonEmptyString(npub)) {
       return
     }
-    router.push(nostrChatThreadHref(npub, peerNpub, protocol))
+    router.push(nostrChatThreadHref(npub, peerNpub, protocol, { sessionId }))
   }
 
   function handleNewChat() {

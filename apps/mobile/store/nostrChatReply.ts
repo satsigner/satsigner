@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 
-import type { NostrChatProtocol } from '@/types/models/Nostr'
+import type { NostrChatThreadRef } from '@/types/models/Nostr'
 
 type NostrChatReplyState = {
   /** Message being replied to, per chat (see deviceChatKey / identityChatKey). */
@@ -16,12 +16,13 @@ function deviceChatKey(accountId: string): string {
   return `device:${accountId}`
 }
 
-function identityChatKey(
-  identityNpub: string,
-  protocol: NostrChatProtocol,
-  peerPubkey: string
-): string {
-  return `identity:${identityNpub}:${protocol}:${peerPubkey}`
+function identityChatKey({
+  identityNpub,
+  peerPubkey,
+  protocol,
+  sessionId
+}: NostrChatThreadRef): string {
+  return `identity:${identityNpub}:${protocol}:${peerPubkey}:${sessionId}`
 }
 
 const useNostrChatReplyStore = create<

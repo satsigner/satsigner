@@ -1,11 +1,19 @@
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router'
+import { useState } from 'react'
 import { StyleSheet } from 'react-native'
 import { toast } from 'sonner-native'
 
+import SSChatSessionMenu from '@/components/chat/SSChatSessionMenu'
 import SSChatThread from '@/components/chat/SSChatThread'
 import SSMessageActionsModal from '@/components/chat/SSMessageActionsModal'
+import { SSIconEllipsis } from '@/components/icons'
+import SSIconButton from '@/components/SSIconButton'
 import SSText from '@/components/SSText'
-import { NOSTR_PRIVACY_MASK } from '@/constants/nostr'
+import { HEADER_CHROME_HIT_BOX } from '@/constants/headerChrome'
+import {
+  NOSTR_CHAT_DEFAULT_SESSION_ID,
+  NOSTR_PRIVACY_MASK
+} from '@/constants/nostr'
 import {
   useNostrChatProfiles,
   useNostrChatSubscription,
@@ -13,6 +21,7 @@ import {
 } from '@/hooks/useNostrChat'
 import { useNostrChatMessageActions } from '@/hooks/useNostrChatMessageActions'
 import { useNostrChatReactions } from '@/hooks/useNostrChatReactions'
+import { useNostrChatSession } from '@/hooks/useNostrChatSession'
 import { getAuthorLabel } from '@/hooks/useNostrMessage'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -26,6 +35,7 @@ import {
   buildChatThreadAuthors,
   isChatThreadItemDelivered
 } from '@/utils/nostrChat'
+import { isChatSessionId } from '@/utils/nostrChatTags'
 import { getNostrErrorMessage } from '@/utils/nostrErrorMessage'
 import {
   nostrAuthorProfileHref,
@@ -37,6 +47,7 @@ type ThreadParams = {
   npub: string
   peer: string
   protocol?: string
+  session?: string
 }
 
 export default function NostrChatThread() {
@@ -44,10 +55,18 @@ export default function NostrChatThread() {
   const {
     npub,
     peer,
-    protocol: protocolParam
+    protocol: protocolParam,
+    session: sessionParam
   } = useLocalSearchParams<ThreadParams>()
   const protocol: NostrChatProtocol =
     protocolParam === 'nip04' ? 'nip04' : 'nip17'
+  const sessionId =
+    protocol === 'nip17' &&
+    isNonEmptyString(sessionParam) &&
+    isChatSessionId(sessionParam)
+      ? sessionParam
+      : NOSTR_CHAT_DEFAULT_SESSION_ID
+  const [sessionMenuVisible, setSessionMenuVisible] = useState(false)
 
   const identity = useNostrIdentityStore((state) =>
     state.identities.find((i) => i.npub === npub)
@@ -75,7 +94,20 @@ export default function NostrChatThread() {
     sending,
     setInput,
     setReplyTo
-  } = useNostrChatThread(identity, protocol, peerNpub, peerPubkey ?? undefined)
+  } = useNostrChatThread(
+    identity,
+    protocol,
+    peerNpub,
+    peerPubkey ?? undefined,
+    sessionId
+  )
+  const session = useNostrChatSession({
+    identity,
+    peerNpub,
+    peerPubkey,
+    protocol,
+    sessionId
+  })
   const canReply = protocol === 'nip17'
   const reactions = useNostrChatReactions(identity, peerNpub)
   const canReact = canReply && reactions.canReact
@@ -143,6 +175,26 @@ export default function NostrChatThread() {
     void loadOlderOrReport()
   }
 
+  function openSessionMenu() {
+    setSessionMenuVisible(true)
+  }
+
+  function closeSessionMenu() {
+    setSessionMenuVisible(false)
+  }
+
+  async function deleteSessionOrReport(everywhere: boolean) {
+    try {
+      await session.deleteSession(everywhere)
+    } catch (error) {
+      toast.error(getNostrErrorMessage(error))
+    }
+  }
+
+  function handleDeleteSession(everywhere: boolean) {
+    void deleteSessionOrReport(everywhere)
+  }
+
   function handleAuthorPress(authorNpub: string) {
     if (!identity) {
       return
@@ -158,15 +210,36 @@ export default function NostrChatThread() {
   })
   const peerTitle =
     peerProfile?.displayName ?? `${peerNpub.slice(0, 12)}…${peerNpub.slice(-4)}`
+  const sessionTitle = session.isDefault
+    ? session.title
+    : (session.title ?? t('nostrIdentity.chat.sessions.untitled'))
 
   return (
     <SSMainLayout>
       <Stack.Screen
         options={{
+          headerRight: session.canManage
+            ? () => (
+                <SSIconButton
+                  style={HEADER_CHROME_HIT_BOX}
+                  onPress={openSessionMenu}
+                  accessibilityLabel={t('nostrIdentity.chat.sessions.menu')}
+                >
+                  <SSIconEllipsis width={22} height={6} />
+                </SSIconButton>
+              )
+            : undefined,
           headerTitle: () => (
-            <SSText uppercase>
-              {privacyMode ? NOSTR_PRIVACY_MASK : peerTitle}
-            </SSText>
+            <SSVStack gap="none" itemsCenter>
+              <SSText uppercase>
+                {privacyMode ? NOSTR_PRIVACY_MASK : peerTitle}
+              </SSText>
+              {sessionTitle ? (
+                <SSText size="xs" color="muted" numberOfLines={1}>
+                  {privacyMode ? NOSTR_PRIVACY_MASK : sessionTitle}
+                </SSText>
+              ) : null}
+            </SSVStack>
           )
         }}
       />
@@ -204,6 +277,17 @@ export default function NostrChatThread() {
         onDetails={messageActions.handleDetails}
         onClose={messageActions.closeActions}
         onReact={canReactToSelected ? handleReact : undefined}
+      />
+      <SSChatSessionMenu
+        visible={sessionMenuVisible}
+        title={session.title}
+        isDefault={session.isDefault}
+        deleting={session.deleting}
+        onClose={closeSessionMenu}
+        onStartNew={session.startNew}
+        onRename={session.rename}
+        onArchive={session.archive}
+        onDelete={handleDeleteSession}
       />
     </SSMainLayout>
   )
