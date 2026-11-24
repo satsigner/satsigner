@@ -17,15 +17,15 @@ import SSNewMessagesPill from '@/components/chat/SSNewMessagesPill'
 import SSNostrMessage from '@/components/SSNostrMessage'
 import SSPaymentMethodPicker from '@/components/SSPaymentMethodPicker'
 import SSText from '@/components/SSText'
-import {
-  NOSTR_DM_MESSAGE_MAX_LENGTH,
-  NOSTR_GROUP_CHAT_AUTOSCROLL_THRESHOLD
-} from '@/constants/nostr'
+import { NOSTR_DM_MESSAGE_MAX_LENGTH } from '@/constants/nostr'
 import { useChatBitcoinRequestPay } from '@/hooks/useChatBitcoinRequestPay'
 import { useChatInvoicePay } from '@/hooks/useChatInvoicePay'
 import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import { useLocalDayStart } from '@/hooks/useLocalDayStart'
-import { useNostrChatScroll } from '@/hooks/useNostrChatScroll'
+import {
+  CHAT_VISIBLE_CONTENT_POSITION,
+  useNostrChatScroll
+} from '@/hooks/useNostrChatScroll'
 import { getAuthorLabel } from '@/hooks/useNostrMessage'
 import type { AuthorDisplayInfo } from '@/hooks/useNostrMessage'
 import { useNow } from '@/hooks/useNow'
@@ -254,8 +254,8 @@ export default function SSChatThread({
   const headerHeight = useHeaderHeight()
   const rows = buildChatRows(items, getThreadDm)
   const {
-    handleListScroll,
     listRef,
+    scrollHandlers,
     scrollToBottom,
     scrollToIndex,
     showNewMessages
@@ -375,16 +375,12 @@ export default function SSChatThread({
               keyExtractor={getChatRowKey}
               getItemType={getChatRowType}
               extraData={rowContext}
-              maintainVisibleContentPosition={{
-                autoscrollToBottomThreshold:
-                  NOSTR_GROUP_CHAT_AUTOSCROLL_THRESHOLD,
-                startRenderingFromBottom: true
-              }}
+              maintainVisibleContentPosition={CHAT_VISIBLE_CONTENT_POSITION}
               onStartReached={onLoadOlder}
               ListHeaderComponent={
                 loadingOlder ? <ActivityIndicator color={Colors.white} /> : null
               }
-              onScroll={handleListScroll}
+              {...scrollHandlers}
               scrollEventThrottle={16}
               contentContainerStyle={styles.listContent}
             />
