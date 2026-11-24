@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Parallel sessions in a NIP-17 chat with the same contact, so an agent can
+  work on several tasks at once. Sessions can be named, archived or deleted.
+- Agents can ask for signatures inside a chat session. Approve later from a
+  card in the thread, or lend a one-time `bunker://` signer while the app is
+  open. Only the chat's own identity signs.
+- Quick sync check: only the addresses that can change are asked about, and
+  the full rescan is skipped when nothing changed.
+
+### Fixed
+
+- The "Ensure wallet data is updated" screen before sending lets you
+  continue instead of looping back.
+
 ## [0.3.9] - 2026-11-17
 
 ### Added
