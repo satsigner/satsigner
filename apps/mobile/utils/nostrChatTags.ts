@@ -70,12 +70,17 @@ function buildSessionTag(sessionId: string): string[] {
   return [NOSTR_CHAT_SESSION_TAG, sessionId]
 }
 
-/** A peer picks the id, so anything malformed falls back to the default session. */
-function getSessionId(tags: unknown): string {
+/**
+ * The session a message names: null when it has no session tag, the default
+ * session ('') when the tag is malformed (a peer picks the id), else the id.
+ * Only a message without a tag may inherit its reply parent's session.
+ */
+function getSessionId(tags: unknown): string | null {
   const value = getTagValue(tags, NOSTR_CHAT_SESSION_TAG)
-  return value !== undefined && isChatSessionId(value)
-    ? value
-    : NOSTR_CHAT_DEFAULT_SESSION_ID
+  if (value === undefined) {
+    return null
+  }
+  return isChatSessionId(value) ? value : NOSTR_CHAT_DEFAULT_SESSION_ID
 }
 
 function normalizeSessionTitle(title: string): string | undefined {

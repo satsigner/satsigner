@@ -3,8 +3,12 @@ import { useRouter } from 'expo-router'
 import { useState } from 'react'
 
 import { NostrAPI } from '@/api/nostr'
-import { getChatSession } from '@/db/queries/nostrChat'
-import type { NostrChatProtocol } from '@/types/models/Nostr'
+import {
+  getChatSession,
+  listArchivedChatSessions
+} from '@/db/queries/nostrChat'
+import { t } from '@/locales'
+import type { NostrChatProtocol, NostrChatSession } from '@/types/models/Nostr'
 import {
   deleteChatSessionForEveryone,
   getChatPipelineApi,
@@ -22,6 +26,8 @@ import {
 import { getNostrContactsRelays } from '@/utils/nostrContacts'
 import { nostrChatThreadHref } from '@/utils/nostrNavigation'
 import { isNonEmptyString } from '@/utils/string'
+
+const NO_SESSIONS: NostrChatSession[] = []
 
 type SessionIdentity = Pick<ChatIdentity, 'npub' | 'relays'> & {
   nsec?: string
@@ -79,7 +85,18 @@ export function useNostrChatSession({
     )
   })
 
+  const { data: archivedSessions = NO_SESSIONS } = useQuery({
+    enabled: isNonEmptyString(identityNpub) && peerPubkey !== null,
+    queryFn: () => listArchivedChatSessions(key.identityNpub, key.peerPubkey),
+    queryKey: nostrChatQueryKeys.archivedSessions(
+      key.identityNpub,
+      key.peerPubkey
+    )
+  })
+
   const canManage = protocol === 'nip17' && peerPubkey !== null
+  const nsec = identity?.nsec
+  const canDeleteEverywhere = isNonEmptyString(nsec)
 
   function startNew(title?: string) {
     if (!canManage || !isNonEmptyString(identityNpub)) {
@@ -111,17 +128,33 @@ export function useNostrChatSession({
     router.back()
   }
 
+  /** Brings an archived session back to the list and opens it. */
+  function restore(archivedId: string) {
+    if (!canManage) {
+      return
+    }
+    archiveChatSession({ ...key, sessionId: archivedId }, false)
+    invalidateChatQueries(identityNpub)
+    router.push(
+      nostrChatThreadHref(identityNpub, peerNpub, protocol, {
+        sessionId: archivedId
+      })
+    )
+  }
+
   /**
    * Removes the session here; with `everywhere`, first asks the peer and
-   * relays to drop the messages we sent in it. A failed request keeps the
-   * session, so the user can retry.
+   * relays to drop the messages we sent in it. A failed request, or no key
+   * to sign it with, keeps the session, so nothing is lost silently.
    */
   async function deleteSession(everywhere: boolean) {
     if (!canManage || deleting) {
       return
     }
+    if (everywhere && (!identity || !isNonEmptyString(nsec))) {
+      throw new Error(t('nostrIdentity.chat.sessions.deleteNeedsKey'))
+    }
     setDeleting(true)
-    const nsec = identity?.nsec
     const remote =
       everywhere && identity && isNonEmptyString(nsec)
         ? deleteOwnMessagesEverywhere(
@@ -146,11 +179,14 @@ export function useNostrChatSession({
 
   return {
     archive,
+    archivedSessions,
+    canDeleteEverywhere,
     canManage,
     deleteSession,
     deleting,
     isDefault: isDefaultChatSession(sessionId),
     rename,
+    restore,
     startNew,
     title: session?.title
   }

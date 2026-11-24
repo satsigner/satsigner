@@ -381,7 +381,8 @@ CREATE INDEX IF NOT EXISTS idx_ncr_message
 
 // Parallel NIP-17 sessions with one peer. '' is the default session, so every
 // existing row keeps its thread. The sessions table keeps the title and
-// archive flag, and lets a session exist before its first message.
+// archive flag, and lets a session exist before its first message. A title
+// the user set or cleared is locked, so a peer's late subject can't change it.
 const SCHEMA_V14 = `
 ALTER TABLE nostr_chat_messages ADD COLUMN session_id TEXT NOT NULL DEFAULT '';
 
@@ -393,6 +394,7 @@ CREATE TABLE IF NOT EXISTS nostr_chat_sessions (
   peer_pubkey TEXT NOT NULL,
   session_id TEXT NOT NULL,
   title TEXT,
+  title_locked INTEGER NOT NULL DEFAULT 0,
   created_at INTEGER NOT NULL,
   archived INTEGER NOT NULL DEFAULT 0,
   PRIMARY KEY (identity_npub, peer_pubkey, session_id)
