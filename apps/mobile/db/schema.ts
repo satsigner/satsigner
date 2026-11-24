@@ -379,6 +379,26 @@ CREATE INDEX IF NOT EXISTS idx_ncr_message
   ON nostr_chat_reactions(identity_npub, message_id)
 `
 
+// Parallel NIP-17 sessions with one peer. '' is the default session, so every
+// existing row keeps its thread. The sessions table keeps the title and
+// archive flag, and lets a session exist before its first message.
+const SCHEMA_V14 = `
+ALTER TABLE nostr_chat_messages ADD COLUMN session_id TEXT NOT NULL DEFAULT '';
+
+CREATE INDEX IF NOT EXISTS idx_ncm_session_thread
+  ON nostr_chat_messages(identity_npub, protocol, peer_pubkey, session_id, created_at);
+
+CREATE TABLE IF NOT EXISTS nostr_chat_sessions (
+  identity_npub TEXT NOT NULL,
+  peer_pubkey TEXT NOT NULL,
+  session_id TEXT NOT NULL,
+  title TEXT,
+  created_at INTEGER NOT NULL,
+  archived INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (identity_npub, peer_pubkey, session_id)
+)
+`
+
 const SCHEMAS = [
   SCHEMA_V1,
   SCHEMA_V2,
@@ -392,7 +412,8 @@ const SCHEMAS = [
   SCHEMA_V10,
   SCHEMA_V11,
   SCHEMA_V12,
-  SCHEMA_V13
+  SCHEMA_V13,
+  SCHEMA_V14
 ]
 const CURRENT_VERSION = SCHEMAS.length
 
