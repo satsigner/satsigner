@@ -19,9 +19,12 @@ type SSChatSessionMenuProps = {
   onRename: (title: string) => void
   onArchive: () => void
   onDelete: (everywhere: boolean) => void
+  /** Offered only when the chat identity can sign. */
+  onLendSigner?: () => void
+  lending?: boolean
 }
 
-type MenuStep = 'actions' | 'delete' | 'new' | 'rename'
+type MenuStep = 'actions' | 'delete' | 'lend' | 'new' | 'rename'
 
 /** Thread menu for NIP-17 sessions: start, rename, archive or delete one. */
 function SSChatSessionMenu({
@@ -33,7 +36,9 @@ function SSChatSessionMenu({
   onStartNew,
   onRename,
   onArchive,
-  onDelete
+  onDelete,
+  onLendSigner,
+  lending = false
 }: SSChatSessionMenuProps) {
   const [step, setStep] = useState<MenuStep>('actions')
   const [draft, setDraft] = useState('')
@@ -74,6 +79,15 @@ function SSChatSessionMenu({
     onArchive()
   }
 
+  function confirmLend() {
+    close()
+    onLendSigner?.()
+  }
+
+  function openLend() {
+    setStep('lend')
+  }
+
   function deleteHere() {
     close()
     onDelete(false)
@@ -106,6 +120,14 @@ function SSChatSessionMenu({
               onPress={confirmArchive}
               variant="outline"
             />
+            {onLendSigner ? (
+              <SSButton
+                label={t('nip46.lend.action')}
+                onPress={openLend}
+                variant="outline"
+                loading={lending}
+              />
+            ) : null}
             {isDefault ? null : (
               <SSButton
                 label={t('nostrIdentity.chat.sessions.delete')}
@@ -137,6 +159,19 @@ function SSChatSessionMenu({
                   : t('nostrIdentity.chat.sessions.save')
               }
               onPress={step === 'new' ? confirmNew : confirmRename}
+            />
+          </>
+        ) : null}
+        {step === 'lend' ? (
+          <>
+            <SSText center color="muted">
+              {t('nip46.lend.warning')}
+            </SSText>
+            <SSButton label={t('nip46.lend.confirm')} onPress={confirmLend} />
+            <SSButton
+              label={t('common.cancel')}
+              onPress={close}
+              variant="outline"
             />
           </>
         ) : null}

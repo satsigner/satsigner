@@ -15,6 +15,8 @@ import {
 import type { ChatSessionKey } from '@/db/mutations/nostrChat'
 import { getChatSession } from '@/db/queries/nostrChat'
 import { t } from '@/locales'
+import { stopNip46Session } from '@/services/nip46Sessions'
+import { useNip46Store } from '@/store/nip46'
 import type {
   NostrChatConversationItem,
   NostrChatSession
@@ -67,12 +69,32 @@ function renameChatSessionTitle(session: ChatSessionKey, title: string): void {
   renameChatSession(session, normalizeSessionTitle(title) ?? null)
 }
 
+/** A signer lent in a session goes with it: archiving or deleting revokes it. */
+function revokeLentSigners(session: ChatSessionKey): void {
+  const store = useNip46Store.getState()
+  const lent = store.sessions.filter(
+    (candidate) =>
+      candidate.signerNpub === session.identityNpub &&
+      candidate.origin?.kind === 'chat' &&
+      candidate.origin.peerPubkey === session.peerPubkey &&
+      candidate.origin.sessionId === session.sessionId
+  )
+  for (const candidate of lent) {
+    stopNip46Session(candidate.id)
+    store.removeSession(candidate.id)
+  }
+}
+
 function archiveChatSession(session: ChatSessionKey, archived: boolean): void {
   ensureChatSessionRow(session)
   setChatSessionArchived(session, archived)
+  if (archived) {
+    revokeLentSigners(session)
+  }
 }
 
 function forgetChatSession(session: ChatSessionKey): void {
+  revokeLentSigners(session)
   deleteChatSession(session)
 }
 
@@ -134,6 +156,7 @@ export {
   isDefaultChatSession,
   labelConversationSessions,
   renameChatSessionTitle,
+  revokeLentSigners,
   startChatSession
 }
 export type { LabeledConversation }

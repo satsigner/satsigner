@@ -1,6 +1,6 @@
 # Plan: Agent Chat Sessions and Remote Signing
 
-**Status**: Part A implemented on `feat/nostr-chat-sessions`; Part B on `feat/nostr-chat-signing`
+**Status**: Part A implemented on `feat/nostr-chat-sessions`; Part B implemented on `feat/nostr-chat-signing` (no grants yet)
 **Date**: 2026-11-24
 **Scope**: `apps/mobile` (identity chat, NIP-17 only, and the NIP-46 signer), plus a small upstream change to the agent bridge (`@pi-nostr/durable-nip17`)
 
@@ -531,7 +531,41 @@ open.
 - Not done yet: the "Open as new session" option in `chat/new.tsx` (the
   thread menu covers it), and the `bot` header button.
 
-## 11. Decisions
+## 11. Implementation notes (Part B)
+
+- **Storage.** `SCHEMA_V15` adds `nostr_sign_requests`. One chat message is
+  one batch. It is decided once (`decideSignRequestBatch` refuses a batch
+  that is already signed, rejected, expired or answered), and the signed
+  answer is kept so a resend never signs again.
+- **Transport.** Requests arrive as `sign_request` tags, or as fenced
+  `nostr-sign-request` JSON blocks for agents whose tools only send text.
+  Answers carry both `sign_response` tags and a `nostr-sign-response` block.
+  A batch is several requests in one message, so no new NIP-46 method was
+  added. `connect` is refused over chat.
+- **Checks at ingest** (`utils/signingQueue.ts`):
+  - A request that names another key is stored as invalid (`wrong key`).
+  - An event dated more than `NOSTR_SIGN_MAX_CLOCK_SKEW_SECS` from the
+    request is invalid.
+  - A message dated in the future, compared with the local clock, is
+    invalid, because it would let events be pre-dated.
+  - Only a peer we wrote to in that session can queue requests.
+  - There are caps on pending requests per peer and on batch size and
+    message size.
+- **Live signer.** `bunker://` offers come from `utils/nip46Bunker.ts`. The
+  first `connect` with the secret claims the offer, which is compared in
+  constant time. The secret is then dropped, the offer expires after 10
+  minutes, and an unclaimed offer is forgotten on restart or lock.
+  - Signers lent in a chat never auto-approve: "always allow" is hidden and
+    ignored for them.
+  - Their `sign_event` calls must be dated near now.
+  - Archiving or deleting the session revokes them.
+- **Grants (§7.6)** were not built. Batches make a Zapstore release a single
+  tap.
+- **Agent side** (§7.5: `nostr_request_signature`, waking the conversation)
+  is upstream work for pi-nostr. Until then, an agent can send the fenced
+  block as plain text and read the fenced answer.
+
+## 12. Decisions
 
 Agreed with the developer:
 

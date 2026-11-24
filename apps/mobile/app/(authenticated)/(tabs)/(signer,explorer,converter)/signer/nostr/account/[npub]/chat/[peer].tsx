@@ -8,6 +8,7 @@ import SSChatThread from '@/components/chat/SSChatThread'
 import SSMessageActionsModal from '@/components/chat/SSMessageActionsModal'
 import { SSIconEllipsis } from '@/components/icons'
 import SSIconButton from '@/components/SSIconButton'
+import SSNip46ApprovalModal from '@/components/SSNip46ApprovalModal'
 import SSText from '@/components/SSText'
 import { HEADER_CHROME_HIT_BOX } from '@/constants/headerChrome'
 import {
@@ -21,7 +22,11 @@ import {
 } from '@/hooks/useNostrChat'
 import { useNostrChatMessageActions } from '@/hooks/useNostrChatMessageActions'
 import { useNostrChatReactions } from '@/hooks/useNostrChatReactions'
+import { useNostrChatLendSigner } from '@/hooks/useNostrChatLendSigner'
+import { useNostrChatLiveSigner } from '@/hooks/useNostrChatLiveSigner'
 import { useNostrChatSession } from '@/hooks/useNostrChatSession'
+import { useNostrChatSignRequests } from '@/hooks/useNostrChatSignRequests'
+import { useNow } from '@/hooks/useNow'
 import { getAuthorLabel } from '@/hooks/useNostrMessage'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -29,7 +34,9 @@ import { t } from '@/locales'
 import { useNostrStore } from '@/store/nostr'
 import { useNostrIdentityStore } from '@/store/nostrIdentity'
 import { useSettingsStore } from '@/store/settings'
+import { MS_PER_SECOND } from '@/constants/time'
 import type { NostrChatProtocol } from '@/types/models/Nostr'
+import { formatNpub } from '@/utils/format'
 import { getPubKeyHexFromNpub, safeNpubEncode } from '@/utils/nostr'
 import {
   buildChatThreadAuthors,
@@ -108,6 +115,19 @@ export default function NostrChatThread() {
     protocol,
     sessionId
   })
+  const signRequests = useNostrChatSignRequests(identity)
+  const lendSigner = useNostrChatLendSigner({
+    identity,
+    peerNpub,
+    peerPubkey,
+    sessionId
+  })
+  const liveSigner = useNostrChatLiveSigner(
+    identity?.npub ?? '',
+    peerPubkey ?? '',
+    sessionId
+  )
+  const nowMs = useNow()
   const canReply = protocol === 'nip17'
   const reactions = useNostrChatReactions(identity, peerNpub)
   const canReact = canReply && reactions.canReact
@@ -195,6 +215,10 @@ export default function NostrChatThread() {
     void deleteSessionOrReport(everywhere)
   }
 
+  function handleLendSigner() {
+    void lendSigner.lend()
+  }
+
   function handleAuthorPress(authorNpub: string) {
     if (!identity) {
       return
@@ -267,6 +291,19 @@ export default function NostrChatThread() {
         onCancelReply={clearReplyTo}
         peerHex={peerPubkey}
         onRemoveReaction={canReact ? reactions.unreact : undefined}
+        signActions={
+          protocol === 'nip17'
+            ? {
+                busyMessageId: signRequests.busyMessageId,
+                canSign: signRequests.canSign,
+                nowSeconds: Math.floor(nowMs / MS_PER_SECOND),
+                onApprove: signRequests.approve,
+                onReject: signRequests.reject,
+                onResend: signRequests.resend,
+                signerLabel: identity.displayName ?? formatNpub(identity.npub)
+              }
+            : undefined
+        }
       />
       <SSMessageActionsModal
         visible={messageActions.selectedMessage !== undefined}
@@ -288,6 +325,17 @@ export default function NostrChatThread() {
         onRename={session.rename}
         onArchive={session.archive}
         onDelete={handleDeleteSession}
+        onLendSigner={
+          session.canManage && lendSigner.canLend ? handleLendSigner : undefined
+        }
+        lending={lendSigner.lending}
+      />
+      <SSNip46ApprovalModal
+        visible={liveSigner.currentRequest !== null}
+        request={liveSigner.currentRequest}
+        onApprove={liveSigner.handleApprove}
+        onReject={liveSigner.handleReject}
+        askEveryTime
       />
     </SSMainLayout>
   )
