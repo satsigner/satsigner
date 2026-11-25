@@ -19,7 +19,8 @@ export const DESIGN_FEATURE_IDS = [
   'nostrChat',
   'nostrMessageDetail',
   'nostrReactions',
-  'nostrKeys'
+  'nostrKeys',
+  'nostrCalendar'
 ] as const
 
 export type DesignFeatureId = (typeof DESIGN_FEATURE_IDS)[number]

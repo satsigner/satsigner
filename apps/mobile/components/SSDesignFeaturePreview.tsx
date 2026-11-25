@@ -4,6 +4,7 @@ import { Network } from 'react-native-bdk-sdk'
 
 import SSBubbleChart from '@/components/SSBubbleChart'
 import SSCurrentTransactionChart from '@/components/SSCurrentTransactionChart'
+import { NostrCalendarPreview } from '@/components/SSDesignNostrCalendarPreview'
 import {
   NostrChatPreview,
   NostrKeysPreview,
@@ -515,6 +516,7 @@ const FEATURE_PREVIEWS: Record<
   historyChart: HistoryChartPreview,
   lightningNode: LightningNodePreview,
   multisigSelector: MultisigSelectorPreview,
+  nostrCalendar: NostrCalendarPreview,
   nostrChat: NostrChatPreview,
   nostrKeys: NostrKeysPreview,
   nostrMessageDetail: NostrMessageDetailPreview,

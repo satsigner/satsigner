@@ -37,6 +37,10 @@ const nostrKeys = {
     ['nostr', 'contacts', npub, relaysKey] as const,
   dms: (accountId: string) => ['nostr', 'dms', accountId] as const,
   identity: ['nostr', 'identity'] as const,
+  identityCalendar: (pubkeyHex: string, relaysKey: string) =>
+    ['nostr', 'identity', 'calendar', pubkeyHex, relaysKey] as const,
+  identityCalendarRsvps: (coordinate: string, relaysKey: string) =>
+    ['nostr', 'identity', 'calendar-rsvps', coordinate, relaysKey] as const,
   identityFeed: (npub: string, relaysKey: string, kindFilterId: string) =>
     ['nostr', 'identity', 'feed', npub, relaysKey, kindFilterId] as const,
   identityFollows: (npub: string, relaysKey: string) =>

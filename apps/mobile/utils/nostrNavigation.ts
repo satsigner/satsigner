@@ -80,6 +80,36 @@ export function nostrAccountHref(
   }
 }
 
+/** One calendar event of identity `npub`'s calendar, by NIP-33 coordinate. */
+export function nostrCalendarEventHref(npub: string, coordinate: string): Href {
+  return {
+    params: { coordinate, npub },
+    pathname: '/signer/nostr/account/[npub]/calendar/event'
+  }
+}
+
+/** Create a calendar event, or edit the own one at `coordinate`. */
+export function nostrCalendarEditHref(
+  npub: string,
+  { coordinate, date }: { coordinate?: string; date?: string } = {}
+): Href {
+  return {
+    params: {
+      npub,
+      ...(coordinate ? { coordinate } : {}),
+      ...(date ? { date } : {})
+    },
+    pathname: '/signer/nostr/account/[npub]/calendar/edit'
+  }
+}
+
+export function nostrCalendarsHref(npub: string): Href {
+  return {
+    params: { npub },
+    pathname: '/signer/nostr/account/[npub]/calendar/calendars'
+  }
+}
+
 /** Bunker screen of `npub`, previewing a scanned `nostrconnect://` URI. */
 export function nostrBunkerConnectHref(npub: string, connectUri: string): Href {
   return {
