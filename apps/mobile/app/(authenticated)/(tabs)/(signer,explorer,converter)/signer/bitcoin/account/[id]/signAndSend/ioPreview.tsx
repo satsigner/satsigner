@@ -35,6 +35,7 @@ import SSMultipleSankeyDiagram from '@/components/SSMultipleSankeyDiagram'
 import SSOrphanedInputsBanner from '@/components/SSOrphanedInputsBanner'
 import SSPressable from '@/components/SSPressable'
 import SSRadioButton from '@/components/SSRadioButton'
+import SSSendSyncWarningModal from '@/components/SSSendSyncWarningModal'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
 import { DUST_LIMIT } from '@/constants/btc'
@@ -44,6 +45,7 @@ import {
   IO_PREVIEW_BOTTOM_GRADIENT_LOCATIONS,
   IO_PREVIEW_UNDERFUNDED_WARNING_MARGIN_TOP_PX
 } from '@/constants/ioPreviewLayout'
+import useAccountSendSyncCheck from '@/hooks/useAccountSendSyncCheck'
 import { useArkBoardFundingIntent } from '@/hooks/useArkBoardFundingIntent'
 import { useClipboardPaste } from '@/hooks/useClipboardPaste'
 import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
@@ -70,7 +72,7 @@ import type {
 import type { MempoolStatistics } from '@/types/models/Blockchain'
 import type { Utxo } from '@/types/models/Utxo'
 import type { IoPreviewSearchParams } from '@/types/navigation/searchParams'
-import { checkWalletNeedsSync } from '@/utils/account'
+import { shouldWarnBeforeSend } from '@/utils/account'
 import {
   autoSelectUtxosDescriptionKey,
   autoSelectUtxosTitleKey,
@@ -101,6 +103,7 @@ import {
 } from '@/utils/parse'
 import type { ParsedUriParams } from '@/utils/parse'
 import { hasPayjoinParam } from '@/utils/payjoinUri'
+import { canQuickCheck } from '@/utils/quickCheck'
 import {
   buildOutpointLabelsByRef,
   buildTxLabelsById
@@ -115,6 +118,7 @@ import {
   isStonewallManagedOutput,
   isStonewallPreviewLocalId
 } from '@/utils/stonewall'
+import { lastSyncedLabel, syncProgressLabel } from '@/utils/syncLabels'
 import { time } from '@/utils/time'
 import { estimateTransactionSize } from '@/utils/transaction'
 import {
@@ -531,6 +535,11 @@ export default function IOPreview() {
   )
   const [dustChangeModalVisible, setDustChangeModalVisible] = useState(false)
   const [pendingDustAmount, setPendingDustAmount] = useState(0)
+  const [syncWarningVisible, setSyncWarningVisible] = useState(false)
+  // Bumped when the warning closes, so a check finishing afterwards doesn't
+  // navigate again.
+  const syncWarningAttemptRef = useRef(0)
+  const { checkAccount, isChecking } = useAccountSendSyncCheck(id)
 
   const dustErrorMessage = dustErrorOverride
 
@@ -1143,18 +1152,48 @@ export default function IOPreview() {
     proceedToPreview()
   }
 
-  function proceedToPreview() {
+  function navigateToPreview() {
     clearPsbt()
-    const needsSync = checkWalletNeedsSync(account)
-    if (needsSync) {
-      router.navigate(
-        `/signer/bitcoin/account/${id}/signAndSend/walletSyncedConfirmation`
-      )
-      return
-    }
     router.navigate(
       `/signer/bitcoin/account/${id}/signAndSend/previewTransaction`
     )
+  }
+
+  function proceedToPreview() {
+    if (shouldWarnBeforeSend(account)) {
+      setSyncWarningVisible(true)
+      return
+    }
+    navigateToPreview()
+  }
+
+  function closeSyncWarning() {
+    syncWarningAttemptRef.current += 1
+    setSyncWarningVisible(false)
+  }
+
+  async function handleSyncWarningCheck() {
+    syncWarningAttemptRef.current += 1
+    const attempt = syncWarningAttemptRef.current
+    const isSynced = await checkAccount().catch(() => false)
+    if (attempt !== syncWarningAttemptRef.current) {
+      return
+    }
+    if (!isSynced) {
+      toast.error(t('transaction.syncWarning.checkFailed'))
+      return
+    }
+    closeSyncWarning()
+    navigateToPreview()
+  }
+
+  function handleSyncWarningCancel() {
+    closeSyncWarning()
+  }
+
+  function handleSyncWarningContinue() {
+    closeSyncWarning()
+    navigateToPreview()
   }
 
   function handleDustToFee() {
@@ -1954,6 +1993,20 @@ export default function IOPreview() {
         onClose={() => setCameraModalVisible(false)}
         onContentScanned={handleContentScanned}
         context="bitcoin"
+      />
+      <SSSendSyncWarningModal
+        visible={syncWarningVisible}
+        lastSyncedLabel={lastSyncedLabel(account.lastSyncedAt, time.now())}
+        isChecking={isChecking}
+        isQuickCheck={canQuickCheck({ account, nowMs: time.now() })}
+        progressLabel={
+          account.syncStatus === 'syncing'
+            ? syncProgressLabel(account.syncProgress ?? {})
+            : undefined
+        }
+        onCheck={handleSyncWarningCheck}
+        onContinue={handleSyncWarningContinue}
+        onCancel={handleSyncWarningCancel}
       />
       <SSModal
         fullOpacity

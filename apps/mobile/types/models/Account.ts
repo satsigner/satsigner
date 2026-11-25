@@ -94,6 +94,11 @@ export const AccountSchema = z.object({
   keys: z.array(KeySchema),
   keysRequired: z.number(),
   labels: z.record(z.string(), LabelSchema),
+  /**
+   * Last sync that asked about every address. Quick syncs in between only
+   * ask about addresses that can still change.
+   */
+  lastFullCheckAt: z.date().optional(),
   lastSyncedAt: z.date().optional(),
   name: z.string(),
   network: NetworkSchema,

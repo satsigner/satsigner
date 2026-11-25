@@ -9,6 +9,7 @@ type SSSyncDetailsModalProps = {
   visible: boolean
   isSyncing: boolean
   lastSyncedLabel: string
+  lastFullCheckLabel: string
   onCheckAll: () => void
   onDeepRescan: () => void
   onClose: () => void
@@ -18,6 +19,7 @@ function SSSyncDetailsModal({
   visible,
   isSyncing,
   lastSyncedLabel,
+  lastFullCheckLabel,
   onCheckAll,
   onDeepRescan,
   onClose
@@ -33,9 +35,14 @@ function SSSyncDetailsModal({
       <SSVStack gap="md" widthFull>
         <SSText color="muted">{t('account.sync.details.explanation')}</SSText>
         <SSText color="muted" size="xs">
-          {t('account.sync.details.quickCheckPending')}
+          {t('account.sync.details.reuseNote')}
         </SSText>
-        <SSText size="xs">{lastSyncedLabel}</SSText>
+        <SSVStack gap="xxs">
+          <SSText size="xs">{lastSyncedLabel}</SSText>
+          <SSText size="xs" color="muted">
+            {lastFullCheckLabel}
+          </SSText>
+        </SSVStack>
         <SSButton
           label={t('account.sync.details.checkAll')}
           variant="secondary"

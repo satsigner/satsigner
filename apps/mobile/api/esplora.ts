@@ -13,6 +13,11 @@ import {
 } from '@/types/models/Esplora'
 import type { EsploraTx } from '@/types/models/Esplora'
 
+const EsploraAddressStatsSchema = z.object({
+  chain_stats: z.object({ tx_count: z.number().int().nonnegative() }),
+  mempool_stats: z.object({ tx_count: z.number().int().nonnegative() })
+})
+
 const parseBlocks = z.array(BlockSchema).parse
 const parseTxs = z.array(EsploraTxSchema).parse
 const parseTxIds = z.array(EsploraTxSchema.shape.txid).parse
@@ -197,6 +202,15 @@ export default class Esplora {
   /** Address summary (chain/mempool funded/spent sums). */
   getAddress(address: string): Promise<unknown> {
     return this._call(`/address/${address}`)
+  }
+
+  /** How many confirmed and mempool transactions the address has. */
+  async getAddressTxCounts(address: string) {
+    const data = EsploraAddressStatsSchema.parse(await this.getAddress(address))
+    return {
+      confirmed: data.chain_stats.tx_count,
+      mempool: data.mempool_stats.tx_count
+    }
   }
 
   /** First page of address txs only (no pagination). */

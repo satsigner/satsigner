@@ -1,5 +1,10 @@
+import { MS_PER_SECOND } from '@/constants/time'
 import { t } from '@/locales'
-import type { SyncProgress } from '@/types/models/Account'
+import type { Account, SyncProgress } from '@/types/models/Account'
+import { formatRelativeTime } from '@/utils/date'
+
+// A last-sync time this far past the clock is not trusted.
+const CLOCK_SKEW_TOLERANCE_MS = 60_000
 
 type SyncProgressLabelParams = Partial<
   Pick<SyncProgress, 'scope' | 'tasksDone' | 'totalTasks' | 'unit'>
@@ -45,4 +50,48 @@ function syncTickerLabels(progress: SyncProgressLabelParams): string[] {
   return scopeLabel ? [progressLabel, scopeLabel] : [progressLabel]
 }
 
-export { syncProgressLabel, syncTickerLabels }
+function relativeTimeLabel(timeMs: number) {
+  // formatRelativeTime wraps chart labels in parentheses — strip for prose.
+  return formatRelativeTime(Math.floor(timeMs / MS_PER_SECOND)).replaceAll(
+    /^\(|\)$/g,
+    ''
+  )
+}
+
+/** "Last synced 2 days ago", or why there is no such time. */
+function lastSyncedLabel(
+  lastSyncedAt: Account['lastSyncedAt'],
+  nowMs: number
+): string {
+  if (!lastSyncedAt) {
+    return t('account.neverSynced')
+  }
+  const syncedMs = new Date(lastSyncedAt).getTime()
+  if (Number.isNaN(syncedMs) || syncedMs > nowMs + CLOCK_SKEW_TOLERANCE_MS) {
+    return t('account.sync.status.unsynced')
+  }
+  return t('account.lastSynced', { time: relativeTimeLabel(syncedMs) })
+}
+
+/** "Last full check 3 days ago" for the sync details. */
+function lastFullCheckLabel(
+  lastFullCheckAt: Account['lastFullCheckAt'],
+  nowMs: number
+): string {
+  const syncedMs = lastFullCheckAt
+    ? new Date(lastFullCheckAt).getTime()
+    : Number.NaN
+  if (Number.isNaN(syncedMs) || syncedMs > nowMs + CLOCK_SKEW_TOLERANCE_MS) {
+    return t('account.sync.details.neverFullCheck')
+  }
+  return t('account.sync.details.lastFullCheck', {
+    time: relativeTimeLabel(syncedMs)
+  })
+}
+
+export {
+  lastFullCheckLabel,
+  lastSyncedLabel,
+  syncProgressLabel,
+  syncTickerLabels
+}

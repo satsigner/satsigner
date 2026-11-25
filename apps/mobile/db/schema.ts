@@ -379,6 +379,10 @@ CREATE INDEX IF NOT EXISTS idx_ncr_message
   ON nostr_chat_reactions(identity_npub, message_id)
 `
 
+const SCHEMA_V14 = `
+ALTER TABLE accounts ADD COLUMN last_full_check_at TEXT
+`
+
 const SCHEMAS = [
   SCHEMA_V1,
   SCHEMA_V2,
@@ -392,7 +396,8 @@ const SCHEMAS = [
   SCHEMA_V10,
   SCHEMA_V11,
   SCHEMA_V12,
-  SCHEMA_V13
+  SCHEMA_V13,
+  SCHEMA_V14
 ]
 const CURRENT_VERSION = SCHEMAS.length
 
@@ -437,7 +442,8 @@ function ensureAccountsColumns(db: NitroSQLiteConnection) {
     ['rpc_last_block_hash', 'TEXT'],
     ['nostr_device_mnemonic', 'TEXT'],
     ['excluded_utxo_outpoints', "TEXT DEFAULT '[]'"],
-    ['display_index', 'INTEGER NOT NULL DEFAULT 0']
+    ['display_index', 'INTEGER NOT NULL DEFAULT 0'],
+    ['last_full_check_at', 'TEXT']
   ]
   for (const [column, sqlType] of columns) {
     if (tableHasColumn(db, 'accounts', column)) {

@@ -44,6 +44,16 @@ describe('design system locale keys', () => {
     ).not.toMatch(/missing/i)
   })
 
+  it.each([
+    'openSyncWarningQuick',
+    'openSyncWarningFull',
+    'openSyncWarningChecking'
+  ])('has a string for the %s component sample', (key) => {
+    expect(t(`settings.developer.designSystem.components.${key}`)).not.toMatch(
+      /missing/i
+    )
+  })
+
   it('keeps the existing design entry label', () => {
     expect(t('settings.developer.design')).toBe('Design')
   })

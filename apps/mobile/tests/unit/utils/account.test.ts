@@ -1,7 +1,7 @@
 import { INITIAL_DISPLAY_INDEX } from '@/constants/account'
+import { SEND_SYNC_WARNING_AFTER_MS } from '@/constants/sync'
 import type { Account, Key, Secret } from '@/types/models/Account'
 import {
-  checkWalletNeedsSync,
   createResetKey,
   dropSeedFromKeyInMemory,
   getAccountFingerprint,
@@ -11,6 +11,7 @@ import {
   hasStoredMnemonic,
   isAutoSyncDue,
   isZeroFingerprint,
+  shouldWarnBeforeSend,
   updateAccountObjectLabels
 } from '@/utils/account'
 import { time } from '@/utils/time'
@@ -278,38 +279,32 @@ describe('getNextDisplayIndex', () => {
   })
 })
 
-describe('checkWalletNeedsSync', () => {
-  it('returns true when never synced', () => {
-    const account = makeAccount({ lastSyncedAt: undefined })
-    expect(checkWalletNeedsSync(account)).toBe(true)
+describe('shouldWarnBeforeSend', () => {
+  const now = Date.parse('2026-11-24T12:00:00Z')
+
+  it('warns when the account never synced', () => {
+    expect(shouldWarnBeforeSend({ lastSyncedAt: undefined }, now)).toBe(true)
   })
 
-  it('returns false when synced recently', () => {
-    const account = makeAccount({ lastSyncedAt: new Date() })
-    expect(checkWalletNeedsSync(account)).toBe(false)
+  it('does not warn right after a sync', () => {
+    const lastSyncedAt = new Date(now - time.minutes(5))
+    expect(shouldWarnBeforeSend({ lastSyncedAt }, now)).toBe(false)
   })
 
-  it('returns true when synced more than maxDays ago', () => {
-    const staleDate = new Date()
-    staleDate.setDate(staleDate.getDate() - 5)
-    const account = makeAccount({ lastSyncedAt: staleDate })
-    expect(checkWalletNeedsSync(account, 3)).toBe(true)
+  it('does not warn at the limit', () => {
+    const lastSyncedAt = new Date(now - SEND_SYNC_WARNING_AFTER_MS)
+    expect(shouldWarnBeforeSend({ lastSyncedAt }, now)).toBe(false)
   })
 
-  it('returns false when synced exactly maxDays ago', () => {
-    const exactDate = new Date()
-    exactDate.setDate(exactDate.getDate() - 3)
-    const account = makeAccount({ lastSyncedAt: exactDate })
-    expect(checkWalletNeedsSync(account, 3)).toBe(false)
+  it('warns past the limit', () => {
+    const lastSyncedAt = new Date(now - SEND_SYNC_WARNING_AFTER_MS - 1)
+    expect(shouldWarnBeforeSend({ lastSyncedAt }, now)).toBe(true)
   })
 
-  it('respects custom maxDays parameter', () => {
-    const oneDayAgo = new Date()
-    oneDayAgo.setDate(oneDayAgo.getDate() - 2)
-    const account = makeAccount({ lastSyncedAt: oneDayAgo })
-
-    expect(checkWalletNeedsSync(account, 1)).toBe(true)
-    expect(checkWalletNeedsSync(account, 3)).toBe(false)
+  it('warns on a date it cannot read', () => {
+    expect(
+      shouldWarnBeforeSend({ lastSyncedAt: new Date('invalid') }, now)
+    ).toBe(true)
   })
 })
 
