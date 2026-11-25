@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.3.11] - 2026-11-25
+## [0.3.12] - 2026-11-26
 
 ### Added
 
@@ -25,6 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Agents can ask for signatures inside a chat session. Approve later from a
   card in the thread, or lend a one-time `bunker://` signer while the app is
   open. Only the chat's own identity signs.
+- Agent chats show what the agent runs on: model, thinking level, context
+  used and what the session has cost, under the session title, with
+  details on tap. Each agent reply shows its model and cost.
 - Quick sync check: only the addresses that can change are asked about, and
   the full rescan is skipped when nothing changed.
 - The website lives in the repo under `apps/website`, with a bug bounty page

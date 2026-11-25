@@ -1,6 +1,6 @@
 {
   "name": "satsigner",
-  "version": "0.3.11",
+  "version": "0.3.12",
   "private": true,
   "description": "Privacy-first Bitcoin signer with complete UTXO control",
   "keywords": [
