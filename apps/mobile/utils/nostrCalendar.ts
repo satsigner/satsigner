@@ -1107,3 +1107,48 @@ export function isCalendarEventPast(
     event.end ?? (event.allDay ? event.start + SECONDS_PER_DAY : event.start)
   return end <= nowSeconds
 }
+
+// ─── Pickers ────────────────────────────────────────────────────────────────
+
+const HOURS_PER_DAY_COUNT = 24
+const MINUTES_PER_HOUR_COUNT = 60
+
+export const CALENDAR_HOUR_OPTIONS = Array.from(
+  { length: HOURS_PER_DAY_COUNT },
+  (_, hour) => pad(hour)
+)
+export const CALENDAR_MINUTE_OPTIONS = Array.from(
+  { length: MINUTES_PER_HOUR_COUNT },
+  (_, minute) => pad(minute)
+)
+
+/** Hour and minute of an HH:MM value; null when it isn't one. */
+export function parseTimeKey(
+  time: string
+): { hours: number; minutes: number } | null {
+  const match = TIME_RE.exec(time)
+  if (!match) {
+    return null
+  }
+  const [hours, minutes] = match.slice(1).map(Number)
+  return { hours, minutes }
+}
+
+export function formatTimeKey(hours: number, minutes: number): string {
+  return `${pad(hours)}:${pad(minutes)}`
+}
+
+/** Label for a picked YYYY-MM-DD, or undefined when nothing valid is set. */
+export function formatDateKeyLabel(dateKey: string): string | undefined {
+  return ISO_DATE_RE.test(dateKey) && parseCalendarDate(dateKey) !== null
+    ? formatDayTitle(dateKey)
+    : undefined
+}
+
+/** The month to open a date picker on: the value's, else the fallback's. */
+export function getPickerMonth(
+  dateKey: string,
+  fallbackKey: string
+): NostrCalendarMonth {
+  return getMonthOfDateKey(formatDateKeyLabel(dateKey) ? dateKey : fallbackKey)
+}

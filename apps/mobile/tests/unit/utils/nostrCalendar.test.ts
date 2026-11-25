@@ -15,9 +15,14 @@ import {
   buildCalendarTemplate,
   buildMonthGrid,
   buildRsvpTemplate,
+  CALENDAR_HOUR_OPTIONS,
+  CALENDAR_MINUTE_OPTIONS,
   draftFromCalendarEvent,
   emptyCalendarEventDraft,
+  formatDateKeyLabel,
+  formatTimeKey,
   getEventDayKeys,
+  getPickerMonth,
   getVisibleCalendarEvents,
   groupEventsByDay,
   isCalendarEventPast,
@@ -25,6 +30,7 @@ import {
   parseCalendarDate,
   parseCalendarEvent,
   parseCalendarRsvp,
+  parseTimeKey,
   shiftMonth,
   summarizeRsvps,
   zonedTimeToUnix
@@ -588,5 +594,39 @@ describe('month grid and day grouping', () => {
       false
     )
     expect(isCalendarEventPast({ allDay: true, start }, start + DAY)).toBe(true)
+  })
+})
+
+describe('picker helpers', () => {
+  it('lists every hour and minute, zero padded', () => {
+    expect(CALENDAR_HOUR_OPTIONS).toHaveLength(24)
+    expect(CALENDAR_HOUR_OPTIONS[0]).toBe('00')
+    expect(CALENDAR_HOUR_OPTIONS.at(-1)).toBe('23')
+    expect(CALENDAR_MINUTE_OPTIONS).toHaveLength(60)
+    expect(CALENDAR_MINUTE_OPTIONS.at(-1)).toBe('59')
+  })
+
+  it('reads and writes HH:MM', () => {
+    expect(parseTimeKey('09:05')).toStrictEqual({ hours: 9, minutes: 5 })
+    expect(parseTimeKey('24:00')).toBeNull()
+    expect(parseTimeKey('')).toBeNull()
+    expect(formatTimeKey(7, 3)).toBe('07:03')
+  })
+
+  it('labels only real dates', () => {
+    expect(formatDateKeyLabel('2026-11-20')).toBeTruthy()
+    expect(formatDateKeyLabel('')).toBeUndefined()
+    expect(formatDateKeyLabel('2026-02-30')).toBeUndefined()
+  })
+
+  it('opens on the value month, else the fallback month', () => {
+    expect(getPickerMonth('2026-03-10', '2026-11-25')).toStrictEqual({
+      month: 3,
+      year: 2026
+    })
+    expect(getPickerMonth('', '2026-11-25')).toStrictEqual({
+      month: 11,
+      year: 2026
+    })
   })
 })

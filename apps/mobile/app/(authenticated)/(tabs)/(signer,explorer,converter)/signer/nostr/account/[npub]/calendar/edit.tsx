@@ -55,6 +55,7 @@ function EditForm({ coordinate, date, npub, onDone }: EditFormProps) {
         calendars={form.calendars}
         draft={form.draft}
         error={form.error}
+        todayKey={form.todayKey}
         onChange={form.handleChange}
       />
       <SSButton

@@ -195,6 +195,7 @@ function NostrCalendarPreview({ setIndex }: SetPreviewProps) {
             <SSNostrCalendarEventForm
               calendars={data.calendars}
               draft={draft}
+              todayKey={view.todayKey}
               onChange={handleDraftChange}
             />
           </View>

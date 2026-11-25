@@ -1,10 +1,16 @@
 import { StyleSheet } from 'react-native'
 
+import SSCalendarDatePicker from '@/components/SSCalendarDatePicker'
+import SSCalendarTimePicker from '@/components/SSCalendarTimePicker'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSPressable from '@/components/SSPressable'
 import SSText from '@/components/SSText'
 import SSTextInput from '@/components/SSTextInput'
-import { NOSTR_CALENDAR_TITLE_MAX_LENGTH } from '@/constants/nostrCalendar'
+import {
+  NOSTR_CALENDAR_DEFAULT_END_TIME,
+  NOSTR_CALENDAR_DEFAULT_START_TIME,
+  NOSTR_CALENDAR_TITLE_MAX_LENGTH
+} from '@/constants/nostrCalendar'
 import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
@@ -20,11 +26,11 @@ type SSNostrCalendarEventFormProps = {
   calendars: NostrCalendar[]
   draft: NostrCalendarEventDraft
   error?: string
+  /** Day the date pickers open on when empty, YYYY-MM-DD. */
+  todayKey: string
   onChange: (changes: Partial<NostrCalendarEventDraft>) => void
 }
 
-const DATE_PLACEHOLDER = 'YYYY-MM-DD'
-const TIME_PLACEHOLDER = 'HH:MM'
 const MULTILINE_HEIGHT = 96
 
 type FieldProps = {
@@ -34,7 +40,7 @@ type FieldProps = {
   placeholder?: string
   multiline?: boolean
   maxLength?: number
-  keyboardType?: 'default' | 'numbers-and-punctuation' | 'url'
+  keyboardType?: 'default' | 'url'
   onChange: (changes: Partial<NostrCalendarEventDraft>) => void
 }
 
@@ -103,8 +109,25 @@ function SSNostrCalendarEventForm({
   calendars,
   draft,
   error,
+  todayKey,
   onChange
 }: SSNostrCalendarEventFormProps) {
+  function handleStartDate(startDate: string) {
+    onChange({ startDate })
+  }
+
+  function handleEndDate(endDate: string) {
+    onChange({ endDate })
+  }
+
+  function handleStartTime(startTime: string) {
+    onChange({ startTime })
+  }
+
+  function handleEndTime(endTime: string) {
+    onChange({ endTime })
+  }
+
   function handleAllDayToggle(selected: boolean) {
     onChange({ allDay: !selected })
   }
@@ -135,46 +158,42 @@ function SSNostrCalendarEventForm({
         onPress={handleAllDayToggle}
       />
       <SSHStack gap="sm" style={styles.row}>
-        <Field
-          field="startDate"
+        <SSCalendarDatePicker
           label={t('nostrIdentity.calendar.form.startDate')}
           value={draft.startDate}
-          placeholder={DATE_PLACEHOLDER}
-          keyboardType="numbers-and-punctuation"
-          onChange={onChange}
+          todayKey={todayKey}
+          onChange={handleStartDate}
         />
         {draft.allDay ? null : (
-          <Field
-            field="startTime"
+          <SSCalendarTimePicker
             label={t('nostrIdentity.calendar.form.startTime')}
             value={draft.startTime}
-            placeholder={TIME_PLACEHOLDER}
-            keyboardType="numbers-and-punctuation"
-            onChange={onChange}
+            defaultValue={NOSTR_CALENDAR_DEFAULT_START_TIME}
+            onChange={handleStartTime}
           />
         )}
       </SSHStack>
       <SSHStack gap="sm" style={styles.row}>
-        <Field
-          field="endDate"
+        <SSCalendarDatePicker
           label={
             draft.allDay
               ? t('nostrIdentity.calendar.form.lastDay')
               : t('nostrIdentity.calendar.form.endDate')
           }
           value={draft.endDate}
-          placeholder={DATE_PLACEHOLDER}
-          keyboardType="numbers-and-punctuation"
-          onChange={onChange}
+          todayKey={draft.startDate || todayKey}
+          clearable
+          placeholder={t('nostrIdentity.calendar.form.sameDay')}
+          onChange={handleEndDate}
         />
         {draft.allDay ? null : (
-          <Field
-            field="endTime"
+          <SSCalendarTimePicker
             label={t('nostrIdentity.calendar.form.endTime')}
             value={draft.endTime}
-            placeholder={TIME_PLACEHOLDER}
-            keyboardType="numbers-and-punctuation"
-            onChange={onChange}
+            defaultValue={draft.startTime || NOSTR_CALENDAR_DEFAULT_END_TIME}
+            clearable
+            placeholder={t('nostrIdentity.calendar.form.noEnd')}
+            onChange={handleEndTime}
           />
         )}
       </SSHStack>

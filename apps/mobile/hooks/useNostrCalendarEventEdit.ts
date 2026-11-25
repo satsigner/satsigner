@@ -55,6 +55,9 @@ function useNostrCalendarEventEdit(
       : newDraft(date)
   )
   const [submitted, setSubmitted] = useState(false)
+  const [todayKey] = useState(() =>
+    getDateKey(Math.floor(Date.now() / MS_PER_SECOND), getDeviceTimezone())
+  )
 
   const validation = buildCalendarEventTemplate(draft)
   const error =
@@ -94,7 +97,8 @@ function useNostrCalendarEventEdit(
     isEditing: Boolean(existing),
     isLoading: calendar.isLoading,
     missing: Boolean(coordinate) && !calendar.isLoading && !existing,
-    saving: publish.saveEvent.isPending
+    saving: publish.saveEvent.isPending,
+    todayKey
   }
 }
 
