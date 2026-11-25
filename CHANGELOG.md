@@ -7,10 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.3.10] - 2026-11-24
+## [0.3.11] - 2026-11-25
 
 ### Added
 
+- Nostr calendar (NIP-52): month and agenda views, and creating, editing
+  and deleting all-day and timed events with locations, participants,
+  hashtags, links and an image. Timed events keep their time zone, and
+  dates and times are picked from a month grid and hour and minute wheels.
+- RSVP to calendar events (going, maybe, not going, free or busy), with a
+  count of everyone's answers. Events that invite you show up in your
+  calendar.
+- Calendars to group events. Others can ask to add their events to yours,
+  and you accept each request.
 - Parallel sessions in a NIP-17 chat with the same contact, so an agent can
   work on several tasks at once. Sessions can be named, archived or deleted.
 - Agents can ask for signatures inside a chat session. Approve later from a
@@ -30,6 +39,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Scrolling up in a chat no longer snaps back to the newest message.
 - The Android scanner reads light-on-dark QR codes, such as a Lightning
   invoice shown in a dark terminal.
+- The calendar no longer shows event revisions that were replaced or
+  deleted, and skips events with a bad signature.
 
 ## [0.3.9] - 2026-11-17
 
