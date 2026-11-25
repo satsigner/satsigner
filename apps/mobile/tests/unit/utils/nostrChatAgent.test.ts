@@ -240,7 +240,7 @@ describe('buildSessionStateSummary', () => {
     ).toStrictEqual({
       busy: false,
       contextTone: 'normal',
-      line: 'claude-opus-5.5 · medium · 6.2% of 1M · ⚡ 1.9k sats',
+      line: 'claude-opus-5.5 · medium · 6.2% of 1M · 1.9k sats',
       lowBalance: false,
       stale: false,
       updated: '2m ago'
@@ -249,7 +249,7 @@ describe('buildSessionStateSummary', () => {
 
   it('masks the spend in privacy mode', () => {
     expect(buildSessionStateSummary(stored(STATE), NOW_MS, true).line).toBe(
-      'claude-opus-5.5 · medium · 6.2% of 1M · ⚡ ••••'
+      'claude-opus-5.5 · medium · 6.2% of 1M · ••••'
     )
   })
 
@@ -263,7 +263,7 @@ describe('buildSessionStateSummary', () => {
     }
     expect(
       buildSessionStateSummary(stored(state), NOW_MS, false).line
-    ).toContain('⚡ 1.8k+ sats')
+    ).toContain('1.8k+ sats')
   })
 
   it('skips the context after a compaction and thinking without reasoning', () => {
@@ -276,7 +276,7 @@ describe('buildSessionStateSummary', () => {
       }
     }
     expect(buildSessionStateSummary(stored(state), NOW_MS, false).line).toBe(
-      'claude-opus-5.5 · ⚡ 1.9k sats'
+      'claude-opus-5.5 · 1.9k sats'
     )
   })
 
@@ -330,15 +330,15 @@ describe('agent reply', () => {
   it('labels a reply with its model, thinking level and cost', () => {
     expect(
       buildAgentReplyLabel({ agentCost: COST, agentModel: MODEL }, false)
-    ).toBe('claude-opus-5.5 · medium · ⚡ 272 sats')
+    ).toBe('claude-opus-5.5 · medium · 272 sats')
   })
 
   it('shows a partial cost as a lower bound and masks it in privacy mode', () => {
     const partial = { ...COST, partial: true as const }
     expect(buildAgentReplyLabel({ agentCost: partial }, false)).toBe(
-      '⚡ 271+ sats'
+      '271+ sats'
     )
-    expect(buildAgentReplyLabel({ agentCost: COST }, true)).toBe('⚡ ••••')
+    expect(buildAgentReplyLabel({ agentCost: COST }, true)).toBe('••••')
   })
 
   it('has no label without either tag', () => {

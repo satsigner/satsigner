@@ -221,7 +221,7 @@ function buildSessionStateSummary(
     session?.thinkingLevel,
     formatContextShare(state),
     spent
-      ? `⚡ ${formatAgentSats(spent.amount, privacyMode, spent.partial)}`
+      ? formatAgentSats(spent.amount, privacyMode, spent.partial)
       : undefined
   ]
     .filter(isPresent)
@@ -327,7 +327,7 @@ function buildSessionStateRows(
   ].filter(isRow)
 }
 
-/** Dim line under an agent reply: model · thinking · ⚡ cost. */
+/** Dim line under an agent reply: model · thinking · cost. */
 function buildAgentReplyLabel(
   { agentCost, agentModel }: AgentReplyInfo,
   privacyMode: boolean
@@ -336,7 +336,7 @@ function buildAgentReplyLabel(
     agentModel?.id,
     agentModel?.thinkingLevel,
     agentCost
-      ? `⚡ ${formatAgentSats(agentCost.amount, privacyMode, agentCost.partial)}`
+      ? formatAgentSats(agentCost.amount, privacyMode, agentCost.partial)
       : undefined
   ]
     .filter(isPresent)

@@ -820,7 +820,7 @@ so a peer can't fill the table with made-up session ids.
 - **Per reply.** `parseAgentReplyTags` (zod, capped) on incoming kind 14
   only, never our self copies. Nullable `agent_cost` / `agent_model` JSON
   columns on `nostr_chat_messages` (`SCHEMA_V17` in the release stack, `SCHEMA_V15` on its own branch). A dim
-  `model · thinking · ⚡ 272 sats` line under the bubble (`≥`/`+` when
+  `model · thinking · 272 sats` line under the bubble (`≥`/`+` when
   partial, masked in privacy mode), and a "Reported by the agent" block on
   the message detail page: model, models used, cost with fiat, requests,
   tokens, duration.
@@ -844,7 +844,7 @@ so a peer can't fill the table with made-up session ids.
   which sends the user document with the existing wrap helpers.
 - **UI.**
   - Thread header, under the session title: one compact line,
-    `claude-opus-5.5 · medium · 1.5% of 1M · ⚡ 48.1k sat`. The context part
+    `claude-opus-5.5 · medium · 1.5% of 1M · 48.1k sat`. The context part
     turns warning at 70% and error at 90%, as in the pi footer.
   - Tap → `SSChatSessionStateSheet`: everything in §12.1, "updated 2 min
     ago", the model and thinking pickers (from `options`), and a "Top up"

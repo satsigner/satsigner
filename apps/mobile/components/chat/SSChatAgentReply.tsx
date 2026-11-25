@@ -3,7 +3,7 @@ import { StyleSheet } from 'react-native'
 import SSText from '@/components/SSText'
 
 type SSChatAgentReplyProps = {
-  /** model · thinking · ⚡ cost, already formatted (and masked). */
+  /** model · thinking · cost, already formatted (and masked). */
   label: string | undefined
 }
 
