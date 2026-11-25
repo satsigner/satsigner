@@ -9,6 +9,7 @@ import type { AuthorDisplayInfo } from '@/hooks/useNostrMessage'
 import type {
   NostrChatConversationItem,
   NostrChatReaction,
+  NostrChatSession,
   NostrDM,
   NostrReactionRow,
   NostrReactionSummaryEntry
@@ -352,25 +353,53 @@ export const DESIGN_NOSTR_CHAT_SETS: DesignSampleSet<DesignNostrChatSample>[] =
     }
   ]
 
+const DESIGN_SWEEP_SESSION_ID = 'a1'.repeat(16)
+const DESIGN_ARCHIVED_SESSION_ID = 'b2'.repeat(16)
+
+export const DESIGN_NOSTR_SWEEP_SESSION_TITLE = 'Cold storage sweep'
+
 function conversation(
   peerHex: string,
   preview: string,
   ageSec: number,
-  unreadCount: number
+  unreadCount: number,
+  sessionId = NOSTR_CHAT_DEFAULT_SESSION_ID,
+  title?: string
 ): NostrChatConversationItem {
   return {
     lastMessageAt: NOW - ageSec,
     lastMessagePreview: preview,
     peerNpub: safeNpubEncode(peerHex),
     peerPubkey: peerHex,
-    sessionId: NOSTR_CHAT_DEFAULT_SESSION_ID,
+    sessionId,
+    title,
     unreadCount
   }
 }
 
+/** Alice has two sessions, so the inbox labels both of her rows. */
 export const DESIGN_NOSTR_FOLLOWING_CONVERSATIONS = [
   conversation(ALICE_HEX, 'Thanks 🙏', 10 * MINUTE, 2),
+  conversation(
+    ALICE_HEX,
+    'Fee rate looks right.',
+    3 * HOUR,
+    0,
+    DESIGN_SWEEP_SESSION_ID,
+    DESIGN_NOSTR_SWEEP_SESSION_TITLE
+  ),
   conversation(BOB_HEX, LONG_TEXT, DAY, 0)
+]
+
+export const DESIGN_NOSTR_ARCHIVED_SESSIONS: NostrChatSession[] = [
+  {
+    archived: true,
+    createdAt: NOW - 30 * DAY,
+    identityNpub: DESIGN_NOSTR_ME_NPUB,
+    peerPubkey: ALICE_HEX,
+    sessionId: DESIGN_ARCHIVED_SESSION_ID,
+    title: 'Hardware wallet setup'
+  }
 ]
 
 export const DESIGN_NOSTR_OTHER_CONVERSATIONS = [
