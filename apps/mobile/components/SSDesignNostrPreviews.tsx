@@ -11,6 +11,7 @@ import SSChatPaymentRequests from '@/components/chat/SSChatPaymentRequests'
 import type { ChatPaymentActions } from '@/components/chat/SSChatPaymentRequests'
 import SSChatReactions from '@/components/chat/SSChatReactions'
 import SSChatSessionMenu from '@/components/chat/SSChatSessionMenu'
+import SSChatSignRequestCard from '@/components/chat/SSChatSignRequestCard'
 import SSMessageActionsModal from '@/components/chat/SSMessageActionsModal'
 import SSMessageDetail from '@/components/chat/SSMessageDetail'
 import SSNewMessagesPill from '@/components/chat/SSNewMessagesPill'
@@ -28,6 +29,7 @@ import SSText from '@/components/SSText'
 import {
   DESIGN_CHAT_PAY_ACCOUNTS,
   DESIGN_CHAT_PAYMENT_CARDS,
+  DESIGN_CHAT_SIGN_CARDS,
   DESIGN_NOSTR_ARCHIVED_SESSIONS,
   DESIGN_NOSTR_AUTHORS,
   DESIGN_NOSTR_CHAT_SETS,
@@ -38,6 +40,7 @@ import {
   DESIGN_NOSTR_OTHER_CONVERSATIONS,
   DESIGN_NOSTR_REACTION_SETS,
   DESIGN_NOSTR_SAMPLE_NSEC,
+  DESIGN_NOSTR_SIGNER_LABEL,
   DESIGN_NOSTR_SWEEP_SESSION_TITLE
 } from '@/constants/designNostrSamples'
 import {
@@ -60,6 +63,7 @@ import {
   isChatPaymentRequestExpired
 } from '@/utils/chatPaymentRequests'
 import type { ChatPaymentRequest } from '@/utils/chatPaymentRequests'
+import { buildSignBatchView } from '@/utils/nip46EventSummary'
 import { formatNostrKey } from '@/utils/nostr'
 import type { NostrKeyFormat } from '@/utils/nostr'
 import {
@@ -278,6 +282,28 @@ function NostrChatPreview({ setIndex }: SetPreviewProps) {
           </SSVStack>
         </SSDesignSection>
         <SSSeparator />
+        <SSDesignSection title={tn('nostrChatSignCards')}>
+          <SSVStack gap="md">
+            {DESIGN_CHAT_SIGN_CARDS.map((card) => (
+              <SSVStack key={card.labelKey} gap="xxs">
+                <SSText size="xs" color="muted" uppercase>
+                  {tn(card.labelKey)}
+                </SSText>
+                <SSChatSignRequestCard
+                  view={buildSignBatchView(card.batch, nowSeconds())}
+                  signerLabel={DESIGN_NOSTR_SIGNER_LABEL}
+                  busy={false}
+                  canSign={card.canSign}
+                  messageId={card.labelKey}
+                  onApprove={NOOP}
+                  onReject={NOOP}
+                  onResend={NOOP}
+                />
+              </SSVStack>
+            ))}
+          </SSVStack>
+        </SSDesignSection>
+        <SSSeparator />
         <SSDesignSection title={tn('nostrChatComposer')}>
           <View style={styles.pillArea}>
             <SSNewMessagesPill
@@ -362,6 +388,9 @@ function NostrChatPreview({ setIndex }: SetPreviewProps) {
         onArchive={handleCloseSessionMenu}
         onRestore={handleCloseSessionMenu}
         onDelete={handleCloseSessionMenu}
+        onLendSigner={
+          sessionMenu === 'default' ? handleCloseSessionMenu : undefined
+        }
       />
       <SSMessageActionsModal
         visible={selected !== undefined}
