@@ -1,9 +1,17 @@
+import type { z } from 'zod'
+
+import {
+  NostrChatAgentCostSchema,
+  NostrChatAgentModelSchema,
+  NostrChatSessionStateSchema
+} from '@/types/models/Nostr'
 import type {
   NostrChatConversation,
   NostrChatMessage,
   NostrChatProtocol,
   NostrChatReaction,
   NostrChatSession,
+  NostrChatStoredSessionState,
   NostrChatThreadRef
 } from '@/types/models/Nostr'
 
@@ -21,6 +29,29 @@ type ChatMessageRow = {
   created_at: number
   reply_to_id?: string | null
   session_id?: string | null
+  agent_cost?: string | null
+  agent_model?: string | null
+}
+
+type ChatSessionStateRow = {
+  content: string
+  created_at: number
+}
+
+/** Stored JSON is re-validated on read: a row is never trusted blindly. */
+function parseStoredJson<T extends z.ZodType>(
+  json: string | null | undefined,
+  schema: T
+): z.infer<T> | undefined {
+  if (!json) {
+    return undefined
+  }
+  try {
+    const parsed = schema.safeParse(JSON.parse(json))
+    return parsed.success ? parsed.data : undefined
+  } catch {
+    return undefined
+  }
 }
 
 type ChatReactionRow = {
@@ -75,6 +106,7 @@ function rowToChatMessage(row: ChatMessageRow): NostrChatMessage {
     protocol: row.protocol === 'nip04' ? 'nip04' : 'nip17',
     read: row.read === 1,
     ...(row.reply_to_id ? { replyToId: row.reply_to_id } : {}),
+    ...agentFields(row),
     sessionId: row.session_id ?? '',
     status:
       row.status === 'pending' || row.status === 'failed' ? row.status : 'sent'
@@ -89,6 +121,17 @@ const HAS_SIGN_REQUESTS_SQL = `EXISTS (
      AND r.session_id = m.session_id
      AND r.status = 'pending'
 )`
+
+function agentFields(
+  row: ChatMessageRow
+): Pick<NostrChatMessage, 'agentCost' | 'agentModel'> {
+  const agentCost = parseStoredJson(row.agent_cost, NostrChatAgentCostSchema)
+  const agentModel = parseStoredJson(row.agent_model, NostrChatAgentModelSchema)
+  return {
+    ...(agentCost ? { agentCost } : {}),
+    ...(agentModel ? { agentModel } : {})
+  }
+}
 
 // SQLite fills bare columns (content) from the row that produced MAX(), so
 // one grouped query yields each conversation's latest preview.
@@ -444,8 +487,28 @@ function hasDeliveredChatSessionMessage(
   return rows.length > 0
 }
 
+/** The newest session state document `author` sent for this session. */
+function getChatSessionState(
+  identityNpub: string,
+  peerPubkey: string,
+  sessionId: string,
+  author: string
+): NostrChatStoredSessionState | null {
+  const row = getDb()
+    .execute<ChatSessionStateRow>(
+      `SELECT content, created_at FROM nostr_chat_session_states
+        WHERE identity_npub = ? AND peer_pubkey = ? AND session_id = ?
+          AND author = ? LIMIT 1`,
+      [identityNpub, peerPubkey, sessionId, author]
+    )
+    .rows.item(0)
+  const state = parseStoredJson(row?.content, NostrChatSessionStateSchema)
+  return row && state ? { state, updatedAt: row.created_at } : null
+}
+
 export {
   countChatSessions,
+  getChatSessionState,
   getChatMessage,
   getChatReplyParent,
   getChatReplyParentSessionId,

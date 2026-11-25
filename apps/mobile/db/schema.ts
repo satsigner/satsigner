@@ -431,6 +431,24 @@ const SCHEMA_V16 = `
 ALTER TABLE accounts ADD COLUMN last_full_check_at TEXT
 `
 
+// What an agent peer reports. Each reply may carry its cost and model (JSON
+// copied from validated rumor tags). The session state table keeps the
+// newest document per session and author.
+const SCHEMA_V17 = `
+ALTER TABLE nostr_chat_messages ADD COLUMN agent_cost TEXT;
+ALTER TABLE nostr_chat_messages ADD COLUMN agent_model TEXT;
+
+CREATE TABLE IF NOT EXISTS nostr_chat_session_states (
+  identity_npub TEXT NOT NULL,
+  peer_pubkey TEXT NOT NULL,
+  session_id TEXT NOT NULL,
+  author TEXT NOT NULL,
+  content TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (identity_npub, peer_pubkey, session_id, author)
+)
+`
+
 const SCHEMAS = [
   SCHEMA_V1,
   SCHEMA_V2,
@@ -447,7 +465,8 @@ const SCHEMAS = [
   SCHEMA_V13,
   SCHEMA_V14,
   SCHEMA_V15,
-  SCHEMA_V16
+  SCHEMA_V16,
+  SCHEMA_V17
 ]
 const CURRENT_VERSION = SCHEMAS.length
 
