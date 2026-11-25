@@ -1,3 +1,4 @@
+import { DESIGN_CHAT_SIGN_CARDS } from '@/constants/designNostrSamples'
 import {
   DESIGN_SAMPLE_SET_LABEL_KEYS,
   DESIGN_TAG_STATES,
@@ -37,7 +38,12 @@ describe('design system locale keys', () => {
     ...DESIGN_TRANSACTION_CARD_STATES.map((state) => state.title),
     ...DESIGN_TAG_STATES.map((state) => state.title),
     ...DESIGN_WORD_STATES.map((state) => state.title),
-    'refreshData'
+    ...DESIGN_CHAT_SIGN_CARDS.map((card) => card.labelKey),
+    'refreshData',
+    'nostrChatSessionMenu',
+    'sessionMenuDefault',
+    'sessionMenuNamed',
+    'nostrChatSignCards'
   ])('has a string for the %s preview key', (key) => {
     expect(
       t(`settings.developer.designSystem.features.${key}`, { count: 2 })
