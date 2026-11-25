@@ -10,6 +10,7 @@ import SSChatPaymentRequestCard from '@/components/chat/SSChatPaymentRequestCard
 import SSChatPaymentRequests from '@/components/chat/SSChatPaymentRequests'
 import type { ChatPaymentActions } from '@/components/chat/SSChatPaymentRequests'
 import SSChatReactions from '@/components/chat/SSChatReactions'
+import SSChatSessionMenu from '@/components/chat/SSChatSessionMenu'
 import SSMessageActionsModal from '@/components/chat/SSMessageActionsModal'
 import SSMessageDetail from '@/components/chat/SSMessageDetail'
 import SSNewMessagesPill from '@/components/chat/SSNewMessagesPill'
@@ -27,6 +28,7 @@ import SSText from '@/components/SSText'
 import {
   DESIGN_CHAT_PAY_ACCOUNTS,
   DESIGN_CHAT_PAYMENT_CARDS,
+  DESIGN_NOSTR_ARCHIVED_SESSIONS,
   DESIGN_NOSTR_AUTHORS,
   DESIGN_NOSTR_CHAT_SETS,
   DESIGN_NOSTR_FOLLOWING_CONVERSATIONS,
@@ -35,7 +37,8 @@ import {
   DESIGN_NOSTR_MESSAGE_DETAIL_SETS,
   DESIGN_NOSTR_OTHER_CONVERSATIONS,
   DESIGN_NOSTR_REACTION_SETS,
-  DESIGN_NOSTR_SAMPLE_NSEC
+  DESIGN_NOSTR_SAMPLE_NSEC,
+  DESIGN_NOSTR_SWEEP_SESSION_TITLE
 } from '@/constants/designNostrSamples'
 import {
   NOSTR_GROUP_CHAT_MESSAGE_MAX_LENGTH,
@@ -80,6 +83,9 @@ type SetPreviewProps = {
 
 type InboxTab = 'following' | 'others'
 
+/** Main chat with a signing key, or a named session on a watch-only identity. */
+type SessionMenuSample = 'default' | 'named'
+
 const NO_ACCOUNTS: Account[] = []
 const NO_VISIBLE_COMPONENTS = new Map<
   string,
@@ -117,6 +123,7 @@ function NostrChatPreview({ setIndex }: SetPreviewProps) {
   const [replyTo, setReplyTo] = useState<NostrDM>()
   const [selected, setSelected] = useState<NostrDM>()
   const [inboxTab, setInboxTab] = useState<InboxTab>('following')
+  const [sessionMenu, setSessionMenu] = useState<SessionMenuSample>()
   const rows = buildChatRows(messages, identityDm)
   const messagesById = new Map(messages.map((message) => [message.id, message]))
   const todayStart = useLocalDayStart()
@@ -147,6 +154,18 @@ function NostrChatPreview({ setIndex }: SetPreviewProps) {
 
   function handleSelectAccount() {
     accountSheetRef.current?.close()
+  }
+
+  function handleOpenDefaultSessionMenu() {
+    setSessionMenu('default')
+  }
+
+  function handleOpenNamedSessionMenu() {
+    setSessionMenu('named')
+  }
+
+  function handleCloseSessionMenu() {
+    setSessionMenu(undefined)
   }
 
   const paymentActions: ChatPaymentActions = {
@@ -310,9 +329,40 @@ function NostrChatPreview({ setIndex }: SetPreviewProps) {
                 : DESIGN_NOSTR_OTHER_CONVERSATIONS
             }
             onOpenPeer={NOOP}
+            privacyMode={displayPreferences.privacyMode}
+          />
+        </SSDesignSection>
+        <SSSeparator />
+        <SSDesignSection title={tn('nostrChatSessionMenu')}>
+          <SSButton
+            label={tn('sessionMenuDefault')}
+            onPress={handleOpenDefaultSessionMenu}
+            variant="outline"
+          />
+          <SSButton
+            label={tn('sessionMenuNamed')}
+            onPress={handleOpenNamedSessionMenu}
+            variant="outline"
           />
         </SSDesignSection>
       </SSVStack>
+      <SSChatSessionMenu
+        visible={sessionMenu !== undefined}
+        title={
+          sessionMenu === 'named' ? DESIGN_NOSTR_SWEEP_SESSION_TITLE : undefined
+        }
+        isDefault={sessionMenu === 'default'}
+        privacyMode={displayPreferences.privacyMode}
+        canDeleteEverywhere={sessionMenu === 'default'}
+        deleting={false}
+        archivedSessions={DESIGN_NOSTR_ARCHIVED_SESSIONS}
+        onClose={handleCloseSessionMenu}
+        onStartNew={handleCloseSessionMenu}
+        onRename={handleCloseSessionMenu}
+        onArchive={handleCloseSessionMenu}
+        onRestore={handleCloseSessionMenu}
+        onDelete={handleCloseSessionMenu}
+      />
       <SSMessageActionsModal
         visible={selected !== undefined}
         preview={selected?.description ?? ''}
