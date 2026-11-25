@@ -49,6 +49,7 @@ export default function NostrChatMessageDetail() {
           <SSMessageDetail
             message={detail.preview}
             rows={detail.rows}
+            agentRows={detail.agentRows}
             parent={detail.parent}
             replies={detail.replies}
             canReply={detail.canReply}

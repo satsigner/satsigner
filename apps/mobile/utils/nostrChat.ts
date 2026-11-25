@@ -20,6 +20,8 @@ import {
   NOSTR_CHAT_INITIAL_HISTORY_LIMIT,
   NOSTR_CHAT_KIND4_CLOCK_SKEW_SEC,
   NOSTR_CHAT_SESSIONS_PER_PEER_MAX,
+  NOSTR_CHAT_STATE_D_TAG,
+  NOSTR_CHAT_STATE_FUTURE_SKEW_SEC,
   NOSTR_DEFAULT_FETCH_TIMEOUT_MS,
   NOSTR_GIFT_WRAP_TIMESTAMP_JITTER_SEC,
   NOSTR_HEX_PUBKEY_RE,
@@ -36,6 +38,7 @@ import {
   insertChatReaction,
   insertChatSession,
   markChatThreadRead,
+  upsertChatSessionState,
   updateChatMessageStatus
 } from '@/db/mutations/nostrChat'
 import { getCachedProfile } from '@/db/nostrCache'
@@ -95,6 +98,10 @@ import {
   getSecretFromNsec,
   safeNpubEncode
 } from '@/utils/nostr'
+import {
+  parseAgentReplyTags,
+  parseSessionStateContent
+} from '@/utils/nostrChatAgent'
 import { isInboundMessageAllowed } from '@/utils/nostrChatFilter'
 import {
   buildChatReactionDeletionTags,
@@ -155,6 +162,18 @@ const Nip17ReactionRumorSchema = z.object({
 
 type Nip17ReactionRumor = z.infer<typeof Nip17ReactionRumorSchema>
 
+/** Kind 30078 rumor: an agent's session state document, never published bare. */
+const Nip17SessionStateRumorSchema = z.object({
+  content: z.string(),
+  created_at: z.number().int().nonnegative(),
+  id: z.string().min(1),
+  kind: z.literal(nostrKinds.Application),
+  pubkey: z.string().min(1),
+  tags: z.unknown().optional()
+})
+
+type Nip17SessionStateRumor = z.infer<typeof Nip17SessionStateRumorSchema>
+
 type ChatIdentity = {
   npub: string
   nsec: string
@@ -193,6 +212,11 @@ const nostrChatQueryKeys = {
     peerPubkey,
     sessionId
   ],
+  sessionState: (
+    identityNpub: string,
+    peerPubkey: string,
+    sessionId: string
+  ) => ['nostrChat', identityNpub, 'sessionState', peerPubkey, sessionId],
   thread: (thread: NostrChatThreadRef, limit: number) => [
     'nostrChat',
     thread.identityNpub,
@@ -1055,6 +1079,52 @@ function applyHeldChatReactions(
 }
 
 /**
+ * Only the peer's own document counts, and only for a session we already
+ * have: a known session, or the default one with someone we wrote to. So a
+ * stranger can't put a status line on a chat, and a peer can't fill the
+ * table with documents for sessions that don't exist. A document that beats
+ * its session's first message is dropped; the agent sends a new one after
+ * every reply. One dated in the future is dropped too, or it would win
+ * newest-wins over every real update.
+ */
+function applyChatSessionStateRumor(
+  identityNpub: string,
+  ownHex: string | null,
+  rumor: Nip17SessionStateRumor
+): void {
+  const peerPubkey = rumor.pubkey
+  if (
+    peerPubkey === ownHex ||
+    !NOSTR_HEX_PUBKEY_RE.test(peerPubkey) ||
+    getNostrTagValue(rumor.tags, 'd') !== NOSTR_CHAT_STATE_D_TAG ||
+    getNostrTagValue(rumor.tags, 'p') !== ownHex ||
+    rumor.created_at > nowInSeconds() + NOSTR_CHAT_STATE_FUTURE_SKEW_SEC
+  ) {
+    return
+  }
+  const sessionId = getSessionId(rumor.tags) ?? NOSTR_CHAT_DEFAULT_SESSION_ID
+  const known =
+    sessionId === NOSTR_CHAT_DEFAULT_SESSION_ID
+      ? hasOutgoingChatMessage(identityNpub, peerPubkey)
+      : getChatSession(identityNpub, peerPubkey, sessionId) !== null
+  const state = parseSessionStateContent(rumor.content)
+  if (!known || !state) {
+    return
+  }
+  const stored = upsertChatSessionState({
+    author: peerPubkey,
+    content: JSON.stringify(state),
+    createdAt: rumor.created_at,
+    identityNpub,
+    peerPubkey,
+    sessionId
+  })
+  if (stored) {
+    invalidateChatQueries(identityNpub)
+  }
+}
+
+/**
  * Other gift wraps (account label sync etc.) are not chat and are ignored.
  * Returns false for a message the inbound filter held back.
  */
@@ -1066,6 +1136,11 @@ function ingestChatRumor(
   const deletion = Nip17DeletionRumorSchema.safeParse(wrap.rumor)
   if (deletion.success) {
     applyChatDeletionRumor(identityNpub, ownHex, deletion.data)
+    return true
+  }
+  const sessionState = Nip17SessionStateRumorSchema.safeParse(wrap.rumor)
+  if (sessionState.success) {
+    applyChatSessionStateRumor(identityNpub, ownHex, sessionState.data)
     return true
   }
   const reaction = Nip17ReactionRumorSchema.safeParse(wrap.rumor)
@@ -1121,6 +1196,7 @@ function ingestChatRumor(
     return true
   }
   ingestChatMessage({
+    ...(isSelfCopy ? {} : parseAgentReplyTags(rumor.tags)),
     content: rumor.content,
     created_at: createdAt,
     direction: isSelfCopy ? 'out' : 'in',
@@ -1670,7 +1746,16 @@ function toChatThreadItem(
     read: message.read,
     replyToId: message.replyToId
   }
-  return { dm, failed: message.status === 'failed', reactions }
+  const agent =
+    !isOut && (message.agentCost || message.agentModel)
+      ? { agentCost: message.agentCost, agentModel: message.agentModel }
+      : undefined
+  return {
+    ...(agent ? { agent } : {}),
+    dm,
+    failed: message.status === 'failed',
+    reactions
+  }
 }
 
 /** The peer has this message: it is neither still sending nor failed. */

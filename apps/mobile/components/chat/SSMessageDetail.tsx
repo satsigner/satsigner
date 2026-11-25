@@ -10,6 +10,7 @@ import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
+import type { AgentDetailRow } from '@/utils/nostrChatAgent'
 import type {
   NostrMessageDetailRow,
   NostrMessagePreview
@@ -20,6 +21,8 @@ type DeleteConfirmation = 'everyone' | 'me' | null
 type SSMessageDetailProps = {
   message: NostrMessagePreview
   rows: NostrMessageDetailRow[]
+  /** What the peer's agent reported for this reply (model, cost). */
+  agentRows?: AgentDetailRow[]
   /** Pretty-printed rumor tags, when the rumor is stored. */
   tags?: string | null
   parent: NostrMessagePreview | null
@@ -80,6 +83,7 @@ function MessageDetailRow({ row }: { row: NostrMessageDetailRow }) {
 function SSMessageDetail({
   message,
   rows,
+  agentRows = [],
   tags,
   parent,
   replies,
@@ -141,6 +145,19 @@ function SSMessageDetail({
           <MessageDetailRow key={row.key} row={row} />
         ))}
       </SSVStack>
+
+      {agentRows.length > 0 && (
+        <SSVStack gap="xs">
+          <SSText color="muted" uppercase size="xs">
+            {t('nostrIdentity.chat.agent.replyTitle')}
+          </SSText>
+          <SSVStack gap="none">
+            {agentRows.map((row) => (
+              <SSDetailRow key={row.key} label={row.label} value={row.value} />
+            ))}
+          </SSVStack>
+        </SSVStack>
+      )}
 
       {tags && (
         <SSVStack gap="xs">

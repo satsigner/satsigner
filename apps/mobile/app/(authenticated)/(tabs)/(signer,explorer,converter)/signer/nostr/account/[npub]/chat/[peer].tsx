@@ -4,6 +4,10 @@ import { StyleSheet } from 'react-native'
 import { toast } from 'sonner-native'
 
 import SSChatSessionMenu from '@/components/chat/SSChatSessionMenu'
+import {
+  SSChatSessionStateLine,
+  SSChatSessionStateSheet
+} from '@/components/chat/SSChatSessionState'
 import SSChatThread from '@/components/chat/SSChatThread'
 import SSMessageActionsModal from '@/components/chat/SSMessageActionsModal'
 import { SSIconEllipsis } from '@/components/icons'
@@ -22,6 +26,7 @@ import {
 import { useNostrChatMessageActions } from '@/hooks/useNostrChatMessageActions'
 import { useNostrChatReactions } from '@/hooks/useNostrChatReactions'
 import { useNostrChatSession } from '@/hooks/useNostrChatSession'
+import { useNostrChatSessionState } from '@/hooks/useNostrChatSessionState'
 import { getAuthorLabel } from '@/hooks/useNostrMessage'
 import SSMainLayout from '@/layouts/SSMainLayout'
 import SSVStack from '@/layouts/SSVStack'
@@ -67,6 +72,7 @@ export default function NostrChatThread() {
       ? sessionParam
       : NOSTR_CHAT_DEFAULT_SESSION_ID
   const [sessionMenuVisible, setSessionMenuVisible] = useState(false)
+  const [sessionStateVisible, setSessionStateVisible] = useState(false)
 
   const identity = useNostrIdentityStore((state) =>
     state.identities.find((i) => i.npub === npub)
@@ -104,6 +110,12 @@ export default function NostrChatThread() {
   const session = useNostrChatSession({
     identity,
     peerNpub,
+    peerPubkey,
+    protocol,
+    sessionId
+  })
+  const sessionState = useNostrChatSessionState({
+    identityNpub: identity?.npub,
     peerPubkey,
     protocol,
     sessionId
@@ -183,6 +195,14 @@ export default function NostrChatThread() {
     setSessionMenuVisible(false)
   }
 
+  function openSessionState() {
+    setSessionStateVisible(true)
+  }
+
+  function closeSessionState() {
+    setSessionStateVisible(false)
+  }
+
   async function deleteSessionOrReport(everywhere: boolean) {
     if (everywhere && !session.canDeleteEverywhere) {
       toast.error(t('nostrIdentity.chat.sessions.deleteNeedsKey'))
@@ -245,6 +265,12 @@ export default function NostrChatThread() {
                   {privacyMode ? NOSTR_PRIVACY_MASK : sessionTitle}
                 </SSText>
               ) : null}
+              {sessionState ? (
+                <SSChatSessionStateLine
+                  summary={sessionState.summary}
+                  onPress={openSessionState}
+                />
+              ) : null}
             </SSVStack>
           )
         }}
@@ -299,6 +325,15 @@ export default function NostrChatThread() {
         onRestore={session.restore}
         onDelete={handleDeleteSession}
       />
+      {sessionState ? (
+        <SSChatSessionStateSheet
+          visible={sessionStateVisible}
+          rows={sessionState.rows}
+          summary={sessionState.summary}
+          sharedModel={sessionState.sharedModel}
+          onClose={closeSessionState}
+        />
+      ) : null}
     </SSMainLayout>
   )
 }

@@ -65,9 +65,35 @@ function wrapChatMessage(
   )
 }
 
+type TestRumor = {
+  content: string
+  createdAt: number
+  kind: number
+  tags: string[][]
+}
+
+/** Any rumor kind, gift-wrapped to the recipient as a NIP-17 client would. */
+function wrapRumor(
+  sender: TestIdentity,
+  recipient: TestIdentity,
+  { content, createdAt, kind, tags }: TestRumor
+): Event {
+  return nip59.wrapEvent(
+    { content, created_at: createdAt, kind, tags },
+    sender.secretKey,
+    recipient.pubkey
+  )
+}
+
 function rumorIdOfWrap(wrap: Event, recipient: TestIdentity): string {
   return nip59.unwrapEvent(wrap, recipient.secretKey).id
 }
 
-export { createTestIdentity, rumorIdOfWrap, wrapChatMessage, wrapDeviceDm }
+export {
+  createTestIdentity,
+  rumorIdOfWrap,
+  wrapChatMessage,
+  wrapDeviceDm,
+  wrapRumor
+}
 export type { TestIdentity }

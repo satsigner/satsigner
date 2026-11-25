@@ -6,6 +6,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native'
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller'
 
 import SSChatAccountPicker from '@/components/chat/SSChatAccountPicker'
+import SSChatAgentReply from '@/components/chat/SSChatAgentReply'
 import SSChatComposer from '@/components/chat/SSChatComposer'
 import type { SSChatComposerReply } from '@/components/chat/SSChatComposer'
 import SSChatDaySeparator from '@/components/chat/SSChatDaySeparator'
@@ -38,6 +39,7 @@ import {
 } from '@/utils/chatPaymentRequests'
 import type { ChatPaymentRequest } from '@/utils/chatPaymentRequests'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
+import { buildAgentReplyLabel } from '@/utils/nostrChatAgent'
 import {
   getChatAgentStatus,
   summarizeChatReactions
@@ -95,7 +97,7 @@ function ChatThreadRow({ row }: { row: ChatRow<NostrChatThreadItem> }) {
       />
     )
   }
-  const { dm, failed, reactions } = row.item
+  const { agent, dm, failed, reactions } = row.item
   // The status line only makes sense on my messages: the peer is answering them.
   const agentStatus =
     dm.author === context.ownNpub && context.peerHex
@@ -138,6 +140,16 @@ function ChatThreadRow({ row }: { row: ChatRow<NostrChatThreadItem> }) {
           <SSChatPaymentRequests
             actions={context.paymentActions}
             requests={paymentRequests}
+          />
+          <SSChatAgentReply
+            label={
+              agent
+                ? buildAgentReplyLabel(
+                    agent,
+                    context.paymentActions.displayPreferences.privacyMode
+                  )
+                : undefined
+            }
           />
           <SSChatReactions
             summaries={summarizeChatReactions(reactions, context.ownHex)}

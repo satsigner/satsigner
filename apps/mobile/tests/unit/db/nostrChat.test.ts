@@ -3,14 +3,18 @@ import {
   adoptChatSessionSubject,
   deleteChatMessagesForIdentity,
   deleteChatSession,
+  insertChatMessage,
   insertChatSession,
   markChatThreadRead,
-  renameChatSession
+  renameChatSession,
+  upsertChatSessionState
 } from '@/db/mutations/nostrChat'
 import {
+  getChatMessage,
   getChatReplyParent,
   getChatReplyParentSessionId,
   getChatSession,
+  getChatSessionState,
   getNewestSentChatMessageCreatedAt,
   listChatConversations,
   listArchivedChatSessions,
@@ -398,9 +402,112 @@ describe('nostr chat queries', () => {
         expect.arrayContaining([
           expect.stringContaining('DELETE FROM nostr_chat_reactions'),
           expect.stringContaining('DELETE FROM nostr_chat_messages'),
-          expect.stringContaining('DELETE FROM nostr_chat_sessions')
+          expect.stringContaining('DELETE FROM nostr_chat_sessions'),
+          expect.stringContaining('DELETE FROM nostr_chat_session_states')
         ])
       )
+    })
+  })
+
+  describe('agent reports', () => {
+    const cost = { amount: 272, requests: 9, unit: 'sat', v: 1 }
+    const model = { id: 'claude-opus-5.5', provider: 'routstr', v: 1 }
+    const messageRow = {
+      content: 'done',
+      created_at: 10,
+      direction: 'in',
+      id: 'm1',
+      identity_npub: 'npub1me',
+      peer_pubkey: 'peer-1',
+      protocol: 'nip17',
+      read: 0,
+      session_id: '',
+      status: 'sent'
+    }
+
+    it('stores a reply cost and model as JSON', () => {
+      insertChatMessage({
+        agentCost: cost,
+        agentModel: model,
+        content: 'done',
+        created_at: 10,
+        direction: 'in',
+        id: 'm1',
+        identityNpub: 'npub1me',
+        peerPubkey: 'peer-1',
+        protocol: 'nip17',
+        read: false,
+        sessionId: '',
+        status: 'sent'
+      })
+
+      const params = execute.mock.calls[0]?.[1] ?? []
+      expect(params.slice(-2)).toStrictEqual([
+        JSON.stringify(cost),
+        JSON.stringify(model)
+      ])
+    })
+
+    it('reads them back validated, and drops a row that no longer parses', () => {
+      execute.mockReturnValueOnce(
+        mockQueryResult([
+          {
+            ...messageRow,
+            agent_cost: JSON.stringify(cost),
+            agent_model: '{broken'
+          }
+        ])
+      )
+
+      const message = getChatMessage('npub1me', 'm1')
+
+      expect(message?.agentCost).toMatchObject(cost)
+      expect(message).not.toHaveProperty('agentModel')
+    })
+
+    it('keeps only a newer session state document', () => {
+      upsertChatSessionState({
+        author: 'peer-1',
+        content: '{"v":1}',
+        createdAt: 20,
+        identityNpub: 'npub1me',
+        peerPubkey: 'peer-1',
+        sessionId: ''
+      })
+
+      expect(execute).toHaveBeenCalledWith(
+        expect.stringContaining(
+          'WHERE excluded.created_at > nostr_chat_session_states.created_at'
+        ),
+        ['npub1me', 'peer-1', '', 'peer-1', '{"v":1}', 20]
+      )
+    })
+
+    it('reads the session state of one author', () => {
+      execute.mockReturnValueOnce(
+        mockQueryResult([
+          {
+            content: JSON.stringify({ session: { busy: true }, v: 1 }),
+            created_at: 20
+          }
+        ])
+      )
+
+      expect(
+        getChatSessionState('npub1me', 'peer-1', '', 'peer-1')
+      ).toMatchObject({ state: { session: { busy: true } }, updatedAt: 20 })
+      expect(execute).toHaveBeenCalledWith(
+        expect.stringContaining('FROM nostr_chat_session_states'),
+        ['npub1me', 'peer-1', '', 'peer-1']
+      )
+    })
+
+    it('reads no state when the stored document is invalid', () => {
+      execute.mockReturnValueOnce(
+        mockQueryResult([{ content: '{"v":2}', created_at: 20 }])
+      )
+
+      expect(getChatSessionState('npub1me', 'peer-1', '', 'peer-1')).toBeNull()
     })
   })
 
@@ -410,6 +517,10 @@ describe('nostr chat queries', () => {
 
       expect(execute).toHaveBeenCalledWith(
         'DELETE FROM nostr_chat_sessions WHERE identity_npub = ?',
+        ['npub1me']
+      )
+      expect(execute).toHaveBeenCalledWith(
+        'DELETE FROM nostr_chat_session_states WHERE identity_npub = ?',
         ['npub1me']
       )
       expect(execute).toHaveBeenCalledWith(

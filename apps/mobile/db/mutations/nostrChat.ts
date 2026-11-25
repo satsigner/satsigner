@@ -13,14 +13,19 @@ import {
   clearNostrProcessedEvents
 } from '../nostrProcessedEvents'
 
+function toJsonOrNull(value: object | undefined): string | null {
+  return value === undefined ? null : JSON.stringify(value)
+}
+
 /** INSERT OR IGNORE: relay redelivery must not duplicate (id, identity). */
 function insertChatMessage(message: NostrChatMessage): boolean {
   const db = getDb()
   const { rowsAffected } = db.execute(
     `INSERT OR IGNORE INTO nostr_chat_messages (
       id, identity_npub, peer_pubkey, protocol, direction,
-      content, status, read, created_at, reply_to_id, session_id
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      content, status, read, created_at, reply_to_id, session_id,
+      agent_cost, agent_model
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       message.id,
       message.identityNpub,
@@ -32,7 +37,9 @@ function insertChatMessage(message: NostrChatMessage): boolean {
       boolToInt(message.read),
       message.created_at,
       message.replyToId ?? null,
-      message.sessionId
+      message.sessionId,
+      toJsonOrNull(message.agentCost),
+      toJsonOrNull(message.agentModel)
     ]
   )
   return (rowsAffected ?? 0) > 0
@@ -155,7 +162,43 @@ function deleteChatSession(session: ChatSessionKey) {
         WHERE identity_npub = ? AND peer_pubkey = ? AND session_id = ?`,
       params
     )
+    tx.execute(
+      `DELETE FROM nostr_chat_session_states
+        WHERE identity_npub = ? AND peer_pubkey = ? AND session_id = ?`,
+      params
+    )
   })
+}
+
+type ChatSessionStateRecord = ChatSessionKey & {
+  author: string
+  content: string
+  createdAt: number
+}
+
+/**
+ * Keeps the newest document per session and author; wraps arrive in random
+ * order, so an older one never replaces a newer one. Returns whether it was
+ * stored.
+ */
+function upsertChatSessionState(record: ChatSessionStateRecord): boolean {
+  const { rowsAffected } = getDb().execute(
+    `INSERT INTO nostr_chat_session_states (
+      identity_npub, peer_pubkey, session_id, author, content, created_at
+    ) VALUES (?, ?, ?, ?, ?, ?)
+    ON CONFLICT(identity_npub, peer_pubkey, session_id, author) DO UPDATE
+      SET content = excluded.content, created_at = excluded.created_at
+      WHERE excluded.created_at > nostr_chat_session_states.created_at`,
+    [
+      record.identityNpub,
+      record.peerPubkey,
+      record.sessionId,
+      record.author,
+      record.content,
+      record.createdAt
+    ]
+  )
+  return (rowsAffected ?? 0) > 0
 }
 
 /** A deleted message takes its reactions with it. */
@@ -223,6 +266,10 @@ function deleteChatMessagesForIdentity(identityNpub: string) {
   getDb().execute('DELETE FROM nostr_chat_sessions WHERE identity_npub = ?', [
     identityNpub
   ])
+  getDb().execute(
+    'DELETE FROM nostr_chat_session_states WHERE identity_npub = ?',
+    [identityNpub]
+  )
   clearNostrProcessedEvents(chatProcessedScope(identityNpub))
   clearMessageState(chatProcessedScope(identityNpub))
 }
@@ -240,6 +287,7 @@ export {
   markChatThreadRead,
   renameChatSession,
   setChatSessionArchived,
-  updateChatMessageStatus
+  updateChatMessageStatus,
+  upsertChatSessionState
 }
 export type { ChatSessionKey }

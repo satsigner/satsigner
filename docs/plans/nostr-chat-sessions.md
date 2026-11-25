@@ -617,8 +617,10 @@ data is there; it just never reaches the chat.
    balance, the model and how much the user works with the agent would be
    public and signed by the agent's key.
 
-Recommended: option 3. Option 2 adds nothing on top of it, since the bridge
-sends the status rumor right after each reply anyway.
+Recommended: option 3 for the header. The bridge also ships a narrow form of
+option 2: each reply carries what _that_ answer cost and which model wrote
+it (§12.3.1). That isn't session status; it belongs to the message, and the
+state rumor can't say it.
 
 ### 12.3 Protocol: session state rumor
 
@@ -712,6 +714,37 @@ truth: Satsigner always shows the agent's values, with "switching…" while a
 The session title stays the NIP-17 `subject` (Part A). It is not repeated
 here.
 
+#### 12.3.1 Per-reply tags (as shipped by pi-nip17-bridge)
+
+The bridge's `docs/satsigner-agent-cost.md` is the source of truth. On the
+**last** kind 14 chunk of each agent answer:
+
+- `["agent_cost", "<json>"]`: `{ v: 1, unit: "sat", amount, requests,
+partial?, tokens?, models?, durationMs? }`. `amount ≤ 10_000_000`,
+  `requests 1…10_000`, tag ≤ 2 KB. `partial: true` means a lower bound.
+- `["agent_model", "<json>"]`: `{ v: 1, provider, id, name?, thinkingLevel?,
+used? }`. Sent even when the cost is unknown.
+
+Absent means unknown, not free. Command replies, notices and reactions carry
+neither. The sum of `agent_cost` in a session can be lower than
+`session.spent`; show both, don't reconcile.
+
+#### 12.3.2 Agent document as shipped
+
+Two differences from the draft above:
+
+- `session.shared` is **`session.sharedModel`**. The bridge keeps one pi
+  session file per chat session, so context, tokens and spend are per
+  session; only the model setting is shared across sessions.
+- `session.spent.partial: true` when some requests couldn't be matched.
+  `context.tokens` may be absent right after a compaction, and
+  `thinkingLevel` is absent for models without reasoning.
+
+The bridge sends it after every reply, after `!pi new` (counters zeroed),
+after `!pi restart`, and after a paid top-up (to every session used in the
+last 24 h). Not on compaction: the context share can lag until the next
+reply. `want` is not handled yet.
+
 ### 12.4 Agent side (pi-nip17-bridge, then upstream)
 
 `responder.mjs` already has every input:
@@ -736,13 +769,27 @@ Changes:
 4. Upstream, the same in `@pi-nostr/durable-nip17` once Part A's session
    patch (§4) lands, so the state is per durable conversation.
 
-**Caveat until §4 lands:** the bridge runs **one** pi process for every
-conversation. Context, tokens and model are then the same in every session,
-and switching the model in one session switches it in all of them. The
-document should say so (`"session": { "shared": true, ... }`) and Satsigner
-should then show "shared by all sessions" under the values.
+**Shipped:** the bridge keeps one pi session file per chat session, so
+context, tokens and spend are per session. The `PI_AGENTS` processes still
+share one model setting, which the document says with
+`"sharedModel": true`. Satsigner then notes in the sheet that switching the
+model in one session switches it in every session.
 
 ### 12.5 Satsigner
+
+Phase 2 (read only) is implemented as below. Differences from the first
+draft: the per-reply tags are included, the store keeps the validated JSON
+re-parsed on read, and a document is accepted only for a session we already
+have (a known session row, or the default session with a peer we wrote to)
+so a peer can't fill the table with made-up session ids.
+
+- **Per reply.** `parseAgentReplyTags` (zod, capped) on incoming kind 14
+  only, never our self copies. Nullable `agent_cost` / `agent_model` JSON
+  columns on `nostr_chat_messages` (`SCHEMA_V15`). A dim
+  `model · thinking · ⚡ 272 sats` line under the bubble (`≥`/`+` when
+  partial, masked in privacy mode), and a "Reported by the agent" block on
+  the message detail page: model, models used, cost with fiat, requests,
+  tokens, duration.
 
 - **Parse.** `utils/nostrChatState.ts`: a zod schema for both documents,
   every field optional, numbers finite and non-negative, strings capped
@@ -808,8 +855,10 @@ should then show "shared by all sessions" under the values.
 
 ### 12.8 Phases
 
-1. Bridge: send the agent document after each reply (no `want` yet).
-2. Satsigner: parse, store, header line and sheet, read only.
+1. Bridge: send the agent document after each reply (no `want` yet). Done,
+   with the per-reply `agent_cost` / `agent_model` tags.
+2. Satsigner: parse, store, header line and sheet, read only, plus the
+   per-reply line and detail rows. Done.
 3. `want`: model and thinking pickers, applied by the bridge.
 4. Upstream to `@pi-nostr/durable-nip17` with §4, so the values are per
    session.
@@ -820,10 +869,10 @@ should then show "shared by all sessions" under the values.
    may object to reusing an addressable public kind as a rumor. The
    alternative is a new kind proposed with `session` and `sign_request` in
    the same NIP (§11.4). Decide with the pi-nostr maintainer.
-2. **Session spend.** routstr usage is per request, not per pi session. With
-   one shared pi process the "session" sum counts every conversation. Per
-   session spend needs the §4 patch, or routstr's `request` id stored per
-   turn by the bridge.
+2. **Session spend. Solved in the bridge.** It matches each assistant
+   message's tokens in the session's pi file to routstrd's usage rows, so
+   parallel sessions don't mix and restarts don't reset it. `spent.partial`
+   flags rows it couldn't match.
 3. **Should the user document carry more?** For example a per-session
    budget cap ("stop at 500 sat"). Useful, but it is a new policy the agent
    must enforce; leave it for after phase 3.
