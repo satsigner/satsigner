@@ -8,7 +8,7 @@ describe('getAndroidVersionCode', () => {
   })
 
   it('rises with every release', () => {
-    const releases = ['0.3.6', '0.3.7', '0.3.12', '0.4.0', '1.0.0', '1.0.1']
+    const releases = ['0.3.6', '0.3.7', '0.3.13', '0.4.0', '1.0.0', '1.0.1']
     const codes = releases.map(getAndroidVersionCode)
     expect(codes).toStrictEqual([...codes].toSorted((a, b) => a - b))
     expect(new Set(codes).size).toBe(releases.length)

@@ -143,7 +143,7 @@ describe('design chat signature cards', () => {
   it('keeps the release batch normal and flags the risky ones', () => {
     expect(viewFor('signCardPending')).toMatchObject({
       highRisk: false,
-      label: 'Publish 0.3.12'
+      label: 'Publish 0.3.13'
     })
     expect(viewFor('signCardPending').items).toHaveLength(2)
     expect(viewFor('signCardForeignCert').highRisk).toBe(true)

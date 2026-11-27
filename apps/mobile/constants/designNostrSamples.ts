@@ -582,7 +582,7 @@ export const DESIGN_NOSTR_REACTION_SETS: DesignSampleSet<DesignNostrReactionsSam
 /** The chat identity that signs, as the card names it. */
 export const DESIGN_NOSTR_SIGNER_LABEL = 'Satoshi'
 
-const SAMPLE_RELEASE_VERSION = '0.3.12'
+const SAMPLE_RELEASE_VERSION = '0.3.13'
 const SAMPLE_SIGN_REQUEST_TTL = 10 * MINUTE
 const SAMPLE_FOREIGN_CERT = 'ab'.repeat(32)
 
@@ -654,7 +654,7 @@ export type DesignChatSignCard = {
 export const DESIGN_CHAT_SIGN_CARDS: DesignChatSignCard[] = [
   {
     batch: [
-      signEventRequest('s1', releaseEvent(), { label: 'Publish 0.3.12' }),
+      signEventRequest('s1', releaseEvent(), { label: 'Publish 0.3.13' }),
       signEventRequest('s1', assetEvent(SATSIGNER_RELEASE_CERT_SHA256))
     ],
     canSign: true,
