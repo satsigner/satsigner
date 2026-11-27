@@ -76,7 +76,21 @@ function SSChatSessionMenu({
 }: SSChatSessionMenuProps) {
   const [step, setStep] = useState<MenuStep>('actions')
   const [draft, setDraft] = useState('')
-  const shownTitle = title ?? t('nostrIdentity.chat.sessions.defaultTitle')
+  const [wasVisible, setWasVisible] = useState(visible)
+  // The parent closes the menu after a delete, skipping close(): start over
+  // from the actions whenever it hides, however it was closed.
+  if (visible !== wasVisible) {
+    setWasVisible(visible)
+    if (!visible) {
+      setStep('actions')
+      setDraft('')
+    }
+  }
+  const shownTitle =
+    title ??
+    (isDefault
+      ? t('nostrIdentity.chat.sessions.defaultTitle')
+      : t('nostrIdentity.chat.sessions.untitled'))
 
   function close() {
     if (deleting) {

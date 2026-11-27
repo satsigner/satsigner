@@ -72,8 +72,8 @@ describe('session tags', () => {
     expect(getSessionId([['session', '']])).toBe('')
   })
 
-  it('reads a session tag without a value as no tag', () => {
-    expect(getSessionId([['session']])).toBeNull()
+  it('reads a session tag without a value as the default session', () => {
+    expect(getSessionId([['session']])).toBe('')
   })
 
   it('accepts only 32 lowercase hex characters as a session id', () => {
