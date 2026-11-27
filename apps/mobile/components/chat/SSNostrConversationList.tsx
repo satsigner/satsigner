@@ -12,10 +12,10 @@ import { Colors } from '@/styles'
 import type { NostrChatConversationItem } from '@/types/models/Nostr'
 import { formatNpub } from '@/utils/format'
 import {
-  getConversationKey,
-  labelConversationSessions
+  buildConversationRows,
+  getConversationKey
 } from '@/utils/nostrChatSessions'
-import type { LabeledConversation } from '@/utils/nostrChatSessions'
+import type { ConversationRow as ConversationRowItem } from '@/utils/nostrChatSessions'
 import { isNonEmptyString } from '@/utils/string'
 
 type OpenConversation = (peerNpub: string, sessionId: string) => void
@@ -28,6 +28,9 @@ type SSNostrConversationListProps = {
 }
 
 const OpenPeerContext = createContext<OpenConversation | null>(null)
+
+/** Lines a nested session up with the text of its peer's row. */
+const NESTED_INDENT = 50
 
 function formatConversationTime(timestamp: number): string {
   const date = new Date(timestamp * MS_PER_SECOND)
@@ -42,10 +45,63 @@ function getRowStyle({ pressed }: { pressed: boolean }) {
   return [styles.row, pressed && styles.rowPressed]
 }
 
+function getNestedRowStyle({ pressed }: { pressed: boolean }) {
+  return [styles.row, styles.nestedRow, pressed && styles.rowPressed]
+}
+
+function ConversationMeta({
+  conversation
+}: {
+  conversation: ConversationRowItem
+}) {
+  return (
+    <SSVStack gap="xxs" style={styles.rowMeta}>
+      <SSText size="xs" color="muted">
+        {formatConversationTime(conversation.lastMessageAt)}
+      </SSText>
+      {conversation.unreadCount > 0 ? (
+        <View style={styles.unreadBadge}>
+          <SSText size="xs" style={styles.unreadText}>
+            {conversation.unreadCount}
+          </SSText>
+        </View>
+      ) : null}
+    </SSVStack>
+  )
+}
+
+/** A further session with a peer, indented under the peer's main session. */
+function NestedSessionRow({
+  conversation
+}: {
+  conversation: ConversationRowItem
+}) {
+  const { peerNpub, sessionId, sessionLabel } = conversation
+  const onOpenPeer = use(OpenPeerContext)
+
+  function handlePress() {
+    onOpenPeer?.(peerNpub, sessionId)
+  }
+
+  return (
+    <Pressable onPress={handlePress} style={getNestedRowStyle}>
+      <View style={styles.rowContent}>
+        <SSText weight="medium" size="sm" numberOfLines={1}>
+          {sessionLabel}
+        </SSText>
+        <SSText size="sm" color="muted" numberOfLines={1}>
+          {conversation.lastMessagePreview}
+        </SSText>
+      </View>
+      <ConversationMeta conversation={conversation} />
+    </Pressable>
+  )
+}
+
 function ConversationRow({
   conversation
 }: {
-  conversation: LabeledConversation
+  conversation: ConversationRowItem
 }) {
   const { peerNpub, sessionId, sessionLabel } = conversation
   const onOpenPeer = use(OpenPeerContext)
@@ -92,24 +148,21 @@ function ConversationRow({
           {conversation.lastMessagePreview}
         </SSText>
       </View>
-      <SSVStack gap="xxs" style={styles.rowMeta}>
-        <SSText size="xs" color="muted">
-          {formatConversationTime(conversation.lastMessageAt)}
-        </SSText>
-        {conversation.unreadCount > 0 ? (
-          <View style={styles.unreadBadge}>
-            <SSText size="xs" style={styles.unreadText}>
-              {conversation.unreadCount}
-            </SSText>
-          </View>
-        ) : null}
-      </SSVStack>
+      <ConversationMeta conversation={conversation} />
     </Pressable>
   )
 }
 
-function renderConversation({ item }: ListRenderItemInfo<LabeledConversation>) {
-  return <ConversationRow conversation={item} />
+function renderConversation({ item }: ListRenderItemInfo<ConversationRowItem>) {
+  return item.nested ? (
+    <NestedSessionRow conversation={item} />
+  ) : (
+    <ConversationRow conversation={item} />
+  )
+}
+
+function getConversationType(item: ConversationRowItem): string {
+  return item.nested ? 'session' : 'peer'
 }
 
 export default function SSNostrConversationList({
@@ -130,8 +183,9 @@ export default function SSNostrConversationList({
   return (
     <OpenPeerContext value={onOpenPeer}>
       <FlashList
-        data={labelConversationSessions(conversations, privacyMode)}
+        data={buildConversationRows(conversations, privacyMode)}
         renderItem={renderConversation}
+        getItemType={getConversationType}
         keyExtractor={getConversationKey}
       />
     </OpenPeerContext>
@@ -161,6 +215,13 @@ const styles = StyleSheet.create({
   emptyContainer: {
     flex: 1,
     justifyContent: 'center'
+  },
+  nestedRow: {
+    borderLeftColor: Colors.gray[700],
+    borderLeftWidth: 2,
+    marginLeft: NESTED_INDENT,
+    marginTop: 4,
+    paddingVertical: 8
   },
   row: {
     backgroundColor: Colors.gray[900],

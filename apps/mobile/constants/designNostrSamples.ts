@@ -377,7 +377,7 @@ function conversation(
   }
 }
 
-/** Alice has two sessions, so the inbox labels both of her rows. */
+/** Alice has two sessions: the named one is nested under her main chat. */
 export const DESIGN_NOSTR_FOLLOWING_CONVERSATIONS = [
   conversation(ALICE_HEX, 'Thanks 🙏', 10 * MINUTE, 2),
   conversation(

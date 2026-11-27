@@ -6,6 +6,7 @@ import {
   countSessionsByPeer,
   createChatSessionId,
   getConversationKey,
+  groupConversationSessions,
   isDefaultChatSession,
   labelConversationSessions,
   renameChatSessionTitle,
@@ -142,6 +143,28 @@ describe('nostrChatSessions', () => {
       'Release',
       'Untitled session',
       undefined
+    ])
+  })
+
+  it("groups a peer's sessions under its main one", () => {
+    const rows = groupConversationSessions([
+      conversation('peer-1', 'a'),
+      conversation('peer-2', ''),
+      conversation('peer-1', ''),
+      conversation('peer-1', 'b'),
+      conversation('peer-3', 'c'),
+      conversation('peer-3', 'd')
+    ])
+
+    expect(
+      rows.map((row) => `${getConversationKey(row)}${row.nested ? ' >' : ''}`)
+    ).toStrictEqual([
+      'peer-1:',
+      'peer-1:a >',
+      'peer-1:b >',
+      'peer-2:',
+      'peer-3:c',
+      'peer-3:d >'
     ])
   })
 

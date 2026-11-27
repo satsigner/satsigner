@@ -133,15 +133,59 @@ function countSessionsByPeer(
   return counts
 }
 
+type ConversationRow = LabeledConversation & {
+  /** A further session with the same peer, shown under its main one. */
+  nested: boolean
+}
+
+/**
+ * Sessions grouped by peer: the main session first, the peer's other
+ * sessions indented under it. Peers keep the order of their most recent
+ * session, and sessions within a peer keep theirs. A peer whose main session
+ * isn't listed is headed by its most recent session.
+ */
+function groupConversationSessions(
+  conversations: LabeledConversation[]
+): ConversationRow[] {
+  const byPeer = new Map<string, LabeledConversation[]>()
+  for (const conversation of conversations) {
+    const group = byPeer.get(conversation.peerPubkey) ?? []
+    group.push(conversation)
+    byPeer.set(conversation.peerPubkey, group)
+  }
+  return [...byPeer.values()].flatMap((group) => {
+    const main =
+      group.find((item) => isDefaultChatSession(item.sessionId)) ?? group[0]
+    return [
+      { ...main, nested: false },
+      ...group
+        .filter((item) => item !== main)
+        .map((item) => ({ ...item, nested: true }))
+    ]
+  })
+}
+
+/** Labeled and grouped rows for the conversation list. */
+function buildConversationRows(
+  conversations: NostrChatConversationItem[],
+  privacyMode = false
+): ConversationRow[] {
+  return groupConversationSessions(
+    labelConversationSessions(conversations, privacyMode)
+  )
+}
+
 export {
   archiveChatSession,
+  buildConversationRows,
   countSessionsByPeer,
   createChatSessionId,
   forgetChatSession,
   getConversationKey,
+  groupConversationSessions,
   isDefaultChatSession,
   labelConversationSessions,
   renameChatSessionTitle,
   startChatSession
 }
-export type { LabeledConversation }
+export type { ConversationRow, LabeledConversation }
