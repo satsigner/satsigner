@@ -810,7 +810,9 @@ so a peer can't fill the table with made-up session ids.
   which sends the user document with the existing wrap helpers.
 - **UI.**
   - Thread header, under the session title: one compact line,
-    `claude-opus-5.5 · medium · 1.5% of 1M · 48.1k sat`. The context part
+    `claude-opus-5.5 · medium · 1.5% of 1M · 1.9k sats spent · 48.1k sats left`:
+    the session's spend and the agent's balance (wallet + API keys), so the
+    user sees what is left, not only what this session cost. The context part
     turns warning at 70% and error at 90%, as in the pi footer.
   - Tap → `SSChatSessionStateSheet`: everything in §12.1, "updated 2 min
     ago", the model and thinking pickers (from `options`), and a "Top up"

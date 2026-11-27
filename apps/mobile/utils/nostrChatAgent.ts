@@ -206,9 +206,19 @@ function isSessionStateStale(updatedAt: number, nowMs: number): boolean {
   return nowMs - updatedAt * MS_PER_SECOND > NOSTR_CHAT_STATE_STALE_MS
 }
 
+/** Wallet plus API keys, the sats the agent can still spend. */
+function getBalanceTotal(state: NostrChatSessionState): number | undefined {
+  const balance = state.agent?.balance
+  if (balance?.wallet === undefined && balance?.apiKeys === undefined) {
+    return undefined
+  }
+  return (balance.wallet ?? 0) + (balance.apiKeys ?? 0)
+}
+
 /**
- * The thread header line: model · thinking · context share · session spend.
- * Fields the agent left out are skipped, so a partial document still reads.
+ * The thread header line: model · thinking · context share · session spend ·
+ * agent balance. Fields the agent left out are skipped, so a partial document
+ * still reads.
  */
 function buildSessionStateSummary(
   { state, updatedAt }: NostrChatStoredSessionState,
@@ -217,13 +227,21 @@ function buildSessionStateSummary(
 ): SessionStateSummary {
   const { session } = state
   const spent = session?.spent
+  const balance = getBalanceTotal(state)
   const line = [
     session?.model?.id,
     session?.thinkingLevel,
     formatContextShare(state),
     spent
-      ? formatAgentSats(spent.amount, privacyMode, spent.partial)
-      : undefined
+      ? t('nostrIdentity.chat.agent.spentShort', {
+          amount: formatAgentSats(spent.amount, privacyMode, spent.partial)
+        })
+      : undefined,
+    balance === undefined
+      ? undefined
+      : t('nostrIdentity.chat.agent.balanceShort', {
+          amount: formatAgentSats(balance, privacyMode)
+        })
   ]
     .filter(isPresent)
     .join(SEPARATOR)
@@ -276,12 +294,8 @@ function formatBalance(
   state: NostrChatSessionState,
   display: AmountDisplay
 ): string | undefined {
-  const balance = state.agent?.balance
-  if (balance?.wallet === undefined && balance?.apiKeys === undefined) {
-    return undefined
-  }
-  const total = (balance.wallet ?? 0) + (balance.apiKeys ?? 0)
-  return formatAgentSatsDetail(total, display)
+  const total = getBalanceTotal(state)
+  return total === undefined ? undefined : formatAgentSatsDetail(total, display)
 }
 
 function formatBusy(state: NostrChatSessionState): string | undefined {

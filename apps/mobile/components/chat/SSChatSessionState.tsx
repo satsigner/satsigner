@@ -31,7 +31,8 @@ type SSChatSessionStateLineProps = {
 }
 
 /**
- * One dim line under the session title: what the agent runs on, and costs.
+ * One dim line under the session title: what the agent runs on, what the
+ * session has cost and the balance left. Wraps to a second line when narrow.
  * A document with nothing for the line still has details, so the line falls
  * back to a label that opens them.
  */
@@ -53,7 +54,8 @@ function SSChatSessionStateLine({
       <SSText
         size="xxs"
         color="muted"
-        numberOfLines={1}
+        numberOfLines={2}
+        center
         style={TONE_STYLES[summary.contextTone]}
       >
         {summary.busy ? `● ${line}` : line}

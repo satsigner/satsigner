@@ -259,16 +259,16 @@ describe('buildSessionStateSummary', () => {
     ).toStrictEqual({
       busy: false,
       contextTone: 'normal',
-      line: 'claude-opus-5.5 · medium · 6.2% of 1M · 1.9k sats',
+      line: 'claude-opus-5.5 · medium · 6.2% of 1M · 1.9k sats spent · 24k sats left',
       lowBalance: false,
       stale: false,
       updated: '2m ago'
     })
   })
 
-  it('masks the spend in privacy mode', () => {
+  it('masks the spend and balance in privacy mode', () => {
     expect(buildSessionStateSummary(stored(STATE), NOW_MS, true).line).toBe(
-      'claude-opus-5.5 · medium · 6.2% of 1M · ••••'
+      'claude-opus-5.5 · medium · 6.2% of 1M · •••• spent · •••• left'
     )
   })
 
@@ -282,7 +282,7 @@ describe('buildSessionStateSummary', () => {
     }
     expect(
       buildSessionStateSummary(stored(state), NOW_MS, false).line
-    ).toContain('1.8k+ sats')
+    ).toContain('1.8k+ sats spent')
   })
 
   it('skips the context after a compaction and thinking without reasoning', () => {
@@ -295,8 +295,29 @@ describe('buildSessionStateSummary', () => {
       }
     }
     expect(buildSessionStateSummary(stored(state), NOW_MS, false).line).toBe(
-      'claude-opus-5.5 · 1.9k sats'
+      'claude-opus-5.5 · 1.9k sats spent · 24k sats left'
     )
+  })
+
+  it('shows the balance without a session spend, and neither when absent', () => {
+    const withoutSpend = {
+      ...STATE,
+      session: { ...STATE.session, spent: undefined }
+    }
+    expect(
+      buildSessionStateSummary(stored(withoutSpend), NOW_MS, false).line
+    ).toBe('claude-opus-5.5 · medium · 6.2% of 1M · 24k sats left')
+    const walletOnly = {
+      ...withoutSpend,
+      agent: { balance: { unit: 'sat', wallet: 850 } }
+    }
+    expect(
+      buildSessionStateSummary(stored(walletOnly), NOW_MS, false).line
+    ).toContain('850 sats left')
+    const noBalance = { ...withoutSpend, agent: undefined }
+    expect(
+      buildSessionStateSummary(stored(noBalance), NOW_MS, false).line
+    ).toBe('claude-opus-5.5 · medium · 6.2% of 1M')
   })
 
   it('flags a full context, a busy agent and a low balance', () => {
