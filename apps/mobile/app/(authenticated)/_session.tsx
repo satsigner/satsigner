@@ -27,6 +27,7 @@ import { usePayjoinSessionsStore } from '@/store/payjoinSessions'
 import { useWalletsStore } from '@/store/wallets'
 import type { Account } from '@/types/models/Account'
 import type { PageParams, PageRoute } from '@/types/navigation/page'
+import { isAutoSyncDue } from '@/utils/account'
 import { cancelAllAccountSyncs } from '@/utils/accountSyncRuns'
 import { loadAccountWallets } from '@/utils/accountWallets'
 import { devLog, devStep } from '@/utils/devConsole'
@@ -38,7 +39,7 @@ import { migrateAndHydrateServiceSecrets } from '@/utils/serviceSecrets'
 import { teardownUnlockedSessionSafe } from '@/utils/sessionTeardown'
 import { createSyncFailureBatch } from '@/utils/syncFailureToasts'
 import type { SyncErrorReporter } from '@/utils/syncFailureToasts'
-import { yieldToUi } from '@/utils/time'
+import { time, yieldToUi } from '@/utils/time'
 
 function toPageRoute(path: string, params: Record<string, unknown>): PageRoute {
   const pageParams: PageParams = {}
@@ -138,7 +139,8 @@ function AuthenticatedSession() {
 
   async function syncLoadedWallets(isSessionActive: () => boolean) {
     const { configs, selectedNetwork } = useBlockchainStore.getState()
-    if (configs[selectedNetwork].config.connectionMode !== 'auto') {
+    const { config } = configs[selectedNetwork]
+    if (config.connectionMode !== 'auto') {
       return
     }
     await devStep('session', 'sync accounts')
@@ -148,10 +150,16 @@ function AuthenticatedSession() {
     }
     const failures = createSyncFailureBatch()
     // Only accounts on the selected network: the server belongs to it, and
-    // other networks' descriptors must not be sent there.
+    // other networks' descriptors must not be sent there. Unlocking again
+    // soon after a sync doesn't sync again, same as the account list.
+    const now = time.now()
     const accounts = useAccountsStore
       .getState()
-      .accounts.filter((account) => account.network === selectedNetwork)
+      .accounts.filter(
+        (account) =>
+          account.network === selectedNetwork &&
+          isAutoSyncDue(account, config.timeDiffBeforeAutoSync, now)
+      )
     await Promise.allSettled(
       accounts.map((account) => syncLoadedAccount(account, failures.report))
     )

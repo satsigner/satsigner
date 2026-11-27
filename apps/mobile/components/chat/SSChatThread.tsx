@@ -6,25 +6,27 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native'
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller'
 
 import SSChatAccountPicker from '@/components/chat/SSChatAccountPicker'
+import SSChatAgentReply from '@/components/chat/SSChatAgentReply'
 import SSChatComposer from '@/components/chat/SSChatComposer'
 import type { SSChatComposerReply } from '@/components/chat/SSChatComposer'
 import SSChatDaySeparator from '@/components/chat/SSChatDaySeparator'
 import SSChatPaymentRequests from '@/components/chat/SSChatPaymentRequests'
 import type { ChatPaymentActions } from '@/components/chat/SSChatPaymentRequests'
 import SSChatReactions from '@/components/chat/SSChatReactions'
+import SSChatSignRequestCard from '@/components/chat/SSChatSignRequestCard'
 import SSNewMessagesPill from '@/components/chat/SSNewMessagesPill'
 import SSNostrMessage from '@/components/SSNostrMessage'
 import SSPaymentMethodPicker from '@/components/SSPaymentMethodPicker'
 import SSText from '@/components/SSText'
-import {
-  NOSTR_DM_MESSAGE_MAX_LENGTH,
-  NOSTR_GROUP_CHAT_AUTOSCROLL_THRESHOLD
-} from '@/constants/nostr'
+import { NOSTR_DM_MESSAGE_MAX_LENGTH } from '@/constants/nostr'
 import { useChatBitcoinRequestPay } from '@/hooks/useChatBitcoinRequestPay'
 import { useChatInvoicePay } from '@/hooks/useChatInvoicePay'
 import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import { useLocalDayStart } from '@/hooks/useLocalDayStart'
-import { useNostrChatScroll } from '@/hooks/useNostrChatScroll'
+import {
+  CHAT_VISIBLE_CONTENT_POSITION,
+  useNostrChatScroll
+} from '@/hooks/useNostrChatScroll'
 import { getAuthorLabel } from '@/hooks/useNostrMessage'
 import type { AuthorDisplayInfo } from '@/hooks/useNostrMessage'
 import { useNow } from '@/hooks/useNow'
@@ -37,7 +39,9 @@ import {
   hasChatInvoice
 } from '@/utils/chatPaymentRequests'
 import type { ChatPaymentRequest } from '@/utils/chatPaymentRequests'
+import { buildSignBatchView } from '@/utils/nip46EventSummary'
 import { getPubKeyHexFromNpub } from '@/utils/nostr'
+import { buildAgentReplyLabel } from '@/utils/nostrChatAgent'
 import {
   getChatAgentStatus,
   summarizeChatReactions
@@ -53,8 +57,20 @@ import { getDmText } from '@/utils/nostrDms'
 
 type VisibleComponents = Map<string, { sankey: boolean; status: boolean }>
 
+/** Approve / reject / resend for a message's batch of signature requests. */
+type ChatSignActions = {
+  busyMessageId: string | null
+  canSign: boolean
+  nowSeconds: number
+  onApprove: (messageId: string) => void
+  onReject: (messageId: string) => void
+  onResend: (messageId: string) => void
+  signerLabel: string
+}
+
 type ChatThreadRowContext = {
   paymentActions: ChatPaymentActions
+  signActions?: ChatSignActions
   ownHex: string | null
   peerHex: string | null
   onRemoveReaction?: (reactionIds: string[]) => void
@@ -95,7 +111,7 @@ function ChatThreadRow({ row }: { row: ChatRow<NostrChatThreadItem> }) {
       />
     )
   }
-  const { dm, failed, reactions } = row.item
+  const { agent, dm, failed, reactions } = row.item
   // The status line only makes sense on my messages: the peer is answering them.
   const agentStatus =
     dm.author === context.ownNpub && context.peerHex
@@ -105,6 +121,8 @@ function ChatThreadRow({ row }: { row: ChatRow<NostrChatThreadItem> }) {
     ? buildReplyPreview(dm.replyToId, context.messagesById)
     : undefined
   const paymentRequests = findChatPaymentRequests(getDmText(dm) ?? '')
+  const { signActions } = context
+  const signRequests = row.item.signRequests ?? []
   return (
     <SSNostrMessage
       item={dm}
@@ -139,6 +157,28 @@ function ChatThreadRow({ row }: { row: ChatRow<NostrChatThreadItem> }) {
             actions={context.paymentActions}
             requests={paymentRequests}
           />
+          <SSChatAgentReply
+            label={
+              agent
+                ? buildAgentReplyLabel(
+                    agent,
+                    context.paymentActions.displayPreferences.privacyMode
+                  )
+                : undefined
+            }
+          />
+          {signActions && signRequests.length > 0 ? (
+            <SSChatSignRequestCard
+              view={buildSignBatchView(signRequests, signActions.nowSeconds)}
+              signerLabel={signActions.signerLabel}
+              busy={signActions.busyMessageId === dm.id}
+              canSign={signActions.canSign}
+              messageId={dm.id}
+              onApprove={signActions.onApprove}
+              onReject={signActions.onReject}
+              onResend={signActions.onResend}
+            />
+          ) : null}
           <SSChatReactions
             summaries={summarizeChatReactions(reactions, context.ownHex)}
             agentStatus={agentStatus}
@@ -189,6 +229,8 @@ type SSChatThreadProps = {
   peerHex?: string
   /** Lets my reaction chips take my reactions back; without it they are read-only. */
   onRemoveReaction?: (reactionIds: string[]) => void
+  /** Signature request cards; without it requests show as plain text. */
+  signActions?: ChatSignActions
 }
 
 /**
@@ -196,6 +238,8 @@ type SSChatThreadProps = {
  * the bitcoin devices group chat (SSNostrMessage), "new messages" pill, and
  * the shared composer.
  */
+export type { ChatSignActions }
+
 export default function SSChatThread({
   items,
   formattedNpubs,
@@ -213,7 +257,8 @@ export default function SSChatThread({
   replyTo,
   onCancelReply,
   peerHex,
-  onRemoveReaction
+  onRemoveReaction,
+  signActions
 }: SSChatThreadProps) {
   const [visibleComponents, setVisibleComponents] = useState(
     NO_VISIBLE_COMPONENTS
@@ -221,8 +266,8 @@ export default function SSChatThread({
   const headerHeight = useHeaderHeight()
   const rows = buildChatRows(items, getThreadDm)
   const {
-    handleListScroll,
     listRef,
+    scrollHandlers,
     scrollToBottom,
     scrollToIndex,
     showNewMessages
@@ -312,6 +357,7 @@ export default function SSChatThread({
       onPay: handlePaymentPay
     },
     peerHex: peerHex ?? null,
+    signActions,
     todayStart,
     visibleComponents
   }
@@ -341,16 +387,12 @@ export default function SSChatThread({
               keyExtractor={getChatRowKey}
               getItemType={getChatRowType}
               extraData={rowContext}
-              maintainVisibleContentPosition={{
-                autoscrollToBottomThreshold:
-                  NOSTR_GROUP_CHAT_AUTOSCROLL_THRESHOLD,
-                startRenderingFromBottom: true
-              }}
+              maintainVisibleContentPosition={CHAT_VISIBLE_CONTENT_POSITION}
               onStartReached={onLoadOlder}
               ListHeaderComponent={
                 loadingOlder ? <ActivityIndicator color={Colors.white} /> : null
               }
-              onScroll={handleListScroll}
+              {...scrollHandlers}
               scrollEventThrottle={16}
               contentContainerStyle={styles.listContent}
             />

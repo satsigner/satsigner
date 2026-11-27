@@ -27,6 +27,15 @@ import { waitFor } from '../support/waitFor'
 
 const LIVE_WAIT_MS = 45_000
 const LIVE_TEST_TIMEOUT_MS = 90_000
+function defaultThread(identityNpub: string, peerPubkey: string) {
+  return {
+    identityNpub,
+    peerPubkey,
+    protocol: 'nip17' as const,
+    sessionId: ''
+  }
+}
+
 const THREAD_LIMIT = 10
 
 const reachableRelays = probeReachableRelaysSync(configuredLiveRelays())
@@ -71,17 +80,25 @@ describeWhenReachable(
         )
         await waitFor(
           () =>
-            listChatThread(receiver.npub, 'nip17', sender.pubkey, THREAD_LIMIT)
-              .length > 0,
+            listChatThread(
+              defaultThread(receiver.npub, sender.pubkey),
+              THREAD_LIMIT
+            ).length > 0,
           { label: 'live NIP-17 delivery', timeoutMs: LIVE_WAIT_MS }
         )
         lease.release()
 
         expect(
-          listChatThread(receiver.npub, 'nip17', sender.pubkey, THREAD_LIMIT)
+          listChatThread(
+            defaultThread(receiver.npub, sender.pubkey),
+            THREAD_LIMIT
+          )
         ).toMatchObject([{ content: text, direction: 'in', status: 'sent' }])
         expect(
-          listChatThread(sender.npub, 'nip17', receiver.pubkey, THREAD_LIMIT)
+          listChatThread(
+            defaultThread(sender.npub, receiver.pubkey),
+            THREAD_LIMIT
+          )
         ).toMatchObject([{ content: text, direction: 'out', status: 'sent' }])
       },
       LIVE_TEST_TIMEOUT_MS

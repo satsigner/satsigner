@@ -26,6 +26,15 @@ import { parseNostrEvent } from '@/utils/nostrEvent'
 
 type OnRequestCallback = (request: Nip46IncomingRequest) => void
 
+/**
+ * A request to an open `bunker://` offer, from a client not known yet.
+ * Returns whether the offer now belongs to that client.
+ */
+type OnOfferRequestCallback = (
+  request: Nip46IncomingRequest,
+  clientPubkey: string
+) => boolean
+
 // Every relay delivers the same request, and a session restarted on unlock
 // gets a new service whose lookback window delivers it again, so handled
 // requests are kept across instances. Only a request a session decrypted is
@@ -48,11 +57,17 @@ function readClientRequest(
   clientPubkey: string,
   conversationKey: Uint8Array
 ): Nip46IncomingRequest | null {
-  if (
-    event.kind !== nostrKinds.NostrConnect ||
-    event.pubkey !== clientPubkey ||
-    !verifyEvent(event)
-  ) {
+  if (event.pubkey !== clientPubkey) {
+    return null
+  }
+  return readSignedRequest(event, conversationKey)
+}
+
+function readSignedRequest(
+  event: NostrEvent,
+  conversationKey: Uint8Array
+): Nip46IncomingRequest | null {
+  if (event.kind !== nostrKinds.NostrConnect || !verifyEvent(event)) {
     return null
   }
   try {
@@ -202,7 +217,6 @@ function nowSeconds() {
  */
 export class Nip46BunkerService {
   private sockets: WebSocket[] = []
-  private conversationKey: Uint8Array | null = null
   private active = false
   private subId = `nip46-${Date.now()}`
   private probeId = `nip46-probe-${Date.now()}`
@@ -385,7 +399,6 @@ export class Nip46BunkerService {
     onRequest: OnRequestCallback
   ): void {
     const convKey = getConversationKey(signerSecretKey, clientPubkey)
-    this.conversationKey = convKey
 
     const filter = {
       '#p': [signerPubkeyHex],
@@ -410,6 +423,55 @@ export class Nip46BunkerService {
     }
   }
 
+  /**
+   * Listens for any client on a `bunker://` offer. The first client the
+   * callback accepts (the one holding the secret) owns the offer: from then
+   * on only its requests are read, as with `subscribe`.
+   */
+  subscribeToOffer(
+    signerPubkeyHex: string,
+    signerSecretKey: Uint8Array,
+    onOfferRequest: OnOfferRequestCallback,
+    onRequest: OnRequestCallback
+  ): void {
+    const owner: { clientPubkey: string | null; key: Uint8Array | null } = {
+      clientPubkey: null,
+      key: null
+    }
+    const filter = {
+      '#p': [signerPubkeyHex],
+      kinds: [nostrKinds.NostrConnect],
+      since: nowSeconds() - NOSTR_NIP46_SUBSCRIPTION_LOOKBACK_SECONDS
+    }
+    const onEvent = (event: NostrEvent) => {
+      if (handledEventIds.has(event.id)) {
+        return
+      }
+      if (owner.clientPubkey !== null && owner.key !== null) {
+        const request = readClientRequest(event, owner.clientPubkey, owner.key)
+        if (request) {
+          markEventHandled(event.id)
+          onRequest(request)
+        }
+        return
+      }
+      const key = getConversationKey(signerSecretKey, event.pubkey)
+      const request = readSignedRequest(event, key)
+      if (!request) {
+        return
+      }
+      markEventHandled(event.id)
+      if (onOfferRequest(request, event.pubkey)) {
+        owner.clientPubkey = event.pubkey
+        owner.key = key
+      }
+    }
+    this.subscription = { filter, onEvent }
+    for (const ws of this.sockets) {
+      subscribeOnSocket(ws, this.subId, filter, onEvent)
+    }
+  }
+
   async sendResponse(
     clientPubkey: string,
     signerSecretKey: Uint8Array,
@@ -419,11 +481,10 @@ export class Nip46BunkerService {
       throw new Error('No connected relays')
     }
 
-    if (!this.conversationKey) {
-      this.conversationKey = getConversationKey(signerSecretKey, clientPubkey)
-    }
-
-    const encrypted = nip44Encrypt(responsePayload, this.conversationKey)
+    const encrypted = nip44Encrypt(
+      responsePayload,
+      getConversationKey(signerSecretKey, clientPubkey)
+    )
 
     const event = finalizeEvent(
       {
@@ -471,7 +532,6 @@ export class Nip46BunkerService {
       }
     }
     this.sockets = []
-    this.conversationKey = null
     this.subscription = null
   }
 

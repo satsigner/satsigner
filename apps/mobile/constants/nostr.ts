@@ -93,7 +93,6 @@ export const NOSTR_TRUST_SYNC_RESTART_DELAY_MS = 1500
 export const NOSTR_SYNCING_MESSAGE_ROTATE_MS = 2500
 export const NOSTR_GROUP_CHAT_PAGE_SIZE = 50
 export const NOSTR_GROUP_CHAT_SCROLL_THRESHOLD = 40
-export const NOSTR_GROUP_CHAT_AUTOSCROLL_THRESHOLD = 0.2
 export const NOSTR_GROUP_CHAT_MESSAGE_MAX_LENGTH = 500
 // NIP-44 caps each layer at 65535 bytes. The seal carries the rumor as padded
 // base64, so the rumor JSON must stay within 40960 bytes: 13k UTF-16 units at
@@ -493,6 +492,80 @@ export const NOSTR_CHAT_GROUP_WINDOW_SEC = 5 * SECONDS_PER_MINUTE
 export const NOSTR_CHAT_REPLY_PREVIEW_MAX_LENGTH = 120
 export const NOSTR_CHAT_REPLY_SEARCH_MAX_PAGES = 10
 export const NOSTR_REPLY_MARKER = 'reply'
+// Parallel conversations with one peer (e.g. separate agent contexts). The tag
+// lives in the NIP-17 rumor, so relays never see it; no tag is the default
+// session every other client already shares.
+export const NOSTR_CHAT_SESSION_TAG = 'session'
+export const NOSTR_CHAT_SUBJECT_TAG = 'subject'
+export const NOSTR_CHAT_DEFAULT_SESSION_ID = ''
+export const NOSTR_CHAT_SESSION_ID_BYTES = 16
+export const NOSTR_CHAT_SESSION_ID_RE = /^[0-9a-f]{32}$/
+export const NOSTR_CHAT_SESSION_TITLE_MAX = 80
+export const NOSTR_CHAT_SESSIONS_PER_PEER_MAX = 50
+// Signature requests carried in a chat session: NIP-46 JSON-RPC, as a tag or
+// as a fenced block in the text so agents that only see text can use them.
+export const NOSTR_SIGN_REQUEST_TAG = 'sign_request'
+export const NOSTR_SIGN_RESPONSE_TAG = 'sign_response'
+export const NOSTR_SIGN_REQUEST_BLOCK = 'nostr-sign-request'
+export const NOSTR_SIGN_RESPONSE_BLOCK = 'nostr-sign-response'
+export const NOSTR_BUNKER_TAG = 'bunker'
+export const NOSTR_SIGN_REQUEST_BATCH_MAX = 20
+export const NOSTR_SIGN_REQUESTS_PENDING_MAX = 40
+export const NOSTR_SIGN_REQUEST_MAX_BYTES = 64 * 1024
+export const NOSTR_SIGN_REQUEST_MAX_TTL_SECS = 7 * SECONDS_PER_DAY
+export const NOSTR_SIGN_REQUEST_DEFAULT_TTL_SECS = SECONDS_PER_DAY
+export const NOSTR_SIGN_REQUEST_RETENTION_SECS = 30 * SECONDS_PER_DAY
+export const NOSTR_SIGN_REQUEST_LABEL_MAX = 120
+// An event may not be dated further than this from when it was requested
+// (or, for a live signer, from now): a lent signer must not back-date.
+export const NOSTR_SIGN_MAX_CLOCK_SKEW_SECS = 10 * SECONDS_PER_MINUTE
+export const NOSTR_NIP46_OFFER_TTL_MS = 10 * SECONDS_PER_MINUTE * MS_PER_SECOND
+export const NOSTR_NIP46_OFFER_SECRET_BYTES = 32
+export const NOSTR_NIP46_BUNKER_PREFIX = 'bunker://'
+export const NOSTR_NIP46_CONNECT_ACK = 'ack'
+// Kinds whose signature can do lasting damage to the identity: the card
+// warns loudly. Replaceable lists (10000-19999) are covered by range.
+export const NOSTR_SIGN_HIGH_RISK_KINDS: number[] = [
+  nostrKinds.Metadata,
+  nostrKinds.Contacts,
+  nostrKinds.EventDeletion,
+  nostrKinds.ClientAuth
+]
+export const NOSTR_REPLACEABLE_LIST_KIND_MIN = 10_000
+export const NOSTR_REPLACEABLE_LIST_KIND_MAX = 19_999
+export const NOSTR_ZAPSTORE_APP_KIND = 32_267
+export const NOSTR_ZAPSTORE_RELEASE_KIND = 30_063
+export const NOSTR_ZAPSTORE_ASSET_KIND = 3063
+export const NOSTR_ZAPSTORE_CERT_HASH_TAG = 'apk_certificate_hash'
+// Satsigner's Android release certificate (tools/release/keystore.mjs). An
+// asset for our package signed by anything else is flagged on the card.
+export const SATSIGNER_RELEASE_CERT_SHA256 =
+  'e0d6e692fad1aa1626ff549acee347c2ebce8be50d0744cbd0d3a67539f27ed7'
+// What an agent peer (pi-nip17-bridge) reports: a cost and model tag on each
+// reply, and a session state document (NIP-78 kind 30078) that only ever
+// travels inside a gift wrap. Every value is untrusted peer input.
+export const NOSTR_CHAT_STATE_D_TAG = 'nip17-session-state'
+export const NOSTR_CHAT_AGENT_COST_TAG = 'agent_cost'
+export const NOSTR_CHAT_AGENT_MODEL_TAG = 'agent_model'
+export const NOSTR_CHAT_AGENT_SCHEMA_VERSION = 1
+export const NOSTR_CHAT_AGENT_UNIT = 'sat'
+export const NOSTR_CHAT_AGENT_TAG_MAX_BYTES = 2048
+export const NOSTR_CHAT_STATE_MAX_BYTES = 16_384
+export const NOSTR_CHAT_AGENT_ID_MAX = 80
+export const NOSTR_CHAT_AGENT_NAME_MAX = 120
+export const NOSTR_CHAT_AGENT_THINKING_MAX = 20
+export const NOSTR_CHAT_AGENT_MODELS_MAX = 5
+export const NOSTR_CHAT_AGENT_COST_MAX_SATS = 10_000_000
+export const NOSTR_CHAT_AGENT_AMOUNT_MAX_SATS = 2_100_000_000_000_000
+export const NOSTR_CHAT_AGENT_REQUESTS_MAX = 10_000
+export const NOSTR_CHAT_AGENT_TOKENS_MAX = 1_000_000_000_000
+export const NOSTR_CHAT_AGENT_DURATION_MAX_MS =
+  7 * SECONDS_PER_DAY * MS_PER_SECOND
+// A document dated further ahead would win newest-wins forever.
+export const NOSTR_CHAT_STATE_FUTURE_SKEW_SEC = 10 * SECONDS_PER_MINUTE
+export const NOSTR_CHAT_STATE_STALE_MS = 10 * SECONDS_PER_MINUTE * MS_PER_SECOND
+export const NOSTR_CHAT_CONTEXT_WARNING_RATIO = 0.7
+export const NOSTR_CHAT_CONTEXT_ERROR_RATIO = 0.9
 export const NOSTR_GIFT_WRAP_KEY_SALT = 'satsigner/nip59-wrap/v1'
 export const NOSTR_CHAT_POW_DEFAULT_MIN_INBOUND = 0
 export const NOSTR_CHAT_POW_MAX_MS = 30 * MS_PER_SECOND

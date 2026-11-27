@@ -8,7 +8,11 @@ import {
   NOSTR_GIFT_WRAP_TIMESTAMP_JITTER_SEC
 } from '@/constants/nostr'
 import { MS_PER_SECOND } from '@/constants/time'
-import { listChatThread } from '@/db/queries/nostrChat'
+import {
+  getChatSessionState,
+  listChatConversations,
+  listChatThread
+} from '@/db/queries/nostrChat'
 import {
   acquireChatPipeline,
   clearRecipientRelaysCache,
@@ -17,8 +21,13 @@ import {
   sendNip17Chat
 } from '@/utils/nostrChat'
 import type { ChatIdentity } from '@/utils/nostrChat'
+import { startChatSession } from '@/utils/nostrChatSessions'
 
-import { createTestIdentity, wrapChatMessage } from './support/identities'
+import {
+  createTestIdentity,
+  wrapChatMessage,
+  wrapRumor
+} from './support/identities'
 import type { TestIdentity } from './support/identities'
 import { resetNodeNitroSqlite } from './support/nodeNitroSqlite'
 import { startTestRelay } from './support/testRelay'
@@ -35,6 +44,8 @@ const REFUSED_CONNECT_WAIT_MS = 30_000
 const SCENARIO_TIMEOUT_MS = 60_000
 const SETTLE_MS = 500
 const NIP44_LAYERS_PER_WRAP = 2
+const CHAT_KIND = 14
+const APPLICATION_KIND = 30_078
 
 function nowSec() {
   return Math.floor(Date.now() / MS_PER_SECOND)
@@ -44,8 +55,16 @@ function chatIdentity(identity: TestIdentity, relays: string[]): ChatIdentity {
   return { npub: identity.npub, nsec: identity.nsec, relays }
 }
 
-function thread(owner: TestIdentity, peer: TestIdentity) {
-  return listChatThread(owner.npub, 'nip17', peer.pubkey, THREAD_LIMIT)
+function thread(owner: TestIdentity, peer: TestIdentity, sessionId = '') {
+  return listChatThread(
+    {
+      identityNpub: owner.npub,
+      peerPubkey: peer.pubkey,
+      protocol: 'nip17',
+      sessionId
+    },
+    THREAD_LIMIT
+  )
 }
 
 function giftWrapReqsFor(relay: TestRelay, recipient: TestIdentity) {
@@ -249,6 +268,129 @@ describe('chat pipeline against the test relay', () => {
         { content: text, direction: 'out', status: 'sent' }
       ])
       expect(thread(sender, sender)).toHaveLength(0)
+    },
+    SCENARIO_TIMEOUT_MS
+  )
+
+  it(
+    'keeps two sessions with the same peer apart on both sides',
+    async () => {
+      const user = createTestIdentity()
+      const agent = createTestIdentity()
+      const agentLease = acquireChatPipeline(chatIdentity(agent, [relay().url]))
+      await agentLease.ready
+      await waitForPipelineState(agent, 'live')
+      const api = new NostrAPI([relay().url])
+      const userIdentity = chatIdentity(user, [relay().url])
+      const release = startChatSession(user.npub, agent.pubkey, 'Release')
+
+      await sendNip17Chat(api, userIdentity, agent.npub, 'main chat')
+      await sendNip17Chat(api, userIdentity, agent.npub, 'build 1.4', {
+        sessionId: release.sessionId
+      })
+      await waitFor(
+        () =>
+          thread(agent, user).length === 1 &&
+          thread(agent, user, release.sessionId).length === 1,
+        { label: 'both sessions received', timeoutMs: CHAT_WAIT_MS }
+      )
+      agentLease.release()
+
+      expect(thread(agent, user)).toMatchObject([{ content: 'main chat' }])
+      expect(thread(agent, user, release.sessionId)).toMatchObject([
+        { content: 'build 1.4', sessionId: release.sessionId }
+      ])
+      const conversations = listChatConversations(agent.npub, 'nip17')
+      expect(conversations).toHaveLength(2)
+      expect(conversations).toStrictEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ sessionId: '', unreadCount: 1 }),
+          expect.objectContaining({
+            sessionId: release.sessionId,
+            title: 'Release',
+            unreadCount: 1
+          })
+        ])
+      )
+    },
+    SCENARIO_TIMEOUT_MS
+  )
+
+  it(
+    'stores what an agent reports for a session: reply cost and newest state',
+    async () => {
+      const user = createTestIdentity()
+      const agent = createTestIdentity()
+      const session = startChatSession(user.npub, agent.pubkey, 'Task')
+      const base = nowSec() - HISTORY_AGE_SEC
+      const sessionTags = [
+        ['p', user.pubkey],
+        ['session', session.sessionId]
+      ]
+      const stateTags = [['d', 'nip17-session-state'], ...sessionTags]
+      const cost = { amount: 272, requests: 9, unit: 'sat', v: 1 }
+      const model = { id: 'claude-opus-5.5', provider: 'routstr', v: 1 }
+      function stateDocument(spent: number) {
+        return JSON.stringify({
+          session: { model, spent: { amount: spent, unit: 'sat' } },
+          v: 1
+        })
+      }
+      relay().seed([
+        wrapRumor(agent, user, {
+          content: 'done',
+          createdAt: base,
+          kind: CHAT_KIND,
+          tags: [
+            ...sessionTags,
+            ['agent_cost', JSON.stringify(cost)],
+            ['agent_model', JSON.stringify(model)]
+          ]
+        }),
+        wrapRumor(agent, user, {
+          content: stateDocument(900),
+          createdAt: base + 2,
+          kind: APPLICATION_KIND,
+          tags: stateTags
+        }),
+        wrapRumor(agent, user, {
+          content: stateDocument(500),
+          createdAt: base + 1,
+          kind: APPLICATION_KIND,
+          tags: stateTags
+        })
+      ])
+
+      const lease = acquireChatPipeline(chatIdentity(user, [relay().url]))
+      await lease.ready
+      await waitFor(
+        () =>
+          getChatSessionState(
+            user.npub,
+            agent.pubkey,
+            session.sessionId,
+            agent.pubkey
+          ) !== null,
+        { label: 'session state stored', timeoutMs: CHAT_WAIT_MS }
+      )
+      await delay(SETTLE_MS)
+      lease.release()
+
+      expect(thread(user, agent, session.sessionId)).toMatchObject([
+        { agentCost: cost, agentModel: model, content: 'done' }
+      ])
+      expect(
+        getChatSessionState(
+          user.npub,
+          agent.pubkey,
+          session.sessionId,
+          agent.pubkey
+        )
+      ).toMatchObject({
+        state: { session: { spent: { amount: 900 } } },
+        updatedAt: base + 2
+      })
+      expect(listChatConversations(user.npub, 'nip17')).toHaveLength(1)
     },
     SCENARIO_TIMEOUT_MS
   )

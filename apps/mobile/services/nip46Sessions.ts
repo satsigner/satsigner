@@ -5,6 +5,7 @@ import { useNip46Store } from '@/store/nip46'
 // stopped, so every path that removes an identity or wipes the app stops it.
 const services = new Map<string, Nip46BunkerService>()
 const secretKeys = new Map<string, Uint8Array>()
+const offerTimers = new Map<string, ReturnType<typeof setTimeout>>()
 
 function getNip46Runtime(sessionId: string) {
   const service = services.get(sessionId)
@@ -16,7 +17,13 @@ function isNip46SessionActive(sessionId: string): boolean {
   return services.get(sessionId)?.isConnected() ?? false
 }
 
+function cancelNip46OfferExpiry(sessionId: string): void {
+  clearTimeout(offerTimers.get(sessionId))
+  offerTimers.delete(sessionId)
+}
+
 function stopNip46Session(sessionId: string): void {
+  cancelNip46OfferExpiry(sessionId)
   services.get(sessionId)?.disconnect()
   services.delete(sessionId)
   secretKeys.get(sessionId)?.fill(0)
@@ -31,6 +38,22 @@ function registerNip46Session(
   stopNip46Session(sessionId)
   services.set(sessionId, service)
   secretKeys.set(sessionId, secretKey)
+}
+
+/** Stops an unclaimed `bunker://` offer when it expires, unless stopped first. */
+function scheduleNip46OfferExpiry(
+  sessionId: string,
+  delayMs: number,
+  onExpire: () => void
+): void {
+  cancelNip46OfferExpiry(sessionId)
+  offerTimers.set(
+    sessionId,
+    setTimeout(() => {
+      offerTimers.delete(sessionId)
+      onExpire()
+    }, delayMs)
+  )
 }
 
 function stopAllNip46Sessions(): void {
@@ -54,9 +77,11 @@ function teardownAllNip46Sessions(): void {
 }
 
 export {
+  cancelNip46OfferExpiry,
   getNip46Runtime,
   isNip46SessionActive,
   registerNip46Session,
+  scheduleNip46OfferExpiry,
   stopAllNip46Sessions,
   stopNip46Session,
   teardownAllNip46Sessions,

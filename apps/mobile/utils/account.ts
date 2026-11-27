@@ -1,4 +1,5 @@
 import { INITIAL_DISPLAY_INDEX } from '@/constants/account'
+import { SEND_SYNC_WARNING_AFTER_MS } from '@/constants/sync'
 import { SELF_SEND_TAG } from '@/constants/transaction'
 import { getKeySecret, storeKeySecret } from '@/storage/encrypted'
 import { SecretSchema } from '@/types/models/Account'
@@ -11,8 +12,6 @@ import { getPin } from '@/utils/pin'
 import { time } from '@/utils/time'
 import { isSelfSend } from '@/utils/transaction'
 import { getUtxoOutpoint } from '@/utils/utxo'
-
-const MAX_DAYS_WITHOUT_SYNCING = 3
 
 /**
  * Confirmed UTXOs plus unconfirmed (mempool) value.
@@ -42,6 +41,7 @@ export function clearAccountChainData(account: Account): Account {
   return {
     ...account,
     addresses: [],
+    lastFullCheckAt: undefined,
     lastSyncedAt: undefined,
     rpcLastBlockHash: undefined,
     summary: {
@@ -274,48 +274,23 @@ export async function getKeyFingerprint(key: Key): Promise<string> {
   return decryptedSecret.fingerprint || ''
 }
 
-export function checkWalletNeedsSync(
-  account: Account,
-  maxDaysWithoutSyncing: number = MAX_DAYS_WITHOUT_SYNCING
+/**
+ * Whether to warn before building a transaction: the account never synced,
+ * or its last sync is older than SEND_SYNC_WARNING_AFTER_MS. A sync that is
+ * running right now doesn't count as fresh, since it may still fail.
+ */
+export function shouldWarnBeforeSend(
+  { lastSyncedAt }: Pick<Account, 'lastSyncedAt'>,
+  now = time.now()
 ): boolean {
-  if (account.lastSyncedAt === undefined) {
+  if (!lastSyncedAt) {
     return true
   }
-
-  let lastSync: Date
-  try {
-    const lastSyncedAtValue = account.lastSyncedAt
-
-    if (lastSyncedAtValue instanceof Date) {
-      lastSync = lastSyncedAtValue
-    } else {
-      lastSync = new Date(lastSyncedAtValue)
-
-      if (Number.isNaN(lastSync.getTime())) {
-        return true
-      }
-    }
-  } catch {
+  const syncedMs = new Date(lastSyncedAt).getTime()
+  if (Number.isNaN(syncedMs)) {
     return true
   }
-
-  const now = new Date()
-
-  // Discard the time and time-zone information.
-  const currentUtc = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate())
-
-  const lastSyncedUtc = Date.UTC(
-    lastSync.getFullYear(),
-    lastSync.getMonth(),
-    lastSync.getDate()
-  )
-
-  const daysSinceLastSync = Math.floor(
-    (currentUtc - lastSyncedUtc) / time.days(1)
-  )
-
-  // Account updated too long ago.
-  return daysSinceLastSync > maxDaysWithoutSyncing
+  return now - syncedMs > SEND_SYNC_WARNING_AFTER_MS
 }
 
 // An account that never synced is due regardless of the delay. Accounts

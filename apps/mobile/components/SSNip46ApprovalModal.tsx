@@ -22,13 +22,16 @@ type SSNip46ApprovalModalProps = {
   onReject: (requestId: string, alwaysReject: boolean) => void
   request: Nip46Request | null
   visible: boolean
+  /** A signer lent to an agent asks every time: no "always allow". */
+  askEveryTime?: boolean
 }
 
 export default function SSNip46ApprovalModal({
   onApprove,
   onReject,
   request,
-  visible
+  visible,
+  askEveryTime = false
 }: SSNip46ApprovalModalProps) {
   // Default to OFF: a pre-checked "always allow" turns one inattentive tap
   // into a permanent blanket permission for the client.
@@ -47,10 +50,8 @@ export default function SSNip46ApprovalModal({
       : null
   // Requests that must always be approved explicitly do not offer the
   // "always allow" checkbox at all.
-  const alwaysAllowAvailable = canAutoApproveRequest(
-    request.method,
-    request.params
-  )
+  const alwaysAllowAvailable =
+    !askEveryTime && canAutoApproveRequest(request.method, request.params)
 
   function handleApprove() {
     setAlwaysAllow(false)

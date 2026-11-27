@@ -44,6 +44,10 @@ declare module 'electrum-client' {
     blockchainScripthash_getHistory(
       scriptHash: string
     ): Promise<{ height: number; tx_hash: string }[]>
+    /** One request for many scripthashes; results carry their `param`. */
+    blockchainScripthash_getHistoryBatch(
+      scriptHashes: string[]
+    ): Promise<{ param: string; result?: unknown; error?: unknown }[]>
     blockchainScripthash_getMempool(
       scriptHash: string
     ): Promise<{ height: number; tx_hash: string; fee: number }[]>

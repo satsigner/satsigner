@@ -21,6 +21,8 @@ import SSActionButton from '@/components/SSActionButton'
 import SSAddressDisplay from '@/components/SSAddressDisplay'
 import SSButton from '@/components/SSButton'
 import SSButtonActionsGroup from '@/components/SSButtonActionsGroup'
+import SSCalendarDatePicker from '@/components/SSCalendarDatePicker'
+import SSCalendarTimePicker from '@/components/SSCalendarTimePicker'
 import SSCheckbox from '@/components/SSCheckbox'
 import SSChecksumStatus from '@/components/SSChecksumStatus'
 import SSClipboardCopy from '@/components/SSClipboardCopy'
@@ -41,6 +43,7 @@ import SSPairedTabs from '@/components/SSPairedTabs'
 import SSPressable from '@/components/SSPressable'
 import SSQRCode from '@/components/SSQRCode'
 import SSRadioButton from '@/components/SSRadioButton'
+import SSSendSyncWarningModal from '@/components/SSSendSyncWarningModal'
 import SSSeparator from '@/components/SSSeparator'
 import SSSettingsCard from '@/components/SSSettingsCard'
 import SSSlider from '@/components/SSSlider'
@@ -58,6 +61,8 @@ import {
   DESIGN_SAMPLE_TXID,
   DESIGN_SAMPLE_UTXOS
 } from '@/constants/designSystem'
+import { MS_PER_SECOND, SECONDS_PER_DAY } from '@/constants/time'
+import { useNow } from '@/hooks/useNow'
 import type { ConnectionVerifyStatus } from '@/hooks/useVerifyConnection'
 import SSHStack from '@/layouts/SSHStack'
 import SSMainLayout from '@/layouts/SSMainLayout'
@@ -66,6 +71,7 @@ import SSVStack from '@/layouts/SSVStack'
 import { t, tn as _tn } from '@/locales'
 import { Colors } from '@/styles'
 import type { ServerPrivacy } from '@/utils/serverPrivacy'
+import { lastSyncedLabel, syncProgressLabel } from '@/utils/syncLabels'
 
 const tn = _tn('settings.developer.designSystem.components')
 
@@ -75,10 +81,21 @@ const QR_SIZE = 160
 const SLIDER_MIN = 1
 const SLIDER_MAX = 10
 const SLIDER_INITIAL = 5
+const PICKER_TODAY_KEY = '2026-11-25'
+const PICKER_DEFAULT_TIME = '09:00'
 const NUMBER_INPUT_MAX = 100
 const SATS_INPUT_MAX = 21_000_000
 const TABLE_INDEX_COLUMN_WIDTH = 28
 const TABLE_AMOUNT_COLUMN_WIDTH = 110
+const SYNC_WARNING_SAMPLE_AGE_MS = 3 * SECONDS_PER_DAY * MS_PER_SECOND
+const SYNC_WARNING_SAMPLE_PROGRESS = {
+  tasksDone: 12,
+  totalTasks: 40,
+  unit: 'addresses'
+} as const
+
+/** Quick check possible, full check needed, or a check running. */
+type SyncWarningSample = 'checking' | 'full' | 'quick'
 
 const CONNECTION_STATUS_SAMPLES: {
   isOnion?: boolean
@@ -232,7 +249,13 @@ function DesignComponentsScreen() {
   const [layerTab, setLayerTab] = useState<LayerTabKey>('lightning')
   const [bottomNav, setBottomNav] = useState<BottomNavKey>('signer')
   const [sliderValue, setSliderValue] = useState(SLIDER_INITIAL)
+  const [pickedDate, setPickedDate] = useState(PICKER_TODAY_KEY)
+  const [pickedEndDate, setPickedEndDate] = useState('')
+  const [pickedTime, setPickedTime] = useState(PICKER_DEFAULT_TIME)
+  const [pickedEndTime, setPickedEndTime] = useState('')
   const [modalVisible, setModalVisible] = useState(false)
+  const [syncWarning, setSyncWarning] = useState<SyncWarningSample>()
+  const nowMs = useNow()
 
   function handleToggleCheckbox() {
     setChecked((value) => !value)
@@ -252,6 +275,22 @@ function DesignComponentsScreen() {
 
   function handleCloseModal() {
     setModalVisible(false)
+  }
+
+  function handleOpenQuickSyncWarning() {
+    setSyncWarning('quick')
+  }
+
+  function handleOpenFullSyncWarning() {
+    setSyncWarning('full')
+  }
+
+  function handleOpenCheckingSyncWarning() {
+    setSyncWarning('checking')
+  }
+
+  function handleCloseSyncWarning() {
+    setSyncWarning(undefined)
   }
 
   return (
@@ -571,6 +610,43 @@ function DesignComponentsScreen() {
 
             <SSSeparator />
 
+            <SSDesignSection title={tn('dateTimePickers')}>
+              <SSHStack gap="sm" style={styles.pickerRow}>
+                <SSCalendarDatePicker
+                  label={tn('pickerDate')}
+                  value={pickedDate}
+                  todayKey={PICKER_TODAY_KEY}
+                  onChange={setPickedDate}
+                />
+                <SSCalendarTimePicker
+                  label={tn('pickerTime')}
+                  value={pickedTime}
+                  defaultValue={PICKER_DEFAULT_TIME}
+                  onChange={setPickedTime}
+                />
+              </SSHStack>
+              <SSHStack gap="sm" style={styles.pickerRow}>
+                <SSCalendarDatePicker
+                  label={tn('pickerOptionalDate')}
+                  value={pickedEndDate}
+                  todayKey={pickedDate}
+                  clearable
+                  placeholder={tn('pickerEmpty')}
+                  onChange={setPickedEndDate}
+                />
+                <SSCalendarTimePicker
+                  label={tn('pickerOptionalTime')}
+                  value={pickedEndTime}
+                  defaultValue={pickedTime}
+                  clearable
+                  placeholder={tn('pickerEmpty')}
+                  onChange={setPickedEndTime}
+                />
+              </SSHStack>
+            </SSDesignSection>
+
+            <SSSeparator />
+
             <SSDesignSection title={tn('tags')}>
               <SSHStack gap="xs" style={styles.wrap}>
                 {DESIGN_SAMPLE_TAGS.map((tag) => (
@@ -675,6 +751,21 @@ function DesignComponentsScreen() {
                 variant="outline"
                 onPress={handleOpenModal}
               />
+              <SSButton
+                label={tn('openSyncWarningQuick')}
+                variant="outline"
+                onPress={handleOpenQuickSyncWarning}
+              />
+              <SSButton
+                label={tn('openSyncWarningFull')}
+                variant="outline"
+                onPress={handleOpenFullSyncWarning}
+              />
+              <SSButton
+                label={tn('openSyncWarningChecking')}
+                variant="outline"
+                onPress={handleOpenCheckingSyncWarning}
+              />
             </SSDesignSection>
 
             <SSSeparator />
@@ -707,6 +798,20 @@ function DesignComponentsScreen() {
           {tn('modalBody')}
         </SSText>
       </SSModal>
+
+      <SSSendSyncWarningModal
+        visible={syncWarning !== undefined}
+        lastSyncedLabel={lastSyncedLabel(
+          new Date(nowMs - SYNC_WARNING_SAMPLE_AGE_MS),
+          nowMs
+        )}
+        isChecking={syncWarning === 'checking'}
+        isQuickCheck={syncWarning !== 'full'}
+        progressLabel={syncProgressLabel(SYNC_WARNING_SAMPLE_PROGRESS)}
+        onCheck={handleOpenCheckingSyncWarning}
+        onContinue={handleCloseSyncWarning}
+        onCancel={handleCloseSyncWarning}
+      />
     </>
   )
 }
@@ -729,6 +834,9 @@ const styles = StyleSheet.create({
   },
   flex: {
     flex: 1
+  },
+  pickerRow: {
+    alignItems: 'flex-start'
   },
   scroll: {
     paddingBottom: 64

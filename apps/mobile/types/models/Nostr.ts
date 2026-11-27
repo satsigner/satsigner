@@ -1,6 +1,19 @@
 import { z } from 'zod'
 
 import type { NostrAPI } from '@/api/nostr'
+import {
+  NOSTR_CHAT_AGENT_AMOUNT_MAX_SATS,
+  NOSTR_CHAT_AGENT_COST_MAX_SATS,
+  NOSTR_CHAT_AGENT_DURATION_MAX_MS,
+  NOSTR_CHAT_AGENT_ID_MAX,
+  NOSTR_CHAT_AGENT_MODELS_MAX,
+  NOSTR_CHAT_AGENT_NAME_MAX,
+  NOSTR_CHAT_AGENT_REQUESTS_MAX,
+  NOSTR_CHAT_AGENT_SCHEMA_VERSION,
+  NOSTR_CHAT_AGENT_THINKING_MAX,
+  NOSTR_CHAT_AGENT_TOKENS_MAX,
+  NOSTR_CHAT_AGENT_UNIT
+} from '@/constants/nostr'
 import type { Account } from '@/types/models/Account'
 
 // ─── Schemas ────────────────────────────────────────────────────────────────
@@ -123,14 +136,28 @@ export const Nip46RequestSchema = z.object({
   status: z.enum(['approved', 'pending', 'rejected'])
 })
 
+/** Where a bunker session came from: lent from a chat session, or paired by hand. */
+export const Nip46SessionOriginSchema = z.discriminatedUnion('kind', [
+  z.object({
+    kind: z.literal('chat'),
+    peerPubkey: z.string(),
+    sessionId: z.string()
+  }),
+  z.object({ kind: z.literal('manual') })
+])
+
 export const Nip46SessionSchema = z.object({
   clientName: z.string().optional(),
+  /** Empty for a `bunker://` offer until a client connects with its secret. */
   clientPubkey: z.string(),
   connectionError: z.string().optional(),
   connectionStatus: Nip46ConnectionStatusSchema.optional(),
   createdAt: z.number(),
+  /** An unused `bunker://` offer stops answering after this time (ms). */
+  expiresAt: z.number().optional(),
   id: z.string(),
   lastActiveAt: z.number(),
+  origin: Nip46SessionOriginSchema.optional(),
   permissions: z.record(Nip46MethodSchema, Nip46PermissionPolicySchema),
   relays: z.array(z.string()),
   secret: z.string().optional(),
@@ -321,6 +348,7 @@ export type Nip46ParsedUri = z.infer<typeof Nip46ParsedUriSchema>
 export type Nip46PermissionPolicy = z.infer<typeof Nip46PermissionPolicySchema>
 export type Nip46Request = z.infer<typeof Nip46RequestSchema>
 export type Nip46Session = z.infer<typeof Nip46SessionSchema>
+export type Nip46SessionOrigin = z.infer<typeof Nip46SessionOriginSchema>
 export type NostrAccount = z.infer<typeof NostrAccountSchema>
 export type NostrDecodedContent = z.infer<typeof NostrDecodedContentSchema>
 export type NostrDerivedKeys = z.infer<typeof NostrDerivedKeysSchema>
@@ -555,7 +583,126 @@ export type ZapReceiptInfo = {
 
 export const NostrChatProtocolSchema = z.enum(['nip04', 'nip17'])
 
+/** A bad field is dropped instead of the whole document. */
+function lenient<T extends z.ZodType>(schema: T) {
+  return schema.optional().catch(undefined)
+}
+
+const agentId = z.string().min(1).max(NOSTR_CHAT_AGENT_ID_MAX)
+const agentName = z.string().min(1).max(NOSTR_CHAT_AGENT_NAME_MAX)
+const agentThinkingLevel = z.string().min(1).max(NOSTR_CHAT_AGENT_THINKING_MAX)
+const agentTokenCount = z
+  .number()
+  .int()
+  .nonnegative()
+  .max(NOSTR_CHAT_AGENT_TOKENS_MAX)
+const agentSats = z.number().nonnegative().max(NOSTR_CHAT_AGENT_AMOUNT_MAX_SATS)
+const agentVersion = z.literal(NOSTR_CHAT_AGENT_SCHEMA_VERSION)
+const agentUnit = z.literal(NOSTR_CHAT_AGENT_UNIT)
+
+const NostrChatAgentTokensSchema = z.object({
+  cacheRead: lenient(agentTokenCount),
+  cacheWrite: lenient(agentTokenCount),
+  input: lenient(agentTokenCount),
+  output: lenient(agentTokenCount)
+})
+
+/** `agent_cost` tag on an agent's reply: what that answer cost, in sats. */
+export const NostrChatAgentCostSchema = z.object({
+  amount: z.number().nonnegative().max(NOSTR_CHAT_AGENT_COST_MAX_SATS),
+  durationMs: lenient(
+    z.number().int().nonnegative().max(NOSTR_CHAT_AGENT_DURATION_MAX_MS)
+  ),
+  models: lenient(z.array(agentId).max(NOSTR_CHAT_AGENT_MODELS_MAX)),
+  /** Some requests could not be priced: `amount` is a lower bound. */
+  partial: lenient(z.literal(true)),
+  requests: z.number().int().min(1).max(NOSTR_CHAT_AGENT_REQUESTS_MAX),
+  tokens: lenient(NostrChatAgentTokensSchema),
+  unit: agentUnit,
+  v: agentVersion
+})
+
+/** `agent_model` tag on an agent's reply: the model that wrote it. */
+export const NostrChatAgentModelSchema = z.object({
+  id: agentId,
+  name: lenient(agentName),
+  provider: agentId,
+  thinkingLevel: lenient(agentThinkingLevel),
+  used: lenient(z.array(agentId).max(NOSTR_CHAT_AGENT_MODELS_MAX)),
+  v: agentVersion
+})
+
+const NostrChatSessionStateModelSchema = z.object({
+  id: agentId,
+  name: lenient(agentName),
+  provider: agentId,
+  reasoning: lenient(z.boolean()),
+  vision: lenient(z.boolean())
+})
+
+/**
+ * The agent's session state document (kind 30078, `d` nip17-session-state):
+ * what the agent runs on and what the session has cost. `agent` is the same
+ * in every session, `session` belongs to the one the document names.
+ */
+export const NostrChatSessionStateSchema = z.object({
+  agent: lenient(
+    z.object({
+      balance: lenient(
+        z.object({
+          apiKeys: lenient(agentSats),
+          low: lenient(z.boolean()),
+          unit: agentUnit,
+          wallet: lenient(agentSats)
+        })
+      ),
+      name: lenient(agentName),
+      provider: lenient(agentId)
+    })
+  ),
+  session: lenient(
+    z.object({
+      busy: lenient(z.boolean()),
+      cacheHitRate: lenient(z.number().min(0).max(1)),
+      context: lenient(
+        z.object({
+          autoCompact: lenient(z.boolean()),
+          tokens: lenient(agentTokenCount),
+          window: lenient(agentTokenCount.positive())
+        })
+      ),
+      model: lenient(NostrChatSessionStateModelSchema),
+      /** One model setting serves every session of this agent. */
+      sharedModel: lenient(z.boolean()),
+      spent: lenient(
+        z.object({
+          amount: agentSats,
+          partial: lenient(z.literal(true)),
+          unit: agentUnit
+        })
+      ),
+      thinkingLevel: lenient(agentThinkingLevel),
+      tokens: lenient(NostrChatAgentTokensSchema)
+    })
+  ),
+  v: agentVersion
+})
+
+export type NostrChatAgentCost = z.infer<typeof NostrChatAgentCostSchema>
+export type NostrChatAgentModel = z.infer<typeof NostrChatAgentModelSchema>
+export type NostrChatAgentTokens = z.infer<typeof NostrChatAgentTokensSchema>
+export type NostrChatSessionState = z.infer<typeof NostrChatSessionStateSchema>
+
+/** Newest session state document the peer sent for one session. */
+export type NostrChatStoredSessionState = {
+  state: NostrChatSessionState
+  /** Rumor created_at, unix seconds. */
+  updatedAt: number
+}
+
 export const NostrChatMessageSchema = z.object({
+  agentCost: NostrChatAgentCostSchema.optional(),
+  agentModel: NostrChatAgentModelSchema.optional(),
   content: z.string(),
   created_at: z.number(),
   direction: z.enum(['in', 'out']),
@@ -565,6 +712,8 @@ export const NostrChatMessageSchema = z.object({
   protocol: NostrChatProtocolSchema,
   read: z.boolean(),
   replyToId: z.string().optional(),
+  /** NIP-17 session with this peer; '' is the default (untagged) one. */
+  sessionId: z.string(),
   status: z.enum(['pending', 'sent', 'failed'])
 })
 
@@ -591,10 +740,33 @@ export type NostrChatReactionSummary = {
 export type NostrChatProtocol = z.infer<typeof NostrChatProtocolSchema>
 export type NostrChatMessage = z.infer<typeof NostrChatMessageSchema>
 
-export type NostrChatConversation = {
+/** Names one thread: a session with a peer, over one protocol. */
+export type NostrChatThreadRef = Pick<
+  NostrChatMessage,
+  'identityNpub' | 'peerPubkey' | 'protocol' | 'sessionId'
+>
+
+/** One NIP-17 session with a peer, as kept in nostr_chat_sessions. */
+export type NostrChatSession = Pick<
+  NostrChatMessage,
+  'identityNpub' | 'peerPubkey' | 'sessionId'
+> & {
+  archived: boolean
+  createdAt: number
+  title?: string
+  /** The user set or cleared the title; a peer's subject no longer applies. */
+  titleLocked?: boolean
+}
+
+export type NostrChatConversation = Pick<
+  NostrChatMessage,
+  'peerPubkey' | 'sessionId'
+> & {
+  /** Something in this session waits for the user's signature. */
+  hasSignRequests?: boolean
   lastMessageAt: number
   lastMessagePreview: string
-  peerPubkey: string
+  title?: string
   unreadCount: number
 }
 
@@ -637,9 +809,44 @@ export type NostrChatGiftWrap = NostrChatEventRef & {
 }
 
 export type NostrChatThreadItem = {
+  /** What the peer's agent reported for this reply; only on its messages. */
+  agent?: Pick<NostrChatMessage, 'agentCost' | 'agentModel'>
   dm: NostrDM
   failed: boolean
   reactions: NostrChatReaction[]
+  /** Signature requests this message carries (from the peer). */
+  signRequests?: NostrSignRequest[]
+}
+
+/**
+ * pending: waiting for the user. signed / rejected: decided, and the answer
+ * is stored so a resend never signs again. invalid: can't be signed (wrong
+ * key, malformed, too old); declining answers it with `error`.
+ */
+export type NostrSignRequestStatus =
+  | 'expired'
+  | 'invalid'
+  | 'pending'
+  | 'rejected'
+  | 'signed'
+
+/** One NIP-46 request a peer sent in a chat session, to sign later. */
+export type NostrSignRequest = Pick<
+  NostrChatMessage,
+  'identityNpub' | 'peerPubkey' | 'sessionId'
+> & {
+  answered: boolean
+  error?: string
+  expiresAt: number
+  label?: string
+  /** The chat message (rumor) that carried it; one message is one batch. */
+  messageId: string
+  method: Nip46Method
+  params: string[]
+  requestedAt: number
+  requestId: string
+  result?: string
+  status: NostrSignRequestStatus
 }
 
 export type NostrErrorCode =

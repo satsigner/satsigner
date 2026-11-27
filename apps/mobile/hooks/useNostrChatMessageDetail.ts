@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { toast } from 'sonner-native'
 
 import { NostrAPI } from '@/api/nostr'
+import { useDisplayPreferences } from '@/hooks/useDisplayPreferences'
 import { copyChatMessageText } from '@/hooks/useNostrChatMessageActions'
 import { t } from '@/locales'
 import { useNostrStore } from '@/store/nostr'
@@ -20,6 +21,8 @@ import {
   nostrChatQueryKeys
 } from '@/utils/nostrChat'
 import type { ChatIdentity, ChatMessageDetail } from '@/utils/nostrChat'
+import { buildAgentReplyRows } from '@/utils/nostrChatAgent'
+import type { AgentDetailRow } from '@/utils/nostrChatAgent'
 import { getNostrContactsRelays } from '@/utils/nostrContacts'
 import { getNostrErrorMessage } from '@/utils/nostrErrorMessage'
 import {
@@ -37,16 +40,24 @@ import { isNonEmptyString } from '@/utils/string'
 
 type AuthorLabelResolver = (authorNpub: string) => string
 
+type ChatMessageViewOptions = {
+  canSign: boolean
+  labelFor: AuthorLabelResolver
+  toAgentRows: (
+    agent: NonNullable<NostrChatThreadItem['agent']>
+  ) => AgentDetailRow[]
+}
+
 function buildChatMessageView(
   detail: ChatMessageDetail,
-  labelFor: AuthorLabelResolver,
-  canSign: boolean
+  { canSign, labelFor, toAgentRows }: ChatMessageViewOptions
 ) {
   const { item, message, parent, replies, wrapCount } = detail
   function toPreview({ dm }: NostrChatThreadItem) {
     return buildMessagePreview(dm, labelFor(dm.author))
   }
   return {
+    agentRows: item.agent ? toAgentRows(item.agent) : [],
     canDeleteForEveryone: canDeleteMessageForEveryone(
       canSign && message.direction === 'out' && message.status === 'sent',
       message.id
@@ -102,6 +113,7 @@ export function useNostrChatMessageDetail(
   const profiles = useNostrStore((state) => state.profiles)
   const setReplyTo = useNostrChatReplyStore((state) => state.setReplyTo)
   const [deleting, setDeleting] = useState(false)
+  const display = useDisplayPreferences()
   const identityNpub = npub ?? ''
 
   const { data, isLoading } = useQuery({
@@ -119,8 +131,16 @@ export function useNostrChatMessageDetail(
   }
 
   const nsec = identity?.nsec
+  function toAgentRows(agent: NonNullable<NostrChatThreadItem['agent']>) {
+    return buildAgentReplyRows(agent, display)
+  }
+
   const detail = data
-    ? buildChatMessageView(data, labelFor, isNonEmptyString(nsec))
+    ? buildChatMessageView(data, {
+        canSign: isNonEmptyString(nsec),
+        labelFor,
+        toAgentRows
+      })
     : null
   const peerNpub = detail ? safeNpubEncode(detail.message.peerPubkey) : ''
 
@@ -128,16 +148,11 @@ export function useNostrChatMessageDetail(
     if (!detail?.canReply) {
       return
     }
-    setReplyTo(
-      identityChatKey(
-        identityNpub,
-        detail.message.protocol,
-        detail.message.peerPubkey
-      ),
-      detail.message.id
-    )
+    setReplyTo(identityChatKey(detail.message), detail.message.id)
     router.dismissTo(
-      nostrChatThreadHref(identityNpub, peerNpub, detail.message.protocol)
+      nostrChatThreadHref(identityNpub, peerNpub, detail.message.protocol, {
+        sessionId: detail.message.sessionId
+      })
     )
   }
 

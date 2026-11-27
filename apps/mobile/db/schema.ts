@@ -379,6 +379,76 @@ CREATE INDEX IF NOT EXISTS idx_ncr_message
   ON nostr_chat_reactions(identity_npub, message_id)
 `
 
+// Parallel NIP-17 sessions with one peer. '' is the default session, so every
+// existing row keeps its thread. The sessions table keeps the title and
+// archive flag, and lets a session exist before its first message. A title
+// the user set or cleared is locked, so a peer's late subject can't change it.
+const SCHEMA_V14 = `
+ALTER TABLE nostr_chat_messages ADD COLUMN session_id TEXT NOT NULL DEFAULT '';
+
+CREATE INDEX IF NOT EXISTS idx_ncm_session_thread
+  ON nostr_chat_messages(identity_npub, protocol, peer_pubkey, session_id, created_at);
+
+CREATE TABLE IF NOT EXISTS nostr_chat_sessions (
+  identity_npub TEXT NOT NULL,
+  peer_pubkey TEXT NOT NULL,
+  session_id TEXT NOT NULL,
+  title TEXT,
+  title_locked INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL,
+  archived INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (identity_npub, peer_pubkey, session_id)
+)
+`
+
+// NIP-46 requests a peer sent in a chat session, to be signed later. One
+// chat message is one batch. `result` keeps the signed answer so a resend
+// after a failed publish never signs again; nothing secret is stored.
+const SCHEMA_V15 = `
+CREATE TABLE IF NOT EXISTS nostr_sign_requests (
+  identity_npub TEXT NOT NULL,
+  peer_pubkey TEXT NOT NULL,
+  session_id TEXT NOT NULL,
+  message_id TEXT NOT NULL,
+  request_id TEXT NOT NULL,
+  method TEXT NOT NULL,
+  params TEXT NOT NULL,
+  label TEXT,
+  status TEXT NOT NULL,
+  result TEXT,
+  error TEXT,
+  answered INTEGER NOT NULL DEFAULT 0,
+  requested_at INTEGER NOT NULL,
+  expires_at INTEGER NOT NULL,
+  PRIMARY KEY (identity_npub, message_id, request_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_nsr_session
+  ON nostr_sign_requests(identity_npub, peer_pubkey, session_id, status)
+`
+
+const SCHEMA_V16 = `
+ALTER TABLE accounts ADD COLUMN last_full_check_at TEXT
+`
+
+// What an agent peer reports. Each reply may carry its cost and model (JSON
+// copied from validated rumor tags). The session state table keeps the
+// newest document per session and author.
+const SCHEMA_V17 = `
+ALTER TABLE nostr_chat_messages ADD COLUMN agent_cost TEXT;
+ALTER TABLE nostr_chat_messages ADD COLUMN agent_model TEXT;
+
+CREATE TABLE IF NOT EXISTS nostr_chat_session_states (
+  identity_npub TEXT NOT NULL,
+  peer_pubkey TEXT NOT NULL,
+  session_id TEXT NOT NULL,
+  author TEXT NOT NULL,
+  content TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  PRIMARY KEY (identity_npub, peer_pubkey, session_id, author)
+)
+`
+
 const SCHEMAS = [
   SCHEMA_V1,
   SCHEMA_V2,
@@ -392,7 +462,11 @@ const SCHEMAS = [
   SCHEMA_V10,
   SCHEMA_V11,
   SCHEMA_V12,
-  SCHEMA_V13
+  SCHEMA_V13,
+  SCHEMA_V14,
+  SCHEMA_V15,
+  SCHEMA_V16,
+  SCHEMA_V17
 ]
 const CURRENT_VERSION = SCHEMAS.length
 
@@ -437,7 +511,8 @@ function ensureAccountsColumns(db: NitroSQLiteConnection) {
     ['rpc_last_block_hash', 'TEXT'],
     ['nostr_device_mnemonic', 'TEXT'],
     ['excluded_utxo_outpoints', "TEXT DEFAULT '[]'"],
-    ['display_index', 'INTEGER NOT NULL DEFAULT 0']
+    ['display_index', 'INTEGER NOT NULL DEFAULT 0'],
+    ['last_full_check_at', 'TEXT']
   ]
   for (const [column, sqlType] of columns) {
     if (tableHasColumn(db, 'accounts', column)) {

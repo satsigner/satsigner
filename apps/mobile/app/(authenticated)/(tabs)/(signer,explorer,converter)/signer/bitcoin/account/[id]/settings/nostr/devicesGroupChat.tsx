@@ -30,14 +30,16 @@ import SSNostrMessage from '@/components/SSNostrMessage'
 import SSText from '@/components/SSText'
 import SSTransactionDetails from '@/components/SSTransactionDetails'
 import {
-  NOSTR_GROUP_CHAT_AUTOSCROLL_THRESHOLD,
   NOSTR_GROUP_CHAT_MESSAGE_MAX_LENGTH,
   NOSTR_GROUP_CHAT_PAGE_SIZE
 } from '@/constants/nostr'
 import { useAccountKeyFingerprints } from '@/hooks/useAccountKeyFingerprints'
 import { useLocalDayStart } from '@/hooks/useLocalDayStart'
 import { useNostrChatMessageActions } from '@/hooks/useNostrChatMessageActions'
-import { useNostrChatScroll } from '@/hooks/useNostrChatScroll'
+import {
+  CHAT_VISIBLE_CONTENT_POSITION,
+  useNostrChatScroll
+} from '@/hooks/useNostrChatScroll'
 import { useNostrDeviceChatProfilesFetch } from '@/hooks/useNostrDeviceChatProfilesFetch'
 import { getAuthorLabel } from '@/hooks/useNostrMessage'
 import type { AuthorDisplayInfo } from '@/hooks/useNostrMessage'
@@ -231,8 +233,8 @@ export default function DevicesGroupChat() {
   const displayedMessages = messages.slice(-displayCount)
   const rows = buildChatRows(displayedMessages, identityDm)
   const {
-    handleListScroll,
     listRef,
+    scrollHandlers,
     scrollToBottom,
     scrollToIndex,
     showNewMessages
@@ -529,13 +531,9 @@ export default function DevicesGroupChat() {
                   keyExtractor={getRowKey}
                   getItemType={getRowType}
                   extraData={rowContext}
-                  maintainVisibleContentPosition={{
-                    autoscrollToBottomThreshold:
-                      NOSTR_GROUP_CHAT_AUTOSCROLL_THRESHOLD,
-                    startRenderingFromBottom: true
-                  }}
+                  maintainVisibleContentPosition={CHAT_VISIBLE_CONTENT_POSITION}
                   onStartReached={handleLoadOlder}
-                  onScroll={handleListScroll}
+                  {...scrollHandlers}
                   scrollEventThrottle={16}
                 />
               </GroupChatRowContext>

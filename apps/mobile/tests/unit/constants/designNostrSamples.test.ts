@@ -1,9 +1,20 @@
-import { DESIGN_CHAT_PAYMENT_CARDS } from '@/constants/designNostrSamples'
+import {
+  DESIGN_CHAT_PAYMENT_CARDS,
+  DESIGN_CHAT_SIGN_CARDS,
+  DESIGN_NOSTR_ARCHIVED_SESSIONS,
+  DESIGN_NOSTR_FOLLOWING_CONVERSATIONS
+} from '@/constants/designNostrSamples'
 import { MS_PER_SECOND } from '@/constants/time'
 import {
   getChatInvoiceTiming,
   isChatPaymentRequestExpired
 } from '@/utils/chatPaymentRequests'
+import { buildSignBatchView } from '@/utils/nip46EventSummary'
+import {
+  getConversationKey,
+  labelConversationSessions
+} from '@/utils/nostrChatSessions'
+import { isChatSessionId } from '@/utils/nostrChatTags'
 
 function cardFor(labelKey: string) {
   const card = DESIGN_CHAT_PAYMENT_CARDS.find(
@@ -77,5 +88,65 @@ describe('design chat payment cards', () => {
         ? request.expiresAt * MS_PER_SECOND
         : 0
     expect(expiresAtMs - nowMs).toBeGreaterThan(5 * 60 * MS_PER_SECOND)
+  })
+})
+
+describe('design chat sessions', () => {
+  it('gives every inbox row its own key', () => {
+    const keys = DESIGN_NOSTR_FOLLOWING_CONVERSATIONS.map(getConversationKey)
+    expect(new Set(keys).size).toBe(keys.length)
+  })
+
+  it('labels both sessions of the peer that has two', () => {
+    const labels = labelConversationSessions(
+      DESIGN_NOSTR_FOLLOWING_CONVERSATIONS
+    ).map((row) => row.sessionLabel)
+    expect(labels.filter(Boolean)).toHaveLength(2)
+  })
+
+  it('uses valid ids for archived sessions', () => {
+    for (const session of DESIGN_NOSTR_ARCHIVED_SESSIONS) {
+      expect(session.archived).toBe(true)
+      expect(isChatSessionId(session.sessionId)).toBe(true)
+    }
+  })
+})
+
+describe('design chat signature cards', () => {
+  const nowSeconds = Math.floor(Date.now() / MS_PER_SECOND)
+
+  function viewFor(labelKey: string) {
+    const card = DESIGN_CHAT_SIGN_CARDS.find(
+      (sample) => sample.labelKey === labelKey
+    )
+    if (!card) {
+      throw new Error(`missing design sign card ${labelKey}`)
+    }
+    return buildSignBatchView(card.batch, nowSeconds)
+  }
+
+  it('has one card per label', () => {
+    const keys = DESIGN_CHAT_SIGN_CARDS.map((card) => card.labelKey)
+    expect(new Set(keys).size).toBe(keys.length)
+  })
+
+  it.each([
+    ['signCardPending', 'pending'],
+    ['signCardNotSent', 'decided'],
+    ['signCardAnswered', 'answered'],
+    ['signCardInvalid', 'invalid'],
+    ['signCardExpired', 'expired']
+  ])('shows %s as %s', (labelKey, state) => {
+    expect(viewFor(labelKey).state).toBe(state)
+  })
+
+  it('keeps the release batch normal and flags the risky ones', () => {
+    expect(viewFor('signCardPending')).toMatchObject({
+      highRisk: false,
+      label: 'Publish 0.3.13'
+    })
+    expect(viewFor('signCardPending').items).toHaveLength(2)
+    expect(viewFor('signCardForeignCert').highRisk).toBe(true)
+    expect(viewFor('signCardHighRisk').highRisk).toBe(true)
   })
 })

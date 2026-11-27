@@ -5,15 +5,35 @@ jest.mock<typeof import('nostr-tools')>('nostr-tools', () =>
 )
 jest.mock('@nostr-dev-kit/ndk')
 
+function mockStoredSessions(): Map<string, unknown> {
+  return jest.requireMock<{ __sessions: Map<string, unknown> }>(
+    '@/db/mutations/nostrChat'
+  ).__sessions
+}
+
 // In-memory chat message store — precise insert/dedup behavior without SQLite.
 jest.mock<typeof import('@/db/mutations/nostrChat')>(
   '@/db/mutations/nostrChat',
   () => {
     const store = new Map<string, unknown>()
     const reactions = new Map<string, { author: string; id: string }>()
+    const sessions = new Map<string, unknown>()
+    const sessionStates = new Map<string, { createdAt: number }>()
     return {
       __reactions: reactions,
+      __sessionStates: sessionStates,
+      __sessions: sessions,
       __store: store,
+      adoptChatSessionSubject: jest.fn(
+        (key: { sessionId: string }, title: string) => {
+          const session = sessions.get(key.sessionId) as
+            | { title?: string; titleLocked?: boolean }
+            | undefined
+          if (session && !session.title && !session.titleLocked) {
+            session.title = title
+          }
+        }
+      ),
       deleteChatMessages: jest.fn((_npub: string, ids: string[]) => {
         for (const id of ids) {
           store.delete(id)
@@ -46,8 +66,33 @@ jest.mock<typeof import('@/db/mutations/nostrChat')>(
           return true
         }
       ),
+      insertChatSession: jest.fn((session: { sessionId: string }) => {
+        if (sessions.has(session.sessionId)) {
+          return false
+        }
+        sessions.set(session.sessionId, session)
+        return true
+      }),
       markChatThreadRead: jest.fn(() => 0),
-      updateChatMessageStatus: jest.fn()
+      updateChatMessageStatus: jest.fn(
+        (_npub: string, id: string, status: string) => {
+          const message = store.get(id) as { status: string } | undefined
+          if (message) {
+            message.status = status
+          }
+        }
+      ),
+      upsertChatSessionState: jest.fn(
+        (record: { author: string; createdAt: number; sessionId: string }) => {
+          const key = `${record.sessionId}|${record.author}`
+          const current = sessionStates.get(key)
+          if (current && current.createdAt >= record.createdAt) {
+            return false
+          }
+          sessionStates.set(key, record)
+          return true
+        }
+      )
     }
   }
 )
@@ -57,8 +102,11 @@ jest.mock<typeof import('@/db/queries/nostrChat')>(
   () => {
     type MockStoredMessage = {
       created_at: number
+      direction: string
       id: string
+      peerPubkey: string
       protocol: string
+      sessionId: string
       status: string
     }
     function storedMessages(): MockStoredMessage[] {
@@ -68,11 +116,21 @@ jest.mock<typeof import('@/db/queries/nostrChat')>(
       return [...__store.values()]
     }
     return {
+      countChatSessions: jest.fn(() => mockStoredSessions().size),
       getChatMessage: jest.fn(
         (_npub: string, id: string) =>
           storedMessages().find((m) => m.id === id) ?? null
       ),
       getChatReplyParent: jest.fn(() => null),
+      getChatReplyParentSessionId: jest.fn(
+        (_npub: string, peer: string, id: string) =>
+          storedMessages().find((m) => m.id === id && m.peerPubkey === peer)
+            ?.sessionId ?? null
+      ),
+      getChatSession: jest.fn(
+        (_npub: string, _peer: string, sessionId: string) =>
+          mockStoredSessions().get(sessionId) ?? null
+      ),
       getNewestSentChatMessageCreatedAt: jest.fn(
         (_npub: string, protocol: string) => {
           const times = storedMessages()
@@ -85,14 +143,51 @@ jest.mock<typeof import('@/db/queries/nostrChat')>(
       hasChatMessage: jest.fn((_npub: string, id: string) =>
         storedMessages().some((m) => m.id === id)
       ),
-      hasOutgoingChatMessage: jest.fn(() => false),
+      hasDeliveredChatSessionMessage: jest.fn(
+        (_npub: string, _peer: string, sessionId: string) =>
+          storedMessages().some(
+            (m) =>
+              m.sessionId === sessionId &&
+              m.direction === 'out' &&
+              m.status === 'sent'
+          )
+      ),
+      hasOutgoingChatMessage: jest.fn((_npub: string, peer: string) =>
+        storedMessages().some(
+          (m) => m.peerPubkey === peer && m.direction === 'out'
+        )
+      ),
       listChatConversations: jest.fn(() => []),
       listChatReplies: jest.fn(() => []),
-      listChatThread: jest.fn(() => []),
-      listChatThreadReactions: jest.fn(() => [])
+      listChatThread: jest.fn((thread: { sessionId: string }, limit: number) =>
+        storedMessages()
+          .filter((m) => m.sessionId === thread.sessionId)
+          .slice(0, limit)
+      ),
+      listChatThreadReactions: jest.fn(() => []),
+      listOwnChatSessionMessageIds: jest.fn(
+        (_npub: string, _peer: string, sessionId: string) =>
+          storedMessages()
+            .filter((m) => m.sessionId === sessionId && m.direction === 'out')
+            .map((m) => m.id)
+      )
     }
   }
 )
+
+// Signature requests have their own tests; here they are only observed.
+jest.mock<typeof import('@/utils/chatSignRequests')>(
+  '@/utils/chatSignRequests',
+  () => ({
+    queueChatSignRequests: jest.fn(() => 0),
+    settleChatSignRequests: jest.fn()
+  })
+)
+jest.mock<
+  Pick<typeof import('@/db/signRequests'), 'listSignRequestsForMessages'>
+>('@/db/signRequests', () => ({
+  listSignRequestsForMessages: jest.fn(() => [])
+}))
 
 // In-memory decrypt-once ledger.
 jest.mock<typeof import('@/db/nostrProcessedEvents')>(
@@ -142,6 +237,7 @@ import {
   NOSTR_CHAT_CATCH_UP_LIMIT,
   NOSTR_CHAT_INITIAL_HISTORY_LIMIT,
   NOSTR_CHAT_KIND4_CLOCK_SKEW_SEC,
+  NOSTR_CHAT_SESSIONS_PER_PEER_MAX,
   NOSTR_GIFT_WRAP_TIMESTAMP_JITTER_SEC
 } from '@/constants/nostr'
 import {
@@ -152,12 +248,14 @@ import * as nostrMessageState from '@/db/nostrMessageState'
 import { clearNostrFollowCache, setNostrFollowCache } from '@/storage/mmkv'
 import { useNostrChatSettingsStore } from '@/store/nostrChatSettings'
 import type { NostrChatGiftWrap } from '@/types/models/Nostr'
+import { queueChatSignRequests } from '@/utils/chatSignRequests'
 import { NostrNoRelaysError } from '@/utils/errors'
 import {
   acquireChatPipeline,
   addChatListener,
   clearRecipientRelaysCache,
   closeActiveChatPipeline,
+  deleteChatSessionForEveryone,
   flushChatMessages,
   getChatLiveWindow,
   getChatPipelineApi,
@@ -165,6 +263,7 @@ import {
   ingestChatMessage,
   restartChatPipeline,
   removeChatReactions,
+  resolveChatSessionId,
   sendChatReaction,
   sendNip04Chat,
   sendNip17Chat,
@@ -198,8 +297,15 @@ function unwrapPublished(
   return nip59.unwrapEvent(raw, secretKey)
 }
 
-const { __reactions: reactionStore, __store: chatStore } = jest.requireMock<{
+const {
+  __reactions: reactionStore,
+  __sessionStates: sessionStateStore,
+  __sessions: sessionStore,
+  __store: chatStore
+} = jest.requireMock<{
   __reactions: Map<string, StoredMessage>
+  __sessionStates: Map<string, StoredMessage>
+  __sessions: Map<string, StoredMessage>
   __store: Map<string, StoredMessage>
 }>('@/db/mutations/nostrChat')
 const { __processed: processedWraps } = jest.requireMock<{
@@ -296,6 +402,8 @@ describe('nostrChat', () => {
     flushChatMessages()
     chatStore.clear()
     reactionStore.clear()
+    sessionStore.clear()
+    sessionStateStore.clear()
     processedWraps.clear()
     clearRecipientRelaysCache()
     // Real mining would make every send slow; one test opts in below.
@@ -326,7 +434,7 @@ describe('nostrChat', () => {
       direction: 'out',
       peerPubkey,
       protocol: 'nip17',
-      status: 'pending'
+      status: 'sent'
     })
     // Two publishes per NIP-17: recipient wrap + sender self copy.
     expect(publishSpy).toHaveBeenCalledTimes(2)
@@ -361,7 +469,9 @@ describe('nostrChat', () => {
     })
     const parentId = 'a'.repeat(64)
 
-    await sendNip17Chat(api, sender, peerNpub, 'a reply', parentId)
+    await sendNip17Chat(api, sender, peerNpub, 'a reply', {
+      replyToId: parentId
+    })
 
     const rumor = unwrapPublished(published[0], peerSecretKey)
     expect(rumor.tags).toContainEqual(['e', parentId, '', 'reply'])
@@ -1114,6 +1224,521 @@ describe('nostrChat', () => {
       expect(getChatPipelineStatus(senderNpub).state).toBe('live')
       expect(getChatPipelineApi(senderNpub)).not.toBeNull()
       lease.release()
+    })
+  })
+
+  describe('sessions', () => {
+    const sessionId = 'c'.repeat(32)
+    const otherSessionId = 'd'.repeat(32)
+
+    function createCapturingApi() {
+      const api = new NostrAPI([])
+      const published: Awaited<ReturnType<NDKEvent['toNostrEvent']>>[] = []
+      jest.spyOn(api, 'publishEvent').mockImplementation(async (event) => {
+        published.push(await event.toNostrEvent())
+      })
+      return { api, published }
+    }
+
+    it('sends the default session without a session tag', async () => {
+      const { api, published } = createCapturingApi()
+
+      await sendNip17Chat(api, sender, peerNpub, 'plain')
+
+      const rumor = unwrapPublished(published[0], peerSecretKey)
+      expect(rumor.tags.some((tag) => tag[0] === 'session')).toBe(false)
+      expect(storedMessages()[0]).toMatchObject({ sessionId: '' })
+    })
+
+    it('tags a session message and names the session on its first message', async () => {
+      sessionStore.set(sessionId, {
+        archived: false,
+        createdAt: 1,
+        identityNpub: senderNpub,
+        peerPubkey,
+        sessionId,
+        title: 'Release 1.4'
+      })
+      const { api, published } = createCapturingApi()
+
+      await sendNip17Chat(api, sender, peerNpub, 'first', { sessionId })
+      await sendNip17Chat(api, sender, peerNpub, 'second', { sessionId })
+
+      const first = unwrapPublished(published[0], peerSecretKey)
+      expect(first.tags).toContainEqual(['session', sessionId])
+      expect(first.tags).toContainEqual(['subject', 'Release 1.4'])
+      const second = unwrapPublished(published[2], peerSecretKey)
+      expect(second.tags).toContainEqual(['session', sessionId])
+      expect(second.tags.some((tag) => tag[0] === 'subject')).toBe(false)
+    })
+
+    it('files an incoming message under its session and records it', async () => {
+      const { api, captured } = createFakeChatApi()
+      await subscribeToIdentityChat(api, sender)
+
+      deliverRumor(captured.handlers, 'w1', {
+        content: 'in a session',
+        created_at: 10,
+        id: 'a'.repeat(64),
+        pubkey: peerPubkey,
+        tags: [
+          ['p', senderPubkey],
+          ['session', sessionId],
+          ['subject', 'Agent task']
+        ]
+      })
+
+      expect(storedMessages()[0]).toMatchObject({ sessionId })
+      expect(sessionStore.get(sessionId)).toMatchObject({
+        title: 'Agent task'
+      })
+    })
+
+    it('files a malformed session tag under the default session', async () => {
+      const { api, captured } = createFakeChatApi()
+      await subscribeToIdentityChat(api, sender)
+
+      deliverRumor(captured.handlers, 'w1', {
+        content: 'odd',
+        created_at: 10,
+        id: 'a'.repeat(64),
+        pubkey: peerPubkey,
+        tags: [
+          ['p', senderPubkey],
+          ['session', 'NOT-HEX']
+        ]
+      })
+
+      expect(storedMessages()[0]).toMatchObject({ sessionId: '' })
+      expect(sessionStore.size).toBe(0)
+    })
+
+    it('files an untagged reply under its parent session', async () => {
+      const { api, captured } = createFakeChatApi()
+      await subscribeToIdentityChat(api, sender)
+      const parentId = 'a'.repeat(64)
+      deliverRumor(captured.handlers, 'w1', {
+        content: 'question',
+        created_at: 10,
+        id: parentId,
+        pubkey: senderPubkey,
+        tags: [
+          ['p', peerPubkey],
+          ['session', sessionId]
+        ]
+      })
+
+      deliverRumor(captured.handlers, 'w2', {
+        content: 'answer from an agent without session support',
+        created_at: 11,
+        id: 'b'.repeat(64),
+        pubkey: peerPubkey,
+        tags: [
+          ['p', senderPubkey],
+          ['e', parentId]
+        ]
+      })
+
+      expect(chatStore.get('b'.repeat(64))).toMatchObject({ sessionId })
+    })
+
+    it('refuses new sessions past the per-peer cap', async () => {
+      for (let i = 0; i < NOSTR_CHAT_SESSIONS_PER_PEER_MAX; i += 1) {
+        sessionStore.set(String(i), {})
+      }
+      const { api, captured } = createFakeChatApi()
+      await subscribeToIdentityChat(api, sender)
+
+      deliverRumor(captured.handlers, 'w1', {
+        content: 'spam',
+        created_at: 10,
+        id: 'a'.repeat(64),
+        pubkey: peerPubkey,
+        tags: [
+          ['p', senderPubkey],
+          ['session', otherSessionId]
+        ]
+      })
+
+      expect(storedMessages()).toHaveLength(0)
+      expect(processedWraps.size).toBe(1)
+    })
+
+    it('resolves the tag first, then the parent, then the default', () => {
+      expect(resolveChatSessionId(sessionId, otherSessionId)).toBe(sessionId)
+      expect(resolveChatSessionId(null, otherSessionId)).toBe(otherSessionId)
+      expect(resolveChatSessionId(null, null)).toBe('')
+    })
+
+    it('never lets a malformed tag inherit the parent session', () => {
+      expect(resolveChatSessionId('', otherSessionId)).toBe('')
+    })
+
+    it('keeps the subject on a retry when the first send failed', async () => {
+      sessionStore.set(sessionId, {
+        archived: false,
+        createdAt: 1,
+        identityNpub: senderNpub,
+        peerPubkey,
+        sessionId,
+        title: 'Release 1.4'
+      })
+      const failing = new NostrAPI([])
+      jest
+        .spyOn(failing, 'publishEvent')
+        .mockRejectedValue(new Error('relay down'))
+      await expect(
+        sendNip17Chat(failing, sender, peerNpub, 'first', { sessionId })
+      ).rejects.toThrow('relay down')
+      const { api, published } = createCapturingApi()
+
+      await sendNip17Chat(api, sender, peerNpub, 'retry', { sessionId })
+
+      expect(unwrapPublished(published[0], peerSecretKey).tags).toContainEqual([
+        'subject',
+        'Release 1.4'
+      ])
+    })
+
+    it('names a session from a subject that arrives after it', async () => {
+      const { api, captured } = createFakeChatApi()
+      await subscribeToIdentityChat(api, sender)
+
+      deliverRumor(captured.handlers, 'w2', {
+        content: 'second, delivered first',
+        created_at: 11,
+        id: 'b'.repeat(64),
+        pubkey: peerPubkey,
+        tags: [
+          ['p', senderPubkey],
+          ['session', sessionId]
+        ]
+      })
+      deliverRumor(captured.handlers, 'w1', {
+        content: 'first',
+        created_at: 10,
+        id: 'a'.repeat(64),
+        pubkey: peerPubkey,
+        tags: [
+          ['p', senderPubkey],
+          ['session', sessionId],
+          ['subject', 'Agent task']
+        ]
+      })
+
+      expect(sessionStore.get(sessionId)).toMatchObject({
+        title: 'Agent task'
+      })
+    })
+
+    it('keeps a title the user set when a late subject arrives', async () => {
+      sessionStore.set(sessionId, {
+        sessionId,
+        title: 'Mine',
+        titleLocked: true
+      })
+      const { api, captured } = createFakeChatApi()
+      await subscribeToIdentityChat(api, sender)
+
+      deliverRumor(captured.handlers, 'w1', {
+        content: 'first',
+        created_at: 10,
+        id: 'a'.repeat(64),
+        pubkey: peerPubkey,
+        tags: [
+          ['p', senderPubkey],
+          ['session', sessionId],
+          ['subject', 'Theirs']
+        ]
+      })
+
+      expect(sessionStore.get(sessionId)).toMatchObject({ title: 'Mine' })
+    })
+
+    it('files a reply with a malformed session tag under the default session', async () => {
+      const { api, captured } = createFakeChatApi()
+      await subscribeToIdentityChat(api, sender)
+      const parentId = 'a'.repeat(64)
+      deliverRumor(captured.handlers, 'w1', {
+        content: 'question',
+        created_at: 10,
+        id: parentId,
+        pubkey: senderPubkey,
+        tags: [
+          ['p', peerPubkey],
+          ['session', sessionId]
+        ]
+      })
+
+      deliverRumor(captured.handlers, 'w2', {
+        content: 'odd reply',
+        created_at: 11,
+        id: 'b'.repeat(64),
+        pubkey: peerPubkey,
+        tags: [
+          ['p', senderPubkey],
+          ['e', parentId],
+          ['session', 'NOT-HEX']
+        ]
+      })
+
+      expect(chatStore.get('b'.repeat(64))).toMatchObject({ sessionId: '' })
+    })
+
+    it('deletes only our own messages of a session for everyone', async () => {
+      sessionStore.set(sessionId, { sessionId })
+      const { api, published } = createCapturingApi()
+      await sendNip17Chat(api, sender, peerNpub, 'mine', { sessionId })
+      const ownId = storedMessages()[0]?.id
+      chatStore.set('peer-msg', {
+        direction: 'in',
+        id: 'peer-msg',
+        peerPubkey,
+        sessionId
+      })
+      published.length = 0
+
+      await deleteChatSessionForEveryone(api, sender, peerNpub, sessionId)
+
+      const deletion = unwrapPublished(published[0], peerSecretKey)
+      expect(deletion.kind).toBe(5)
+      expect(deletion.tags).toContainEqual(['e', ownId])
+      expect(deletion.tags).not.toContainEqual(['e', 'peer-msg'])
+      expect(chatStore.has('peer-msg')).toBe(true)
+    })
+
+    it('hands a peer message in a session to the signing queue, never our own copy', async () => {
+      const { api, captured } = createFakeChatApi()
+      await subscribeToIdentityChat(api, sender)
+      const tags = [
+        ['p', senderPubkey],
+        ['session', sessionId],
+        ['sign_request', '{}']
+      ]
+
+      deliverRumor(captured.handlers, 'w1', {
+        content: 'please sign',
+        created_at: 10,
+        id: 'a'.repeat(64),
+        pubkey: peerPubkey,
+        tags
+      })
+      deliverRumor(captured.handlers, 'w2', {
+        content: 'my own copy',
+        created_at: 11,
+        id: 'b'.repeat(64),
+        pubkey: senderPubkey,
+        tags: [
+          ['p', peerPubkey],
+          ['session', sessionId]
+        ]
+      })
+
+      expect(queueChatSignRequests).toHaveBeenCalledTimes(1)
+      expect(queueChatSignRequests).toHaveBeenCalledWith('please sign', tags, {
+        identityNpub: senderNpub,
+        messageId: 'a'.repeat(64),
+        ownPubkey: senderPubkey,
+        peerPubkey,
+        receivedAt: expect.any(Number),
+        requestedAt: 10,
+        sessionId
+      })
+    })
+  })
+
+  describe('agent reports', () => {
+    const sessionId = 'c'.repeat(32)
+    const cost = {
+      amount: 271.67,
+      requests: 9,
+      tokens: { output: 5210 },
+      unit: 'sat',
+      v: 1
+    }
+    const model = { id: 'claude-opus-5.5', provider: 'routstr', v: 1 }
+    const state = {
+      session: { model, spent: { amount: 874, unit: 'sat' } },
+      v: 1
+    }
+
+    function stateTags(extra: string[][] = []): string[][] {
+      return [
+        ['d', 'nip17-session-state'],
+        ['p', senderPubkey],
+        ['session', sessionId],
+        ...extra
+      ]
+    }
+
+    function storedState(author = peerPubkey) {
+      return sessionStateStore.get(`${sessionId}|${author}`)
+    }
+
+    async function subscribeWithSession() {
+      sessionStore.set(sessionId, { sessionId })
+      const { api, captured } = createFakeChatApi()
+      await subscribeToIdentityChat(api, sender)
+      return captured
+    }
+
+    it('keeps the cost and model tags of a reply', async () => {
+      const captured = await subscribeWithSession()
+
+      deliverRumor(captured.handlers, 'w1', {
+        content: 'done',
+        created_at: 10,
+        id: 'a'.repeat(64),
+        pubkey: peerPubkey,
+        tags: [
+          ['p', senderPubkey],
+          ['session', sessionId],
+          ['agent_cost', JSON.stringify(cost)],
+          ['agent_model', JSON.stringify(model)]
+        ]
+      })
+
+      expect(storedMessages()[0]).toMatchObject({
+        agentCost: cost,
+        agentModel: model
+      })
+    })
+
+    it('ignores agent tags on our own copies', async () => {
+      const captured = await subscribeWithSession()
+
+      deliverRumor(captured.handlers, 'w1', {
+        content: 'mine',
+        created_at: 10,
+        id: 'a'.repeat(64),
+        pubkey: senderPubkey,
+        tags: [
+          ['p', peerPubkey],
+          ['session', sessionId],
+          ['agent_cost', JSON.stringify(cost)]
+        ]
+      })
+
+      expect(storedMessages()[0]).not.toHaveProperty('agentCost')
+    })
+
+    it('stores the peer document for a known session, newest wins', async () => {
+      const captured = await subscribeWithSession()
+      const newer = { ...state, session: { ...state.session, busy: true } }
+
+      deliverRumor(captured.handlers, 'w2', {
+        content: JSON.stringify(newer),
+        created_at: 20,
+        id: 'b'.repeat(64),
+        kind: 30_078,
+        pubkey: peerPubkey,
+        tags: stateTags()
+      })
+      deliverRumor(captured.handlers, 'w1', {
+        content: JSON.stringify(state),
+        created_at: 10,
+        id: 'a'.repeat(64),
+        kind: 30_078,
+        pubkey: peerPubkey,
+        tags: stateTags()
+      })
+
+      expect(storedState()).toMatchObject({ createdAt: 20, sessionId })
+      expect(JSON.parse(String(storedState()?.content))).toMatchObject({
+        session: { busy: true }
+      })
+      expect(storedMessages()).toHaveLength(0)
+    })
+
+    it('drops a document for a session that does not exist', async () => {
+      const { api, captured } = createFakeChatApi()
+      await subscribeToIdentityChat(api, sender)
+
+      deliverRumor(captured.handlers, 'w1', {
+        content: JSON.stringify(state),
+        created_at: 10,
+        id: 'a'.repeat(64),
+        kind: 30_078,
+        pubkey: peerPubkey,
+        tags: stateTags()
+      })
+
+      expect(sessionStateStore.size).toBe(0)
+      expect(sessionStore.size).toBe(0)
+    })
+
+    it('takes a default session document only from someone we wrote to', async () => {
+      const { api, captured } = createFakeChatApi()
+      await subscribeToIdentityChat(api, sender)
+      const defaultTags = [
+        ['d', 'nip17-session-state'],
+        ['p', senderPubkey]
+      ]
+
+      deliverRumor(captured.handlers, 'w1', {
+        content: JSON.stringify(state),
+        created_at: 10,
+        id: 'a'.repeat(64),
+        kind: 30_078,
+        pubkey: peerPubkey,
+        tags: defaultTags
+      })
+      expect(sessionStateStore.size).toBe(0)
+
+      chatStore.set('mine', { direction: 'out', id: 'mine', peerPubkey })
+      deliverRumor(captured.handlers, 'w2', {
+        content: JSON.stringify(state),
+        created_at: 11,
+        id: 'b'.repeat(64),
+        kind: 30_078,
+        pubkey: peerPubkey,
+        tags: defaultTags
+      })
+      expect(sessionStateStore.get(`|${peerPubkey}`)).toMatchObject({
+        sessionId: ''
+      })
+    })
+
+    it('ignores our own documents, other d tags, other recipients and bad content', async () => {
+      const captured = await subscribeWithSession()
+      const rumors = [
+        { pubkey: senderPubkey, tags: stateTags() },
+        {
+          pubkey: peerPubkey,
+          tags: [
+            ['d', 'other-app'],
+            ['p', senderPubkey],
+            ['session', sessionId]
+          ]
+        },
+        {
+          pubkey: peerPubkey,
+          tags: [
+            ['d', 'nip17-session-state'],
+            ['p', peerPubkey],
+            ['session', sessionId]
+          ]
+        },
+        { content: '{"v":2}', pubkey: peerPubkey, tags: stateTags() },
+        {
+          created_at: Math.floor(Date.now() / 1000) + 3600,
+          pubkey: peerPubkey,
+          tags: stateTags()
+        }
+      ]
+
+      for (const [index, rumor] of rumors.entries()) {
+        deliverRumor(captured.handlers, `w${index}`, {
+          content: JSON.stringify(state),
+          created_at: 10 + index,
+          id: String(index).repeat(64),
+          kind: 30_078,
+          ...rumor
+        })
+      }
+
+      expect(sessionStateStore.size).toBe(0)
+      expect(processedWraps.size).toBe(rumors.length)
     })
   })
 })

@@ -7,6 +7,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.13] - 2026-11-27
+
+### Added
+
+- Nostr calendar (NIP-52): month and agenda views, and creating, editing
+  and deleting all-day and timed events with locations, participants,
+  hashtags, links and an image. Timed events keep their time zone, and
+  dates and times are picked from a month grid and hour and minute wheels.
+- RSVP to calendar events (going, maybe, not going, free or busy), with a
+  count of everyone's answers. Events that invite you show up in your
+  calendar.
+- Calendars to group events. Others can ask to add their events to yours,
+  and you accept each request.
+- Parallel sessions in a NIP-17 chat with the same contact, so an agent can
+  work on several tasks at once. Sessions can be named, archived or deleted.
+- Agents can ask for signatures inside a chat session. Approve later from a
+  card in the thread, or lend a one-time `bunker://` signer while the app is
+  open. Only the chat's own identity signs.
+- Agent chats show what the agent runs on: model, thinking level, context
+  used and what the session has cost, under the session title, with
+  details on tap. Each agent reply shows its model and cost.
+- Quick sync check: only the addresses that can change are asked about, and
+  the full rescan is skipped when nothing changed.
+- The website lives in the repo under `apps/website`, with a bug bounty page
+  that sends reports as private NIP-17 messages.
+- Release console: compare and sync every branch and tag between GitHub and
+  ngit.
+
+### Fixed
+
+- The "Ensure wallet data is updated" screen before sending lets you
+  continue instead of looping back.
+- Scrolling up in a chat no longer snaps back to the newest message.
+- The Android scanner reads light-on-dark QR codes, such as a Lightning
+  invoice shown in a dark terminal.
+- The calendar no longer shows event revisions that were replaced or
+  deleted, and skips events with a bad signature.
+
+## [0.3.9] - 2026-11-17
+
+### Added
+
+- Nostr DMs render markdown with copyable code blocks, and links ask before
+  opening.
+- Lightning invoices and bitcoin: payment requests in DMs show as cards with
+  the amount, label, expiry and network. Pay opens the wallet's pay screen or
+  the transaction preview; nothing is paid from the chat.
+- Invoice cards say where the invoice stands ("Expires in 2h", "pay soon" in
+  the last ten minutes, expired, or no expiry) and what to set up when no
+  wallet can pay it. A message carrying an invoice collapses its raw text
+  behind "Show more".
+- React to NIP-17 chat messages; a peer's 👀 ✅ ⚠️ on your message reads as
+  Working, Answered or Error.
+
+## [0.3.8] - 2026-11-16
+
 ### Added
 
 - **Payjoin** (BIP77 and BIP78) send and receive, with a manual offline PSBT
@@ -79,6 +135,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Account sync shows addresses checked ("2/45 addresses") alternating with
+  the check kind, and tapping it opens sync details with "Check all
+  addresses" and "Deep rescan".
 - **Breaking:** TLS certificates of `ssl://` Electrum servers are now verified,
   so servers with self-signed certificates fail. Install the CA on the device.
   `tcp://` still works on a trusted LAN, but it is unencrypted and does not
@@ -108,6 +167,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Android back closes select modals, and leaves User coin selection when no
+  inputs were picked.
 - Signing pasted or scanned PSBTs crashed on Hermes (`psbt.txid()` and
   `toReversed()` calls).
 - Multisig: each key keeps its own origin path, `sh(wsh())` descriptors parse,

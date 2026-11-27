@@ -1,0 +1,387 @@
+/* SS component kit. One block per app component, ported from generated/styles.css.
+   Values come from generated/tokens.css only. Classes use the `ss-` prefix so they
+   can sit next to the hand-written screen.css. Source file is named above each block. */
+
+/* SSText — components/SSText.tsx */
+.ss-text {
+  margin: 0;
+  color: var(--white);
+  font-size: var(--sizes-text-font-size-sm);
+  font-weight: var(--sizes-text-font-weight-regular);
+}
+.ss-text.is-black { color: var(--black); }
+.ss-text.is-muted { color: var(--gray-300); }
+.ss-text.is-mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-weight: var(--sizes-text-font-weight-regular); }
+.ss-text.is-uppercase { text-transform: uppercase; }
+.ss-text.is-center { text-align: center; }
+.ss-text.w-ultralight { font-weight: var(--sizes-text-font-weight-ultralight); }
+.ss-text.w-light { font-weight: var(--sizes-text-font-weight-light); }
+.ss-text.w-medium { font-weight: var(--sizes-text-font-weight-medium); }
+.ss-text.w-bold { font-weight: var(--sizes-text-font-weight-bold); }
+.ss-text.s-2xxs { font-size: var(--sizes-text-font-size-2xxs); }
+.ss-text.s-xxs { font-size: var(--sizes-text-font-size-xxs); }
+.ss-text.s-xs { font-size: var(--sizes-text-font-size-xs); }
+.ss-text.s-md { font-size: var(--sizes-text-font-size-md); }
+.ss-text.s-lg { font-size: var(--sizes-text-font-size-lg); }
+.ss-text.s-xl { font-size: var(--sizes-text-font-size-xl); }
+.ss-text.s-2xl { font-size: var(--sizes-text-font-size-2xl); }
+.ss-text.s-3xl { font-size: var(--sizes-text-font-size-3xl); }
+.ss-text.s-4xl { font-size: var(--sizes-text-font-size-4xl); }
+.ss-text.s-5xl { font-size: var(--sizes-text-font-size-5xl); }
+.ss-text.s-6xl { font-size: var(--sizes-text-font-size-6xl); }
+.ss-text.s-7xl { font-size: var(--sizes-text-font-size-7xl); }
+.ss-text.s-8xl { font-size: var(--sizes-text-font-size-8xl); }
+
+/* SSVStack / SSHStack — layouts/SSVStack.tsx, layouts/SSHStack.tsx */
+.ss-vstack { display: flex; flex-direction: column; gap: var(--gap, var(--layout-v-stack-gap-md)); }
+.ss-vstack.is-between { flex: 1; justify-content: space-between; }
+.ss-vstack.is-center { align-items: center; }
+.ss-vstack.is-full { width: 100%; }
+.ss-hstack { display: flex; flex-direction: row; align-items: center; gap: var(--gap, var(--layout-h-stack-gap-md)); }
+.ss-hstack.is-between { justify-content: space-between; }
+.ss-hstack.is-evenly { justify-content: space-evenly; }
+
+/* SSMainLayout — layouts/SSMainLayout.tsx */
+.ss-main {
+  flex: 1;
+  box-sizing: border-box;
+  min-height: 100%;
+  padding: var(--layout-main-container-padding-top) var(--layout-main-container-padding-horizontal) var(--layout-main-container-padding-bottom);
+  background: var(--gray-950);
+  color: var(--white);
+}
+
+/* SSButton — components/SSButton.tsx */
+.ss-button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: var(--sizes-button-height);
+  border: 0;
+  border-radius: var(--sizes-button-border-radius);
+  padding: 0;
+  overflow: hidden;
+  background: var(--gray-600);
+  color: var(--white);
+  font: inherit;
+  font-size: var(--sizes-button-font-size);
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: opacity 120ms;
+}
+.ss-button:active { opacity: 0.6; }
+.ss-button[disabled] { opacity: 0.3; cursor: default; }
+.ss-button .ss-button-label {
+  position: relative;
+  z-index: 2;
+  max-width: 100%;
+  padding: 0 12px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.ss-button.is-uppercase .ss-button-label { text-transform: uppercase; }
+.ss-button.v-secondary { background: var(--white); color: var(--black); }
+.ss-button.v-outline { background: var(--transparent); }
+.ss-button.v-ghost { background: var(--transparent); color: var(--gray-200); }
+.ss-button.v-subtle { background: var(--gray-900); color: var(--gray-75); }
+.ss-button.v-danger { background: var(--error); }
+.ss-button.v-select { background: var(--gray-850); }
+/* SSBackgroundGradient (diagonal) under the default gradient variant */
+.ss-button.v-gradient { background: linear-gradient(15deg, var(--gray-900), var(--gray-800)); }
+/* elevated: #212121 -> #1C1C1C plus glass edges */
+.ss-button.v-elevated { background: linear-gradient(180deg, var(--gray-875), var(--gray-880)); }
+.ss-button .ss-select-chevron { position: absolute; right: 15px; top: 50%; width: 11.6px; height: 5px; transform: translateY(-50%); }
+.ss-button .ss-spinner { position: relative; z-index: 2; }
+
+/* Glass edges — SSOutlineGlassBorders.tsx (outline) and SSButton elevated borders */
+.ss-glass { position: absolute; inset: 0; pointer-events: none; }
+.ss-glass i { position: absolute; display: block; }
+.ss-glass .t { top: 0; left: 0; right: 0; height: 1px; }
+.ss-glass .b { bottom: 0; left: 0; right: 0; height: 1px; }
+.ss-glass .l { top: 0; bottom: 0; left: 0; width: 1px; }
+.ss-glass .r { top: 0; bottom: 0; right: 0; width: 1px; }
+.ss-glass.is-outline .t { background: linear-gradient(90deg, rgba(255,255,255,0.16), rgba(255,255,255,0.30), rgba(255,255,255,0.18)); }
+.ss-glass.is-outline .b { background: linear-gradient(90deg, rgba(255,255,255,0.06), rgba(255,255,255,0.20), rgba(255,255,255,0.06)); }
+.ss-glass.is-outline .l { background: linear-gradient(180deg, rgba(255,255,255,0.22), rgba(255,255,255,0.14)); }
+.ss-glass.is-outline .r { background: linear-gradient(180deg, rgba(255,255,255,0.18), rgba(255,255,255,0.13)); }
+.ss-glass.is-elevated .t { background: linear-gradient(90deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.22) 35%, rgba(255,255,255,0.05) 100%); }
+.ss-glass.is-elevated .b { background: linear-gradient(90deg, rgba(0,0,0,0), rgba(0,0,0,0.3), rgba(0,0,0,0)); }
+.ss-glass.is-elevated .l { background: linear-gradient(180deg, rgba(255,255,255,0.18), rgba(255,255,255,0.04)); }
+.ss-glass.is-elevated .r { background: linear-gradient(180deg, rgba(255,255,255,0.1), rgba(255,255,255,0.02)); }
+
+/* SSIconButton — components/SSIconButton.tsx */
+.ss-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--white);
+  cursor: pointer;
+}
+.ss-icon-button:active { opacity: 0.65; }
+.ss-icon-button.is-rounded { padding: 5px; border: 1px solid gray; border-radius: 20px; background: gray; }
+.ss-icon svg { display: block; width: 100%; height: 100%; }
+.ss-icon { display: inline-block; flex: none; }
+
+/* SSTextInput — components/SSTextInput.tsx */
+.ss-input { position: relative; width: 100%; display: flex; flex-direction: column; gap: var(--layout-v-stack-gap-xs); }
+.ss-input input {
+  box-sizing: border-box;
+  width: 100%;
+  height: var(--sizes-text-input-height-default);
+  border: 0;
+  border-radius: var(--sizes-text-input-border-radius);
+  padding: 0 12px;
+  background: var(--gray-850);
+  color: var(--white);
+  font: inherit;
+  font-size: var(--sizes-text-input-font-size-default);
+  text-align: center;
+  outline: none;
+}
+.ss-input input::placeholder, .ss-input textarea::placeholder { color: var(--gray-400); }
+/* multiline: ioPreview address/label fields (110px, 22px, top-aligned) */
+.ss-input textarea {
+  box-sizing: border-box; width: 100%; height: 110px; resize: none;
+  border: 0; border-radius: var(--sizes-text-input-border-radius);
+  padding: 12px; background: var(--gray-850); color: var(--white);
+  font: inherit; font-size: 22px; text-align: left; outline: none;
+}
+.ss-input textarea.is-mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: 0.5px; word-break: break-all; }
+.ss-input.is-outline input { background: none; border: 1px solid var(--gray-400); }
+.ss-input.is-small input { height: var(--sizes-text-input-height-small); font-size: var(--sizes-text-input-font-size-small); }
+.ss-input.is-left input { text-align: left; }
+.ss-input.is-valid input { border: 1px solid var(--main-green); }
+.ss-input.is-invalid input { border: 1px solid var(--error); }
+.ss-input.has-action input { padding-right: 48px; }
+.ss-input .ss-input-action { position: absolute; right: 12px; top: calc(var(--sizes-text-input-height-default) / 2); transform: translateY(-50%); }
+.ss-input .ss-input-note { margin: 0; font-size: var(--sizes-text-font-size-xs); line-height: 12px; }
+.ss-input .is-error { color: var(--error); }
+.ss-input .is-warning { color: var(--warning); }
+
+/* SSCheckbox — components/SSCheckbox.tsx (react-native-bouncy-checkbox) */
+.ss-checkbox {
+  display: flex;
+  align-items: center;
+  gap: calc(var(--sizes-checkbox-height) / 2);
+  width: 100%;
+  border: 0;
+  padding: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.ss-checkbox[disabled] { opacity: 0.3; cursor: default; }
+.ss-checkbox .ss-checkbox-box {
+  position: relative;
+  flex: none;
+  box-sizing: border-box;
+  width: var(--sizes-checkbox-height);
+  height: var(--sizes-checkbox-height);
+  border: var(--sizes-checkbox-border-width) solid var(--transparent);
+  border-radius: var(--sizes-checkbox-border-radius);
+  background: var(--gray-700);
+  transition: transform 160ms;
+}
+.ss-checkbox.is-on .ss-checkbox-box { border-color: var(--white); }
+.ss-checkbox.is-on .ss-checkbox-box::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 45%;
+  width: 6px;
+  height: 12px;
+  border: solid var(--white);
+  border-width: 0 2px 2px 0;
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+.ss-checkbox:active .ss-checkbox-box { transform: scale(0.9); }
+.ss-checkbox .ss-checkbox-copy { flex: 1; display: flex; flex-direction: column; }
+
+/* SSRadioButton — components/SSRadioButton.tsx */
+.ss-radio {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 100%;
+  height: var(--sizes-button-height);
+  border: var(--sizes-radio-button-border-width) solid var(--gray-700);
+  border-radius: var(--sizes-button-border-radius);
+  overflow: hidden;
+  background: var(--gray-950);
+  color: var(--white);
+  font: inherit;
+  font-size: var(--sizes-text-font-size-sm);
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.ss-radio:active { opacity: 0.6; }
+.ss-radio.is-on { background: var(--gray-600); border-color: rgba(255, 255, 255, 0.68); }
+.ss-radio.is-outline { border: 0; background: var(--transparent); color: var(--gray-300); }
+.ss-radio.is-outline:active { opacity: 1; }
+.ss-radio.is-outline.is-on { color: var(--white); font-weight: var(--sizes-text-font-weight-bold); }
+.ss-radio[disabled] { opacity: 0.3; }
+
+/* SSSeparator — components/SSSeparator.tsx */
+.ss-separator { height: 1.5px; flex: none; background: linear-gradient(90deg, var(--gray-700), var(--gray-800), var(--gray-850)); }
+.ss-separator.is-dark { background: var(--gray-800); }
+
+/* SSFormLayout — layouts/SSFormLayout.tsx */
+.ss-form { display: flex; flex-direction: column; gap: var(--layout-v-stack-gap-lg); width: 100%; }
+.ss-form-item { display: flex; flex-direction: column; gap: var(--layout-v-stack-gap-xs); }
+.ss-form-label { margin: 0; color: var(--gray-300); font-size: var(--sizes-text-font-size-sm); text-transform: uppercase; }
+
+/* SSLoader / ActivityIndicator */
+.ss-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid currentColor;
+  border-right-color: var(--transparent);
+  border-radius: 50%;
+  animation: ss-spin 0.8s linear infinite;
+}
+@keyframes ss-spin { to { transform: rotate(360deg); } }
+
+/* SSModal — components/SSModal.tsx */
+.ss-modal {
+  position: absolute;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  padding: var(--layout-main-container-padding-top) var(--layout-main-container-padding-horizontal) 16px;
+  background: rgba(0, 0, 0, 0.85);
+  animation: ss-fade 180ms ease-out;
+}
+.ss-modal.is-opaque { background: var(--gray-950); }
+.ss-modal[hidden] { display: none; }
+.ss-modal > .ss-vstack { flex: 1; padding: 16px 0; }
+@keyframes ss-fade { from { opacity: 0; } }
+
+/* SSClipboardCopy — copied toast */
+.ss-copy { cursor: copy; }
+.ss-toast {
+  position: absolute;
+  left: 50%;
+  top: 56px;
+  z-index: 2000;
+  padding: 10px 16px;
+  border-radius: 8px;
+  background: var(--gray-850);
+  color: var(--white);
+  font-size: var(--sizes-text-font-size-sm);
+  transform: translateX(-50%);
+  animation: ss-fade 160ms ease-out;
+  pointer-events: none;
+}
+
+/* SSStyledSatText — components/SSStyledSatText.tsx */
+.ss-sat { letter-spacing: -0.1px; white-space: nowrap; }
+.ss-sat .ss-sat-lead { color: var(--soft-white); }
+.ss-sat .ss-sat-main { color: var(--white); }
+.ss-sat.is-send .ss-sat-lead { color: var(--soft-red); }
+.ss-sat.is-send .ss-sat-main { color: var(--main-red); }
+.ss-sat.is-send.is-padded .ss-sat-lead { color: var(--soft-bar-red); }
+.ss-sat.is-receive .ss-sat-lead { color: var(--soft-green); }
+.ss-sat.is-receive .ss-sat-main { color: var(--main-green); }
+.ss-sat.is-receive.is-padded .ss-sat-lead { color: var(--soft-bar-green); }
+.ss-sat .ss-sat-sign { margin-right: 2px; color: var(--main-red); font-weight: var(--sizes-text-font-weight-medium); opacity: 0.78; }
+
+/* SSAddressDisplay — components/SSAddressDisplay.tsx */
+.ss-address { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--layout-h-stack-gap-sm); box-sizing: border-box; width: 100%; padding: 12px; border-radius: 5px; background: var(--gray-800); }
+.ss-address.is-outline { background: none; border: 1px solid var(--gray-600); }
+.ss-address.is-bare { justify-content: flex-start; padding: 0; background: none; }
+
+/* SSDetailsList — components/SSDetailsList.tsx */
+.ss-details { display: flex; flex-wrap: wrap; justify-content: space-between; column-gap: 0; }
+
+/* SSActionButton — components/SSActionButton.tsx */
+.ss-action-button { display: flex; align-items: center; justify-content: center; height: var(--sizes-action-button-height); border: 0; padding: 0; background: none; color: var(--white); font: inherit; font-size: var(--sizes-action-button-font-size); cursor: pointer; }
+.ss-action-button:active { opacity: 0.65; }
+
+/* SSQRCode — white quiet zone, black modules */
+.ss-qr { box-sizing: border-box; padding: 0; background: var(--white); border-radius: 2px; }
+.ss-qr svg { display: block; width: 100%; height: 100%; fill: var(--black); shape-rendering: crispEdges; }
+
+/* SSAmountInput + SSNumberGhostInput */
+.ss-amount-input { display: flex; flex-direction: column; gap: 8px; }
+.ss-ghost-input { display: block; }
+.ss-ghost-value { display: flex; align-items: center; justify-content: center; box-sizing: border-box; height: 72px; border: 1px solid var(--gray-400); border-radius: var(--sizes-text-input-border-radius); background: var(--gray-950); cursor: text; }
+.ss-ghost-value[hidden] { display: none; }
+.ss-ghost-value:active { background: var(--gray-850); }
+.ss-ghost-field { box-sizing: border-box; width: 100%; height: 72px; border: 0; border-radius: var(--sizes-text-input-border-radius); background: var(--gray-850); color: var(--white); font: inherit; font-size: var(--sizes-text-font-size-5xl); font-weight: var(--sizes-text-font-weight-light); text-align: center; outline: none; }
+.ss-amount-fiat.is-switchable { text-decoration: underline; cursor: pointer; }
+.ss-slider { --fill: 0%; width: 100%; height: 22px; margin: 4px 0 0; background: none; -webkit-appearance: none; appearance: none; }
+.ss-slider::-webkit-slider-runnable-track { height: 12px; border-radius: 6px; background: linear-gradient(90deg, var(--white) var(--fill), var(--gray-600) var(--fill)); }
+.ss-slider::-moz-range-track { height: 12px; border-radius: 6px; background: linear-gradient(90deg, var(--white) var(--fill), var(--gray-600) var(--fill)); }
+.ss-slider::-webkit-slider-thumb { width: 22px; height: 22px; margin-top: -5px; border-radius: 11px; background: var(--white); -webkit-appearance: none; }
+.ss-slider::-moz-range-thumb { width: 22px; height: 22px; border: 0; border-radius: 11px; background: var(--white); }
+
+/* SSLoader — components/SSLoader.tsx */
+.ss-orbit { display: inline-flex; align-items: center; justify-content: center; }
+.ss-orbit svg { fill: var(--white); }
+
+/* SSSuccessCheckAnimation — components/SSSuccessCheckAnimation.tsx */
+.ss-success { position: relative; display: inline-flex; align-items: center; justify-content: center; animation: ss-breathe 3600ms ease-in-out 700ms infinite; }
+.ss-success svg { position: relative; overflow: visible; }
+.ss-success-ring { position: absolute; inset: 22%; border: 1px solid var(--white); border-radius: 50%; opacity: 0; animation: ss-pulse 1000ms cubic-bezier(0.25, 0.46, 0.45, 0.94) 250ms 1; }
+.ss-success-ring.is-late { animation-delay: 470ms; }
+.ss-success-check { stroke-dasharray: 107; stroke-dashoffset: 107; animation: ss-draw 420ms ease-out 220ms forwards; }
+.ss-success-halo { animation: ss-halo 3600ms ease-in-out infinite; }
+.ss-success.is-static, .ss-success.is-static * { animation: none; }
+.ss-success.is-static .ss-success-check { stroke-dashoffset: 0; }
+@keyframes ss-draw { to { stroke-dashoffset: 0; } }
+@keyframes ss-pulse { 0% { opacity: 0.28; transform: scale(1); } 100% { opacity: 0; transform: scale(1.9); } }
+@keyframes ss-breathe { 50% { transform: scale(1.038); } }
+@keyframes ss-halo { 0%, 100% { opacity: 0.44; } 50% { opacity: 0.76; } }
+
+/* SSTransactionIdFormatted — components/SSTransactionIdFormatted.tsx */
+.ss-txid { display: flex; flex-wrap: wrap; column-gap: 5px; font-family: ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: 0.35px; color: var(--white); font-size: var(--sizes-text-font-size-lg); line-height: 1.38; }
+.ss-txid.s-md { font-size: var(--sizes-text-font-size-md); }
+.ss-txid.s-sm { font-size: var(--sizes-text-font-size-sm); }
+.ss-txid .is-dim { color: var(--gray-100); }
+
+/* Screen scaffold for kit-built views: fills the phone, footer pinned to the bottom */
+.ss-screen { display: flex; flex-direction: column; }
+
+/* FadeIn / FadeInDown entering animations used by screens */
+.ss-enter { opacity: 0; animation: ss-enter 450ms ease-out forwards; }
+@keyframes ss-enter { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+
+/* ?still — jump every animation to its end state (screenshots, reviews) */
+html.is-still *, html.is-still *::before, html.is-still *::after { animation-duration: 0s !important; animation-delay: 0s !important; transition: none !important; }
+
+/* SSBottomSheet — components/SSBottomSheet.tsx (@gorhom/bottom-sheet) */
+.ss-sheet { position: absolute; inset: 0; z-index: 900; }
+.ss-sheet[hidden] { display: none; }
+.ss-sheet-scrim { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.5); animation: ss-fade 180ms ease-out; }
+.ss-sheet-panel {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  box-sizing: border-box; overflow: auto;
+  padding: 16px var(--layout-main-container-padding-horizontal) 24px;
+  border-top: 1px solid var(--gray-500); border-radius: 6px 6px 0 0;
+  background: var(--gray-950);
+  animation: ss-sheet-up 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.ss-sheet-panel.is-flush { padding-left: 0; padding-right: 0; }
+@keyframes ss-sheet-up { from { transform: translateY(100%); } }
+
+/* SSFeeInput — components/SSFeeInput.tsx */
+.ss-fee-input { display: flex; flex-direction: column; gap: var(--layout-v-stack-gap-sm); }
+
+/* SSNumberInput — red border when out of range */
+.ss-input.is-invalid input { border: 1px solid var(--error); }
+
+/* SSSettingsCards — components/SSSettingsCard.tsx */
+.ss-settings-card { display: block; width: 100%; box-sizing: border-box; padding: 24px; border: 0; border-top: 1px solid var(--gray-850); background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.ss-settings-card:active { opacity: 0.5; }

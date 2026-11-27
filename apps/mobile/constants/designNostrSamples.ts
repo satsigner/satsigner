@@ -1,16 +1,28 @@
+import * as nostrKinds from 'nostr-tools/kinds'
+
+import {
+  NOSTR_CHAT_DEFAULT_SESSION_ID,
+  NOSTR_ZAPSTORE_ASSET_KIND,
+  NOSTR_ZAPSTORE_CERT_HASH_TAG,
+  NOSTR_ZAPSTORE_RELEASE_KIND,
+  SATSIGNER_RELEASE_CERT_SHA256
+} from '@/constants/nostr'
 import {
   MS_PER_SECOND,
   SECONDS_PER_DAY as DAY,
   SECONDS_PER_HOUR as HOUR,
   SECONDS_PER_MINUTE as MINUTE
 } from '@/constants/time'
+import { PACKAGE_ID_PROD } from '@/constants/variant'
 import type { AuthorDisplayInfo } from '@/hooks/useNostrMessage'
 import type {
   NostrChatConversationItem,
   NostrChatReaction,
+  NostrChatSession,
   NostrDM,
   NostrReactionRow,
-  NostrReactionSummaryEntry
+  NostrReactionSummaryEntry,
+  NostrSignRequest
 } from '@/types/models/Nostr'
 import { findChatPaymentRequests } from '@/utils/chatPaymentRequests'
 import type {
@@ -351,24 +363,53 @@ export const DESIGN_NOSTR_CHAT_SETS: DesignSampleSet<DesignNostrChatSample>[] =
     }
   ]
 
+const DESIGN_SWEEP_SESSION_ID = 'a1'.repeat(16)
+const DESIGN_ARCHIVED_SESSION_ID = 'b2'.repeat(16)
+
+export const DESIGN_NOSTR_SWEEP_SESSION_TITLE = 'Cold storage sweep'
+
 function conversation(
   peerHex: string,
   preview: string,
   ageSec: number,
-  unreadCount: number
+  unreadCount: number,
+  sessionId = NOSTR_CHAT_DEFAULT_SESSION_ID,
+  title?: string
 ): NostrChatConversationItem {
   return {
     lastMessageAt: NOW - ageSec,
     lastMessagePreview: preview,
     peerNpub: safeNpubEncode(peerHex),
     peerPubkey: peerHex,
+    sessionId,
+    title,
     unreadCount
   }
 }
 
+/** Alice has two sessions, so the inbox labels both of her rows. */
 export const DESIGN_NOSTR_FOLLOWING_CONVERSATIONS = [
   conversation(ALICE_HEX, 'Thanks 🙏', 10 * MINUTE, 2),
+  conversation(
+    ALICE_HEX,
+    'Fee rate looks right.',
+    3 * HOUR,
+    0,
+    DESIGN_SWEEP_SESSION_ID,
+    DESIGN_NOSTR_SWEEP_SESSION_TITLE
+  ),
   conversation(BOB_HEX, LONG_TEXT, DAY, 0)
+]
+
+export const DESIGN_NOSTR_ARCHIVED_SESSIONS: NostrChatSession[] = [
+  {
+    archived: true,
+    createdAt: NOW - 30 * DAY,
+    identityNpub: DESIGN_NOSTR_ME_NPUB,
+    peerPubkey: ALICE_HEX,
+    sessionId: DESIGN_ARCHIVED_SESSION_ID,
+    title: 'Hardware wallet setup'
+  }
 ]
 
 export const DESIGN_NOSTR_OTHER_CONVERSATIONS = [
@@ -537,3 +578,136 @@ export const DESIGN_NOSTR_REACTION_SETS: DesignSampleSet<DesignNostrReactionsSam
       name: 'heavy'
     }
   ]
+
+/** The chat identity that signs, as the card names it. */
+export const DESIGN_NOSTR_SIGNER_LABEL = 'Satoshi'
+
+const SAMPLE_RELEASE_VERSION = '0.3.13'
+const SAMPLE_SIGN_REQUEST_TTL = 10 * MINUTE
+const SAMPLE_FOREIGN_CERT = 'ab'.repeat(32)
+
+type SignRequestOverrides = Partial<
+  Pick<NostrSignRequest, 'answered' | 'error' | 'label' | 'status'>
+> & { expired?: boolean }
+
+function signEventRequest(
+  id: string,
+  event: { kind: number; content?: string; tags?: string[][] },
+  { expired = false, ...overrides }: SignRequestOverrides = {}
+): NostrSignRequest {
+  const requestedAt = expired ? NOW - HOUR : NOW - MINUTE
+  return {
+    answered: false,
+    expiresAt: requestedAt + SAMPLE_SIGN_REQUEST_TTL,
+    identityNpub: DESIGN_NOSTR_ME_NPUB,
+    messageId: id.padStart(64, '0'),
+    method: 'sign_event',
+    params: [
+      JSON.stringify({
+        content: event.content ?? '',
+        created_at: requestedAt,
+        kind: event.kind,
+        tags: event.tags ?? []
+      })
+    ],
+    peerPubkey: BOB_HEX,
+    requestId: `design-sign-${id}`,
+    requestedAt,
+    sessionId: NOSTR_CHAT_DEFAULT_SESSION_ID,
+    status: 'pending',
+    ...overrides
+  }
+}
+
+function releaseEvent() {
+  return {
+    kind: NOSTR_ZAPSTORE_RELEASE_KIND,
+    tags: [
+      ['i', PACKAGE_ID_PROD],
+      ['version', SAMPLE_RELEASE_VERSION],
+      ['c', 'main']
+    ]
+  }
+}
+
+function assetEvent(certHash: string) {
+  return {
+    kind: NOSTR_ZAPSTORE_ASSET_KIND,
+    tags: [
+      ['i', PACKAGE_ID_PROD],
+      ['version', SAMPLE_RELEASE_VERSION],
+      ['x', 'cd'.repeat(32)],
+      ['size', '48211337'],
+      [NOSTR_ZAPSTORE_CERT_HASH_TAG, certHash]
+    ]
+  }
+}
+
+export type DesignChatSignCard = {
+  /** settings.developer.designSystem.features key naming the state. */
+  labelKey: string
+  batch: NostrSignRequest[]
+  canSign: boolean
+}
+
+/** One card per state an agent's signature request can be in. */
+export const DESIGN_CHAT_SIGN_CARDS: DesignChatSignCard[] = [
+  {
+    batch: [
+      signEventRequest('s1', releaseEvent(), { label: 'Publish 0.3.13' }),
+      signEventRequest('s1', assetEvent(SATSIGNER_RELEASE_CERT_SHA256))
+    ],
+    canSign: true,
+    labelKey: 'signCardPending'
+  },
+  {
+    batch: [signEventRequest('s2', assetEvent(SAMPLE_FOREIGN_CERT))],
+    canSign: true,
+    labelKey: 'signCardForeignCert'
+  },
+  {
+    batch: [
+      signEventRequest('s3', {
+        content: JSON.stringify({ about: 'Agent edited', name: 'Satoshi' }),
+        kind: nostrKinds.Metadata
+      })
+    ],
+    canSign: true,
+    labelKey: 'signCardHighRisk'
+  },
+  {
+    batch: [signEventRequest('s4', releaseEvent())],
+    canSign: false,
+    labelKey: 'signCardWatchOnly'
+  },
+  {
+    batch: [signEventRequest('s5', releaseEvent(), { status: 'signed' })],
+    canSign: true,
+    labelKey: 'signCardNotSent'
+  },
+  {
+    batch: [
+      signEventRequest('s6', releaseEvent(), {
+        answered: true,
+        status: 'signed'
+      })
+    ],
+    canSign: true,
+    labelKey: 'signCardAnswered'
+  },
+  {
+    batch: [
+      signEventRequest('s7', releaseEvent(), {
+        error: 'Wrong key',
+        status: 'invalid'
+      })
+    ],
+    canSign: true,
+    labelKey: 'signCardInvalid'
+  },
+  {
+    batch: [signEventRequest('s8', releaseEvent(), { expired: true })],
+    canSign: true,
+    labelKey: 'signCardExpired'
+  }
+]

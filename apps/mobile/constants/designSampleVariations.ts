@@ -1,3 +1,4 @@
+import { DESIGN_NOSTR_CALENDAR_SETS } from '@/constants/designNostrCalendarSamples'
 import { DESIGN_NOSTR_CHAT_SETS } from '@/constants/designNostrSamples'
 import {
   DESIGN_SAMPLE_BLOCK_HEIGHT,
@@ -287,6 +288,7 @@ export const DESIGN_FEATURE_SET_NAMES: Partial<
   devConsole: DESIGN_LOG_SETS.map((set) => set.name),
   historyChart: DESIGN_HISTORY_SETS.map((set) => set.name),
   lightningNode: DESIGN_CHANNEL_SETS.map((set) => set.name),
+  nostrCalendar: DESIGN_NOSTR_CALENDAR_SETS.map((set) => set.name),
   nostrChat: DESIGN_NOSTR_CHAT_SETS.map((set) => set.name),
   nostrMessageDetail: ['standard', 'minimal', 'heavy'],
   nostrReactions: ['standard', 'minimal', 'heavy'],

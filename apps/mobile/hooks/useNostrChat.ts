@@ -5,6 +5,7 @@ import { useCallback, useState, useSyncExternalStore } from 'react'
 
 import { NostrAPI } from '@/api/nostr'
 import {
+  NOSTR_CHAT_DEFAULT_SESSION_ID,
   NOSTR_CHAT_PROFILE_RETRY_DELAY_MS,
   NOSTR_CHAT_THREAD_PAGE_SIZE,
   NOSTR_PROFILE_CACHE_TTL_SECS
@@ -32,6 +33,7 @@ import {
   sendNip17Chat,
   subscribeChatPipelineStatus
 } from '@/utils/nostrChat'
+import type { Nip17SendOptions } from '@/utils/nostrChat'
 import { getNostrContactsRelays } from '@/utils/nostrContacts'
 import { isNonEmptyString } from '@/utils/string'
 
@@ -127,10 +129,10 @@ async function sendChatMessage(
   protocol: NostrChatProtocol,
   peerNpub: string,
   text: string,
-  replyToId?: string
+  options: Nip17SendOptions
 ): Promise<void> {
   if (protocol === 'nip17') {
-    await sendNip17Chat(api, identity, peerNpub, text, replyToId)
+    await sendNip17Chat(api, identity, peerNpub, text, options)
     return
   }
   await sendNip04Chat(api, identity, peerNpub, text)
@@ -140,7 +142,8 @@ export function useNostrChatThread(
   identity: ChatIdentity | undefined,
   protocol: NostrChatProtocol,
   peerNpub: string | undefined,
-  peerPubkey: string | undefined
+  peerPubkey: string | undefined,
+  sessionId: string = NOSTR_CHAT_DEFAULT_SESSION_ID
 ) {
   const [input, setInput] = useState('')
   const [sending, setSending] = useState(false)
@@ -149,7 +152,13 @@ export function useNostrChatThread(
   const [historyExhausted, setHistoryExhausted] = useState(false)
   const identityNpub = identity?.npub ?? ''
   const focused = useIsFocused()
-  const chatKey = identityChatKey(identityNpub, protocol, peerPubkey ?? '')
+  const thread = {
+    identityNpub,
+    peerPubkey: peerPubkey ?? '',
+    protocol,
+    sessionId
+  }
+  const chatKey = identityChatKey(thread)
   const replyToId = useNostrChatReplyStore(
     (state) => state.replyToByChat[chatKey]
   )
@@ -167,14 +176,8 @@ export function useNostrChatThread(
   const { data } = useQuery({
     enabled: focused && Boolean(identity && peerPubkey),
     placeholderData: keepPreviousData,
-    queryFn: () =>
-      loadChatThreadItems(identityNpub, protocol, peerPubkey ?? '', limit),
-    queryKey: nostrChatQueryKeys.thread(
-      identityNpub,
-      protocol,
-      peerPubkey ?? '',
-      limit
-    )
+    queryFn: () => loadChatThreadItems(thread, limit),
+    queryKey: nostrChatQueryKeys.thread(thread, limit)
   })
   const items = data ?? NO_THREAD_ITEMS
 
@@ -232,7 +235,7 @@ export function useNostrChatThread(
         protocol,
         peerNpub,
         text,
-        replyParentId
+        { replyToId: replyParentId, sessionId }
       )
     } catch (error) {
       setInput(text)

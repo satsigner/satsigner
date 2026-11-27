@@ -25,6 +25,7 @@ import type { Nip46ParsedUri } from '@/types/models/Nostr'
 import type { DetectedContent } from '@/utils/contentDetector'
 import {
   canNostrIdentitySignRemotely,
+  getNip46SessionName,
   parseNostrConnectUri
 } from '@/utils/nip46'
 
@@ -219,7 +220,7 @@ export default function NostrBunker() {
                     <SSVStack gap="xs">
                       <SSHStack justifyBetween>
                         <SSText weight="bold">
-                          {session.clientName ?? 'Unknown App'}
+                          {getNip46SessionName(session)}
                         </SSText>
 
                         {isConnecting && (
@@ -370,6 +371,11 @@ export default function NostrBunker() {
       <SSNip46ApprovalModal
         visible={currentRequest !== null}
         request={currentRequest}
+        askEveryTime={sessions.some(
+          (session) =>
+            session.id === currentRequest?.sessionId &&
+            session.origin?.kind === 'chat'
+        )}
         onApprove={handleApproveRequest}
         onReject={handleRejectRequest}
       />

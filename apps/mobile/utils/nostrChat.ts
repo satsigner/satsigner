@@ -14,10 +14,14 @@ import {
 import type { NostrRumor } from '@/api/nostrGiftWrap'
 import {
   NOSTR_CHAT_CATCH_UP_LIMIT,
+  NOSTR_CHAT_DEFAULT_SESSION_ID,
   NOSTR_CHAT_HELD_REACTIONS_MAX,
   NOSTR_CHAT_HISTORY_PAGE_LIMIT,
   NOSTR_CHAT_INITIAL_HISTORY_LIMIT,
   NOSTR_CHAT_KIND4_CLOCK_SKEW_SEC,
+  NOSTR_CHAT_SESSIONS_PER_PEER_MAX,
+  NOSTR_CHAT_STATE_D_TAG,
+  NOSTR_CHAT_STATE_FUTURE_SKEW_SEC,
   NOSTR_DEFAULT_FETCH_TIMEOUT_MS,
   NOSTR_GIFT_WRAP_TIMESTAMP_JITTER_SEC,
   NOSTR_HEX_PUBKEY_RE,
@@ -26,12 +30,15 @@ import {
 } from '@/constants/nostr'
 import { MS_PER_SECOND } from '@/constants/time'
 import {
+  adoptChatSessionSubject,
   deleteChatMessages,
   deleteChatReactions,
   failInterruptedChatSends,
   insertChatMessage,
   insertChatReaction,
+  insertChatSession,
   markChatThreadRead,
+  upsertChatSessionState,
   updateChatMessageStatus
 } from '@/db/mutations/nostrChat'
 import { getCachedProfile } from '@/db/nostrCache'
@@ -48,17 +55,23 @@ import {
   markNostrEventsProcessed
 } from '@/db/nostrProcessedEvents'
 import {
+  countChatSessions,
   getChatMessage,
   getChatReplyParent,
+  getChatReplyParentSessionId,
+  getChatSession,
   getNewestSentChatMessageCreatedAt,
+  hasDeliveredChatSessionMessage,
   getOldestChatMessageCreatedAt,
   hasChatMessage,
   hasOutgoingChatMessage,
   listChatConversations,
   listChatReplies,
   listChatThread,
-  listChatThreadReactions
+  listChatThreadReactions,
+  listOwnChatSessionMessageIds
 } from '@/db/queries/nostrChat'
+import { listSignRequestsForMessages } from '@/db/signRequests'
 import type { AuthorDisplayInfo } from '@/hooks/useNostrMessage'
 import { queryClient } from '@/lib/queryClient'
 import { getNostrFollowCache } from '@/storage/mmkv'
@@ -74,10 +87,16 @@ import type {
   NostrChatProtocol,
   NostrChatReaction,
   NostrChatThreadItem,
+  NostrChatThreadRef,
   NostrDM,
+  NostrSignRequest,
   NostrKind4ChatEvent,
   NostrSubscriptionWindow
 } from '@/types/models/Nostr'
+import {
+  queueChatSignRequests,
+  settleChatSignRequests
+} from '@/utils/chatSignRequests'
 import { NostrPublishError } from '@/utils/errors'
 import { formatNpub } from '@/utils/format'
 import {
@@ -85,6 +104,10 @@ import {
   getSecretFromNsec,
   safeNpubEncode
 } from '@/utils/nostr'
+import {
+  parseAgentReplyTags,
+  parseSessionStateContent
+} from '@/utils/nostrChatAgent'
 import { isInboundMessageAllowed } from '@/utils/nostrChatFilter'
 import {
   buildChatReactionDeletionTags,
@@ -96,8 +119,12 @@ import {
 import {
   buildMessageDeletionTags,
   buildReplyTag,
+  buildSessionTag,
+  buildSubjectTag,
   getDeletionTargetIds,
-  getReplyToId
+  getReplyToId,
+  getSessionId,
+  getSubject
 } from '@/utils/nostrChatTags'
 import { getNostrContactsRelays } from '@/utils/nostrContacts'
 import { getNostrErrorCode } from '@/utils/nostrErrorMessage'
@@ -141,6 +168,18 @@ const Nip17ReactionRumorSchema = z.object({
 
 type Nip17ReactionRumor = z.infer<typeof Nip17ReactionRumorSchema>
 
+/** Kind 30078 rumor: an agent's session state document, never published bare. */
+const Nip17SessionStateRumorSchema = z.object({
+  content: z.string(),
+  created_at: z.number().int().nonnegative(),
+  id: z.string().min(1),
+  kind: z.literal(nostrKinds.Application),
+  pubkey: z.string().min(1),
+  tags: z.unknown().optional()
+})
+
+type Nip17SessionStateRumor = z.infer<typeof Nip17SessionStateRumorSchema>
+
 type ChatIdentity = {
   npub: string
   nsec: string
@@ -148,6 +187,12 @@ type ChatIdentity = {
 }
 
 const nostrChatQueryKeys = {
+  archivedSessions: (identityNpub: string, peerPubkey: string) => [
+    'nostrChat',
+    identityNpub,
+    'archivedSessions',
+    peerPubkey
+  ],
   conversations: (identityNpub: string, protocol: NostrChatProtocol) => [
     'nostrChat',
     identityNpub,
@@ -166,12 +211,27 @@ const nostrChatQueryKeys = {
     peersKey,
     relaysKey
   ],
-  thread: (
+  session: (identityNpub: string, peerPubkey: string, sessionId: string) => [
+    'nostrChat',
+    identityNpub,
+    'session',
+    peerPubkey,
+    sessionId
+  ],
+  sessionState: (
     identityNpub: string,
-    protocol: NostrChatProtocol,
     peerPubkey: string,
-    limit: number
-  ) => ['nostrChat', identityNpub, 'thread', protocol, peerPubkey, limit]
+    sessionId: string
+  ) => ['nostrChat', identityNpub, 'sessionState', peerPubkey, sessionId],
+  thread: (thread: NostrChatThreadRef, limit: number) => [
+    'nostrChat',
+    thread.identityNpub,
+    'thread',
+    thread.protocol,
+    thread.peerPubkey,
+    thread.sessionId,
+    limit
+  ]
 }
 
 type ChatListener = (messages: NostrChatMessage[]) => void
@@ -476,19 +536,60 @@ async function publishNip17Rumor(
   return { error, ok: false }
 }
 
+type Nip17SendOptions = {
+  /** Machine-readable tags next to the text, e.g. a sign response. */
+  extraTags?: string[][]
+  replyToId?: string
+  sessionId?: string
+}
+
+/**
+ * The default session carries no tag, so it stays the thread every other
+ * client shows. A session's first message also names it with the NIP-17
+ * subject, so clients without sessions still show a title.
+ */
+function buildNip17ChatTags(
+  identityNpub: string,
+  peerPubkey: string,
+  {
+    extraTags = [],
+    replyToId,
+    sessionId = NOSTR_CHAT_DEFAULT_SESSION_ID
+  }: Nip17SendOptions
+): string[][] {
+  const tags = [...(replyToId ? [buildReplyTag(replyToId)] : []), ...extraTags]
+  if (sessionId === NOSTR_CHAT_DEFAULT_SESSION_ID) {
+    return tags
+  }
+  // The title rides along until the peer has one of our messages in the
+  // session: a first send that failed doesn't use it up.
+  const session = getChatSession(identityNpub, peerPubkey, sessionId)
+  const subject =
+    session !== null &&
+    !hasDeliveredChatSessionMessage(identityNpub, peerPubkey, sessionId)
+      ? session.title
+      : undefined
+  return [
+    ...tags,
+    buildSessionTag(sessionId),
+    ...(subject ? [buildSubjectTag(subject)] : [])
+  ]
+}
+
 async function sendNip17Chat(
   api: NostrAPI,
   identity: ChatIdentity,
   peerNpub: string,
   text: string,
-  replyToId?: string
+  options: Nip17SendOptions = {}
 ): Promise<void> {
+  const { replyToId, sessionId = NOSTR_CHAT_DEFAULT_SESSION_ID } = options
   const delivery = resolveNip17Delivery(identity, peerNpub)
   const rumor = createNip17Rumor(
     delivery,
     NOSTR_CHAT_RUMOR_KIND,
     text,
-    replyToId ? [buildReplyTag(replyToId)] : []
+    buildNip17ChatTags(identity.npub, delivery.peerPubkey, options)
   )
 
   const message: NostrChatMessage = {
@@ -501,6 +602,7 @@ async function sendNip17Chat(
     protocol: 'nip17',
     read: true,
     replyToId,
+    sessionId,
     status: 'pending'
   }
   ingestChatMessage(message)
@@ -545,6 +647,7 @@ async function sendNip04Chat(
     peerPubkey,
     protocol: 'nip04',
     read: true,
+    sessionId: NOSTR_CHAT_DEFAULT_SESSION_ID,
     status: 'pending'
   }
   ingestChatMessage(message)
@@ -663,6 +766,45 @@ async function deleteChatMessageForEveryone(
   await publishOrThrow(api, identity, delivery, rumor)
   await requestChatWrapDeletion(api, identity, delivery, messageId)
   forgetChatMessages(identity.npub, [{ author: ownHex, messageId }])
+}
+
+/**
+ * Asks the peer and our other devices to drop every message we sent in a
+ * session, with one gift-wrapped kind 5, then asks relays to drop the wraps.
+ * The peer's own messages stay theirs: the local copy goes with the session.
+ */
+async function deleteChatSessionForEveryone(
+  api: NostrAPI,
+  identity: ChatIdentity,
+  peerNpub: string,
+  sessionId: string
+): Promise<void> {
+  const ownHex = getPubKeyHexFromNpub(identity.npub)
+  const delivery = resolveNip17Delivery(identity, peerNpub)
+  const messageIds = listOwnChatSessionMessageIds(
+    identity.npub,
+    delivery.peerPubkey,
+    sessionId
+  )
+  if (ownHex === null || messageIds.length === 0) {
+    return
+  }
+  const rumor = createNip17Rumor(
+    delivery,
+    nostrKinds.EventDeletion,
+    '',
+    buildMessageDeletionTags(messageIds)
+  )
+  await publishOrThrow(api, identity, delivery, rumor)
+  await Promise.all(
+    messageIds.map((messageId) =>
+      requestChatWrapDeletion(api, identity, delivery, messageId)
+    )
+  )
+  forgetChatMessages(
+    identity.npub,
+    messageIds.map((messageId) => ({ author: ownHex, messageId }))
+  )
 }
 
 /**
@@ -949,6 +1091,52 @@ function applyHeldChatReactions(
 }
 
 /**
+ * Only the peer's own document counts, and only for a session we already
+ * have: a known session, or the default one with someone we wrote to. So a
+ * stranger can't put a status line on a chat, and a peer can't fill the
+ * table with documents for sessions that don't exist. A document that beats
+ * its session's first message is dropped; the agent sends a new one after
+ * every reply. One dated in the future is dropped too, or it would win
+ * newest-wins over every real update.
+ */
+function applyChatSessionStateRumor(
+  identityNpub: string,
+  ownHex: string | null,
+  rumor: Nip17SessionStateRumor
+): void {
+  const peerPubkey = rumor.pubkey
+  if (
+    peerPubkey === ownHex ||
+    !NOSTR_HEX_PUBKEY_RE.test(peerPubkey) ||
+    getNostrTagValue(rumor.tags, 'd') !== NOSTR_CHAT_STATE_D_TAG ||
+    getNostrTagValue(rumor.tags, 'p') !== ownHex ||
+    rumor.created_at > nowInSeconds() + NOSTR_CHAT_STATE_FUTURE_SKEW_SEC
+  ) {
+    return
+  }
+  const sessionId = getSessionId(rumor.tags) ?? NOSTR_CHAT_DEFAULT_SESSION_ID
+  const known =
+    sessionId === NOSTR_CHAT_DEFAULT_SESSION_ID
+      ? hasOutgoingChatMessage(identityNpub, peerPubkey)
+      : getChatSession(identityNpub, peerPubkey, sessionId) !== null
+  const state = parseSessionStateContent(rumor.content)
+  if (!known || !state) {
+    return
+  }
+  const stored = upsertChatSessionState({
+    author: peerPubkey,
+    content: JSON.stringify(state),
+    createdAt: rumor.created_at,
+    identityNpub,
+    peerPubkey,
+    sessionId
+  })
+  if (stored) {
+    invalidateChatQueries(identityNpub)
+  }
+}
+
+/**
  * Other gift wraps (account label sync etc.) are not chat and are ignored.
  * Returns false for a message the inbound filter held back.
  */
@@ -960,6 +1148,11 @@ function ingestChatRumor(
   const deletion = Nip17DeletionRumorSchema.safeParse(wrap.rumor)
   if (deletion.success) {
     applyChatDeletionRumor(identityNpub, ownHex, deletion.data)
+    return true
+  }
+  const sessionState = Nip17SessionStateRumorSchema.safeParse(wrap.rumor)
+  if (sessionState.success) {
+    applyChatSessionStateRumor(identityNpub, ownHex, sessionState.data)
     return true
   }
   const reaction = Nip17ReactionRumorSchema.safeParse(wrap.rumor)
@@ -995,19 +1188,115 @@ function ingestChatRumor(
     return false
   }
   const isSelfCopy = rumor.pubkey === ownHex
+  const createdAt = rumor.created_at ?? wrap.createdAt
+  const replyToId = getReplyToId(rumor.tags)
+  const sessionId = resolveChatSessionId(
+    getSessionId(rumor.tags),
+    replyToId
+      ? getChatReplyParentSessionId(identityNpub, peerPubkey, replyToId)
+      : null
+  )
+  if (
+    !admitChatSession({
+      createdAt,
+      identityNpub,
+      peerPubkey,
+      sessionId,
+      title: getSubject(rumor.tags)
+    })
+  ) {
+    return true
+  }
   ingestChatMessage({
+    ...(isSelfCopy ? {} : parseAgentReplyTags(rumor.tags)),
     content: rumor.content,
-    created_at: rumor.created_at ?? wrap.createdAt,
+    created_at: createdAt,
     direction: isSelfCopy ? 'out' : 'in',
     id: rumor.id,
     identityNpub,
     peerPubkey,
     protocol: 'nip17',
     read: isSelfCopy,
-    replyToId: getReplyToId(rumor.tags),
+    replyToId,
+    sessionId,
     status: 'sent'
   })
+  if (!isSelfCopy && ownHex !== null) {
+    queueChatSignRequests(rumor.content, rumor.tags, {
+      identityNpub,
+      messageId: rumor.id,
+      ownPubkey: ownHex,
+      peerPubkey,
+      receivedAt: nowInSeconds(),
+      requestedAt: createdAt,
+      sessionId
+    })
+  }
   applyHeldChatReactions(identityNpub, ownHex, rumor.id)
+  return true
+}
+
+/**
+ * A message's own session tag wins, even a malformed one (which reads as the
+ * default session). Without a tag, a reply joins its parent's session, so a
+ * peer whose client drops the tag (an agent bridge without session support)
+ * still answers in the right thread. Otherwise it is the default session.
+ */
+function resolveChatSessionId(
+  taggedSessionId: string | null,
+  parentSessionId: string | null
+): string {
+  if (taggedSessionId !== null) {
+    return taggedSessionId
+  }
+  return parentSessionId ?? NOSTR_CHAT_DEFAULT_SESSION_ID
+}
+
+type ChatSessionAdmission = {
+  createdAt: number
+  identityNpub: string
+  peerPubkey: string
+  sessionId: string
+  title?: string
+}
+
+/**
+ * Records a session the first time a message names it. A peer can mint
+ * session ids at will, so past the per-peer cap a new one is refused and its
+ * message dropped; known sessions and the default one always pass. Wraps
+ * arrive out of order, so the subject may come after the session exists: it
+ * still names it unless it has a title or the user set one.
+ */
+function admitChatSession({
+  createdAt,
+  identityNpub,
+  peerPubkey,
+  sessionId,
+  title
+}: ChatSessionAdmission): boolean {
+  if (sessionId === NOSTR_CHAT_DEFAULT_SESSION_ID) {
+    return true
+  }
+  if (getChatSession(identityNpub, peerPubkey, sessionId) !== null) {
+    if (title) {
+      adoptChatSessionSubject({ identityNpub, peerPubkey, sessionId }, title)
+    }
+    return true
+  }
+  if (
+    countChatSessions(identityNpub, peerPubkey) >=
+    NOSTR_CHAT_SESSIONS_PER_PEER_MAX
+  ) {
+    return false
+  }
+  insertChatSession({
+    archived: false,
+    createdAt,
+    identityNpub,
+    peerPubkey,
+    sessionId,
+    title
+  })
   return true
 }
 
@@ -1033,6 +1322,7 @@ function ingestKind4ChatEvent(
     peerPubkey: event.peerPubkey,
     protocol: 'nip04',
     read: event.direction === 'out',
+    sessionId: NOSTR_CHAT_DEFAULT_SESSION_ID,
     status: 'sent'
   })
 }
@@ -1226,6 +1516,7 @@ function settleInterruptedSendsOnce(identityNpub: string) {
 
 async function startChatPipeline(pipeline: ChatPipeline): Promise<void> {
   settleInterruptedSendsOnce(pipeline.identity.npub)
+  settleChatSignRequests(pipeline.identity.npub, nowInSeconds())
   pipeline.generation += 1
   const { generation } = pipeline
   pipeline.api.closeAllSubscriptions()
@@ -1479,7 +1770,16 @@ function toChatThreadItem(
     read: message.read,
     replyToId: message.replyToId
   }
-  return { dm, failed: message.status === 'failed', reactions }
+  const agent =
+    !isOut && (message.agentCost || message.agentModel)
+      ? { agentCost: message.agentCost, agentModel: message.agentModel }
+      : undefined
+  return {
+    ...(agent ? { agent } : {}),
+    dm,
+    failed: message.status === 'failed',
+    reactions
+  }
 }
 
 /** The peer has this message: it is neither still sending nor failed. */
@@ -1533,24 +1833,49 @@ function loadChatMessageDetail(
  * this only runs while the thread is on screen.
  */
 function loadChatThreadItems(
-  identityNpub: string,
-  protocol: NostrChatProtocol,
-  peerPubkey: string,
+  thread: NostrChatThreadRef,
   limit: number
 ): NostrChatThreadItem[] {
-  if (markChatThreadRead(identityNpub, protocol, peerPubkey) > 0) {
+  if (markChatThreadRead(thread) > 0) {
     void queryClient.invalidateQueries({
-      queryKey: nostrChatQueryKeys.conversations(identityNpub, protocol)
+      queryKey: nostrChatQueryKeys.conversations(
+        thread.identityNpub,
+        thread.protocol
+      )
     })
   }
-  const authors = getChatThreadAuthors(identityNpub, peerPubkey)
+  const authors = getChatThreadAuthors(thread.identityNpub, thread.peerPubkey)
   const reactions = groupReactionsByMessage(
-    listChatThreadReactions(identityNpub, protocol, peerPubkey, limit)
+    listChatThreadReactions(thread, limit)
   )
-  return listChatThread(identityNpub, protocol, peerPubkey, limit).map(
-    (message) =>
-      toChatThreadItem(message, authors, reactions.get(message.id) ?? [])
+  const messages = listChatThread(thread, limit)
+  const signRequests = groupSignRequestsByMessage(
+    listSignRequestsForMessages(
+      thread.identityNpub,
+      messages
+        .filter((message) => message.direction === 'in')
+        .map((message) => message.id)
+    )
   )
+  return messages.map((message) => ({
+    ...toChatThreadItem(message, authors, reactions.get(message.id) ?? []),
+    ...(signRequests.has(message.id)
+      ? { signRequests: signRequests.get(message.id) }
+      : {})
+  }))
+}
+
+function groupSignRequestsByMessage(
+  requests: NostrSignRequest[]
+): Map<string, NostrSignRequest[]> {
+  const grouped = new Map<string, NostrSignRequest[]>()
+  for (const request of requests) {
+    grouped.set(request.messageId, [
+      ...(grouped.get(request.messageId) ?? []),
+      request
+    ])
+  }
+  return grouped
 }
 
 type ChatThreadAuthorProfile = { displayName?: string; picture?: string }
@@ -1645,6 +1970,7 @@ export {
   closeActiveChatPipeline,
   deleteChatMessageForEveryone,
   deleteChatMessageForMe,
+  deleteChatSessionForEveryone,
   flushChatMessages,
   getChatLiveWindow,
   getChatPipelineApi,
@@ -1659,6 +1985,7 @@ export {
   loadOlderChatHistory,
   nostrChatQueryKeys,
   removeChatReactions,
+  resolveChatSessionId,
   restartChatPipeline,
   sendNip04Chat,
   sendChatReaction,
@@ -1667,4 +1994,9 @@ export {
   subscribeToIdentityChat,
   toChatThreadItem
 }
-export type { ChatIdentity, ChatMessageDetail, ChatPipelineLease }
+export type {
+  ChatIdentity,
+  ChatMessageDetail,
+  ChatPipelineLease,
+  Nip17SendOptions
+}

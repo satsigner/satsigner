@@ -6,6 +6,10 @@ import type {
 } from '@/types/models/Blockchain'
 import { TxPrioritySchema } from '@/types/models/Blockchain'
 
+// BTC traded between roughly 1800 and 2900 (USD and EUR) in July 2017.
+const MIN_JULY_2017_PRICE = 1500
+const MAX_JULY_2017_PRICE = 3000
+
 const mempoolspace: BlockchainOracle = new MempoolOracle(
   'https://mempool.space/api'
 )
@@ -16,20 +20,22 @@ describe('blockchain » price', () => {
     expect(typeof response).toBe('number')
   })
 
+  // mempool.space revises its historical prices, so these check the shape and
+  // a plausible range rather than an exact value.
   it('get price at given currency at given time', async () => {
     const timestamp = 1_500_000_000
-    const expectedPrice = 1964
     const response = await mempoolspace.getPriceAt('EUR', timestamp)
-    expect(response).toBe(expectedPrice)
+    expect(response).toBeGreaterThan(MIN_JULY_2017_PRICE)
+    expect(response).toBeLessThan(MAX_JULY_2017_PRICE)
   })
 
   it('get prices list at given time', async () => {
     const timestamp = 1_500_000_000
-    const expectedPrice = 2254.9
     const response = await mempoolspace.getFullPriceAt('USD', timestamp)
     expect(typeof response).toBe('object')
-    expect(response['USD']).toBe(expectedPrice)
     expect(typeof response['USD']).toBe('number')
+    expect(response['USD']).toBeGreaterThan(MIN_JULY_2017_PRICE)
+    expect(response['USD']).toBeLessThan(MAX_JULY_2017_PRICE)
   })
 })
 
