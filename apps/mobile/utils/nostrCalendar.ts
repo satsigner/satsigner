@@ -305,7 +305,9 @@ export function isCalendarItemDeleted(
   return deletedAt !== undefined && item.createdAt <= deletedAt
 }
 
-function parseLiveItems<T extends Parameters<typeof isCalendarItemDeleted>[0]>(
+export function parseLiveItems<
+  T extends Parameters<typeof isCalendarItemDeleted>[0]
+>(
   events: NostrCalendarRawEvent[],
   parse: (event: NostrCalendarRawEvent) => T | null,
   deletions: ReturnType<typeof getCalendarDeletions>
@@ -317,6 +319,44 @@ function parseLiveItems<T extends Parameters<typeof isCalendarItemDeleted>[0]>(
   return keepLatestRevisions(parsed).filter(
     (item) => !isCalendarItemDeleted(item, deletions)
   )
+}
+
+type CoordinateParts = { dTag: string; kind: number; pubkey: string }
+
+function splitCoordinate(coordinate: string): CoordinateParts | null {
+  const [kind, pubkey, ...rest] = coordinate.split(':')
+  const lower = pubkey?.toLowerCase() ?? ''
+  if (!NOSTR_HEX_PUBKEY_RE.test(lower) || rest.length === 0) {
+    return null
+  }
+  return { dTag: rest.join(':'), kind: Number(kind), pubkey: lower }
+}
+
+/**
+ * Events by others that one of the own live calendars lists, grouped by
+ * author and kind so each group is one relay filter (`authors`, `#d`).
+ */
+export function getReferencedEventFilters(
+  own: NostrCalendarRawEvent[],
+  ownPubkey: string,
+  deletions: NostrCalendarDeletion[]
+): CoordinateParts[][] {
+  const calendars = parseLiveItems(
+    own.filter((event) => event.pubkey.toLowerCase() === ownPubkey),
+    parseCalendar,
+    getCalendarDeletions(deletions)
+  )
+  const groups = new Map<string, CoordinateParts[]>()
+  for (const coordinate of new Set(
+    calendars.flatMap((calendar) => calendar.eventCoordinates)
+  )) {
+    const parts = splitCoordinate(coordinate)
+    if (parts && parts.pubkey !== ownPubkey) {
+      const key = `${parts.kind}:${parts.pubkey}`
+      groups.set(key, [...(groups.get(key) ?? []), parts])
+    }
+  }
+  return [...groups.values()]
 }
 
 function byStart(a: NostrCalendarEvent, b: NostrCalendarEvent) {
@@ -437,29 +477,49 @@ export function removeCalendarItem(
   }
 }
 
-/** Every known calendar event, own first, by coordinate. */
+/**
+ * Every known calendar event, own first, by coordinate. Switching all-day
+ * moves an event to the other kind under the same `d` tag, so a coordinate
+ * of the old kind still finds it.
+ */
 export function findCalendarEvent(
   data: NostrCalendarData,
   coordinate: string
 ): NostrCalendarEvent | undefined {
-  return [...data.events, ...data.foreignEvents].find(
-    (event) => event.coordinate === coordinate
+  const known = [...data.events, ...data.foreignEvents]
+  const exact = known.find((event) => event.coordinate === coordinate)
+  if (exact) {
+    return exact
+  }
+  const parts = splitCoordinate(coordinate)
+  if (!parts || !CALENDAR_EVENT_KINDS.has(parts.kind)) {
+    return undefined
+  }
+  return known.find(
+    (event) => event.pubkey === parts.pubkey && event.dTag === parts.dTag
   )
 }
 
-/** Own events plus invites, optionally only those of one calendar. */
+/**
+ * Own events plus invites, optionally only those of one calendar. A selected
+ * calendar also shows events by others it lists, such as accepted requests.
+ */
 export function getVisibleCalendarEvents(
   data: NostrCalendarData,
   calendarCoordinate?: string
 ): NostrCalendarEvent[] {
-  const all = keepLatestRevisions([...data.events, ...data.invites])
   if (!calendarCoordinate) {
-    return all.toSorted(byStart)
+    return keepLatestRevisions([...data.events, ...data.invites]).toSorted(
+      byStart
+    )
   }
   const calendar = data.calendars.find(
     (item) => item.coordinate === calendarCoordinate
   )
-  return all
+  const listed = data.foreignEvents.filter((event) =>
+    calendar?.eventCoordinates.includes(event.coordinate)
+  )
+  return keepLatestRevisions([...data.events, ...data.invites, ...listed])
     .filter(
       (event) =>
         calendar?.eventCoordinates.includes(event.coordinate) ||
@@ -590,7 +650,13 @@ export function zonedTimeToUnix(
   // a DST change, so correct with the offset at the first guess.
   const guess = wallClockMs - getTimezoneOffsetMs(wallClockMs, timezone)
   const corrected = wallClockMs - getTimezoneOffsetMs(guess, timezone)
-  return Math.floor(corrected / MS_PER_SECOND)
+  const seconds = Math.floor(corrected / MS_PER_SECOND)
+  // A wall time skipped by a DST change (02:30 on a spring-forward night)
+  // has no instant; the correction would land an hour off.
+  const exists =
+    getDateKey(seconds, timezone) === dateKey &&
+    getTimeKey(seconds, timezone) === time
+  return exists ? seconds : null
 }
 
 /** HH:MM of a unix time as seen in `timezone`. */
@@ -745,6 +811,23 @@ function buildDateTags(draft: NostrCalendarEventDraft): DraftTimes {
   }
 }
 
+/**
+ * An edited event's instant while its date, time and zone are unchanged. An
+ * ambiguous wall time (01:30 on a fall-back night) would otherwise resolve
+ * to its first occurrence and move the event.
+ */
+function keepOriginalInstant(
+  original: number | undefined,
+  wall: { date: string; time: string; timezone: string },
+  convert: () => number | null
+): number | null {
+  const unchanged =
+    original !== undefined &&
+    getDateKey(original, wall.timezone) === wall.date &&
+    getTimeKey(original, wall.timezone) === wall.time
+  return unchanged ? original : convert()
+}
+
 function buildTimeTags(draft: NostrCalendarEventDraft): DraftTimes {
   const timezone = isValidTimezone(draft.timezone)
     ? draft.timezone
@@ -752,7 +835,11 @@ function buildTimeTags(draft: NostrCalendarEventDraft): DraftTimes {
   if (!ISO_DATE_RE.test(draft.startDate)) {
     return draftError('invalidStartDate')
   }
-  const start = zonedTimeToUnix(draft.startDate, draft.startTime, timezone)
+  const start = keepOriginalInstant(
+    draft.original?.start,
+    { date: draft.startDate, time: draft.startTime, timezone },
+    () => zonedTimeToUnix(draft.startDate, draft.startTime, timezone)
+  )
   if (start === null) {
     return draftError('invalidStartTime')
   }
@@ -761,7 +848,13 @@ function buildTimeTags(draft: NostrCalendarEventDraft): DraftTimes {
   if (hasEnd && !ISO_DATE_RE.test(endDate)) {
     return draftError('invalidEndDate')
   }
-  const end = hasEnd ? zonedTimeToUnix(endDate, draft.endTime, timezone) : null
+  const end = hasEnd
+    ? keepOriginalInstant(
+        draft.original?.end,
+        { date: endDate, time: draft.endTime, timezone },
+        () => zonedTimeToUnix(endDate, draft.endTime, timezone)
+      )
+    : null
   if (hasEnd && end === null) {
     return draftError('invalidEndTime')
   }
@@ -853,7 +946,11 @@ export function draftFromCalendarEvent(
   event: NostrCalendarEvent,
   timezone: string
 ): NostrCalendarEventDraft {
-  const zone = event.startTzid ?? timezone
+  // An unknown stored zone would make Intl throw; fall back to the device's.
+  const zone =
+    event.startTzid && isValidTimezone(event.startTzid)
+      ? event.startTzid
+      : timezone
   const displayZone = event.allDay ? UTC_TIMEZONE : zone
   const lastDay =
     event.end === undefined
@@ -876,6 +973,14 @@ export function draftFromCalendarEvent(
     hashtags: event.hashtags.join(', '),
     image: event.image ?? '',
     locations: event.locations.join('\n'),
+    ...(event.allDay
+      ? {}
+      : {
+          original: {
+            ...(event.end === undefined ? {} : { end: event.end }),
+            start: event.start
+          }
+        }),
     participants: event.participants
       .map(({ pubkey }) => nip19.npubEncode(pubkey))
       .join('\n'),

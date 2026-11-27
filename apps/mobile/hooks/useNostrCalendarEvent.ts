@@ -25,6 +25,14 @@ import {
 import { useNostrCalendarPublish } from './useNostrCalendarPublish'
 import { useNostrProfilesFetch } from './useNostrProfilesFetch'
 
+/** Fields of the RSVP form the user changed, for one identity and event. */
+type RsvpEdits = {
+  freeBusy?: NostrCalendarFreeBusy
+  note?: string
+  scope: string
+  status?: NostrCalendarRsvpStatus
+}
+
 function getProfileLabel(
   pubkey: string,
   profiles: Record<string, { displayName?: string } | null>
@@ -37,6 +45,7 @@ function useNostrCalendarEvent(npub: string, coordinate: string) {
   const calendar = useNostrCalendarFetch(npub)
   const { data, ownPubkey, relays } = calendar
   const event = findCalendarEvent(data, coordinate)
+  const eventCoordinate = event?.coordinate ?? coordinate
   const { isLoading: rsvpsLoading, rsvps } = useNostrCalendarRsvpsFetch(
     event,
     relays
@@ -49,14 +58,39 @@ function useNostrCalendarEvent(npub: string, coordinate: string) {
   })
   const [timezone] = useState(getDeviceTimezone)
 
-  const ownRsvp = findOwnRsvp([...data.rsvps, ...rsvps], coordinate, ownPubkey)
-  const [status, setStatus] = useState<NostrCalendarRsvpStatus | undefined>(
-    ownRsvp?.status
+  const ownRsvp = findOwnRsvp(
+    [...data.rsvps, ...rsvps],
+    eventCoordinate,
+    ownPubkey
   )
-  const [freeBusy, setFreeBusy] = useState<NostrCalendarFreeBusy | undefined>(
-    ownRsvp?.freeBusy
-  )
-  const [note, setNote] = useState(ownRsvp?.note ?? '')
+  // The saved answer often arrives after the first render: fields the user
+  // hasn't touched follow it, so a new status doesn't wipe the saved note.
+  const scope = `${ownPubkey}|${eventCoordinate}`
+  const [rsvpEdits, setRsvpEdits] = useState<RsvpEdits>({ scope })
+  const edits = rsvpEdits.scope === scope ? rsvpEdits : { scope }
+  const status = 'status' in edits ? edits.status : ownRsvp?.status
+  const freeBusy = 'freeBusy' in edits ? edits.freeBusy : ownRsvp?.freeBusy
+  const note = 'note' in edits ? (edits.note ?? '') : (ownRsvp?.note ?? '')
+
+  function editRsvp(changes: Omit<RsvpEdits, 'scope'>) {
+    setRsvpEdits((current) => ({
+      ...(current.scope === scope ? current : {}),
+      ...changes,
+      scope
+    }))
+  }
+
+  function setStatus(value: NostrCalendarRsvpStatus) {
+    editRsvp({ status: value })
+  }
+
+  function setFreeBusy(value: NostrCalendarFreeBusy) {
+    editRsvp({ freeBusy: value })
+  }
+
+  function setNote(value: string) {
+    editRsvp({ note: value })
+  }
 
   const profilePubkeys = event
     ? [event.pubkey, ...event.participants.map(({ pubkey }) => pubkey)]
@@ -65,7 +99,7 @@ function useNostrCalendarEvent(npub: string, coordinate: string) {
 
   const isOwn = event?.pubkey === ownPubkey
   const calendarTitles = data.calendars
-    .filter((item) => item.eventCoordinates.includes(coordinate))
+    .filter((item) => item.eventCoordinates.includes(eventCoordinate))
     .map((item) => item.title)
 
   function handleSubmitRsvp() {

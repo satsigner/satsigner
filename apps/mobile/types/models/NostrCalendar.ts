@@ -101,6 +101,11 @@ export type NostrCalendarEventDraft = {
   image: string
   /** One per line. */
   locations: string
+  /**
+   * Unix times of the event being edited. Reused while their date, time and
+   * zone are unchanged, so an ambiguous wall time keeps its instant.
+   */
+  original?: { end?: number; start: number }
   /** npubs or hex pubkeys, separated by spaces, commas or lines. */
   participants: string
   /** One link per line. */

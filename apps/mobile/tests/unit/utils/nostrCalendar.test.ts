@@ -19,10 +19,12 @@ import {
   CALENDAR_MINUTE_OPTIONS,
   draftFromCalendarEvent,
   emptyCalendarEventDraft,
+  findCalendarEvent,
   formatDateKeyLabel,
   formatTimeKey,
   getEventDayKeys,
   getPickerMonth,
+  getReferencedEventFilters,
   getVisibleCalendarEvents,
   groupEventsByDay,
   isCalendarEventPast,
@@ -333,9 +335,64 @@ describe('buildCalendarData', () => {
       )
     )
     expect(accepted.requests).toHaveLength(0)
-    expect(getVisibleCalendarEvents(accepted, `31924:${ME}:work`)).toHaveLength(
-      0
+    // The calendar lists it now, so it shows there, but not in the full view.
+    expect(
+      getVisibleCalendarEvents(accepted, `31924:${ME}:work`).map(
+        (event) => event.dTag
+      )
+    ).toStrictEqual(['hack'])
+    expect(
+      getVisibleCalendarEvents(accepted).map((event) => event.dTag)
+    ).toStrictEqual(['call'])
+  })
+})
+
+describe('calendar references', () => {
+  const listing = raw(31_924, [
+    ['d', 'work'],
+    ['title', 'Work'],
+    ['a', `31923:${ALICE}:one`],
+    ['a', `31923:${ALICE}:two`],
+    ['a', `31922:${ALICE}:three`],
+    ['a', `31923:${ME}:mine`]
+  ])
+
+  it('groups events by others that own calendars list, by author and kind', () => {
+    expect(getReferencedEventFilters([listing], ME, [])).toStrictEqual([
+      [
+        { dTag: 'one', kind: 31_923, pubkey: ALICE },
+        { dTag: 'two', kind: 31_923, pubkey: ALICE }
+      ],
+      [{ dTag: 'three', kind: 31_922, pubkey: ALICE }]
+    ])
+  })
+
+  it('ignores deleted calendars', () => {
+    const deletion = {
+      created_at: 200,
+      pubkey: ME,
+      tags: [['a', `31924:${ME}:work`]]
+    }
+    expect(getReferencedEventFilters([listing], ME, [deletion])).toStrictEqual(
+      []
     )
+  })
+
+  it('finds an event under its other kind after switching all-day', () => {
+    const data = buildCalendarData({
+      deletions: [],
+      foreign: [],
+      own: [
+        raw(31_923, [
+          ['d', 'evt'],
+          ['title', 'Timed now'],
+          ['start', '1800000000']
+        ])
+      ],
+      ownPubkey: ME
+    })
+    expect(findCalendarEvent(data, `31922:${ME}:evt`)?.title).toBe('Timed now')
+    expect(findCalendarEvent(data, `31922:${ME}:other`)).toBeUndefined()
   })
 })
 
@@ -404,6 +461,69 @@ describe('buildCalendarEventTemplate', () => {
     )
     expect(zonedTimeToUnix('2026-01-01', '12:00', 'America/New_York')).toBe(
       Date.UTC(2026, 0, 1, 17) / MS_PER_SECOND
+    )
+  })
+
+  it('rejects a wall time skipped by a DST change', () => {
+    expect(
+      zonedTimeToUnix('2026-03-08', '02:30', 'America/New_York')
+    ).toBeNull()
+    expect(
+      buildCalendarEventTemplate(
+        draft({
+          allDay: false,
+          startDate: '2026-03-08',
+          startTime: '02:30',
+          timezone: 'America/New_York'
+        })
+      )
+    ).toStrictEqual({ error: 'invalidStartTime', ok: false })
+  })
+
+  it('keeps the second of two equal wall times through an unrelated edit', () => {
+    const secondOneThirty = Date.UTC(2026, 10, 1, 6, 30) / MS_PER_SECOND
+    const event = parseCalendarEvent(
+      raw(31_923, [
+        ['d', 'late'],
+        ['title', 'Late'],
+        ['start', String(secondOneThirty)],
+        ['start_tzid', 'America/New_York']
+      ])
+    )
+    if (!event) {
+      throw new Error('not parsed')
+    }
+    const edited = {
+      ...draftFromCalendarEvent(event, 'UTC'),
+      title: 'Later'
+    }
+    expect(edited.startTime).toBe('01:30')
+    const result = buildCalendarEventTemplate(edited)
+    expect(result.ok && result.template.tags).toStrictEqual(
+      expect.arrayContaining([['start', String(secondOneThirty)]])
+    )
+    const moved = buildCalendarEventTemplate({ ...edited, startTime: '01:45' })
+    expect(moved.ok && moved.template.tags).toStrictEqual(
+      expect.arrayContaining([
+        ['start', String(Date.UTC(2026, 10, 1, 5, 45) / MS_PER_SECOND)]
+      ])
+    )
+  })
+
+  it('opens an event with an unknown zone in the device zone', () => {
+    const event = parseCalendarEvent(
+      raw(31_923, [
+        ['d', 'mars'],
+        ['title', 'Mars'],
+        ['start', '1800000000'],
+        ['start_tzid', 'Mars/Olympus']
+      ])
+    )
+    if (!event) {
+      throw new Error('not parsed')
+    }
+    expect(draftFromCalendarEvent(event, 'Europe/Lisbon').timezone).toBe(
+      'Europe/Lisbon'
     )
   })
 

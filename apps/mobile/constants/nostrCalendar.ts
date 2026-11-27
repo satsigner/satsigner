@@ -9,17 +9,20 @@ import { MS_PER_SECOND, SECONDS_PER_MINUTE } from './time'
 
 export const NOSTR_CALENDAR_EVENT_KINDS = [nostrKinds.Date, nostrKinds.Time]
 
+/** Own events and calendars; own RSVPs are fetched on their own. */
 export const NOSTR_CALENDAR_OWN_KINDS = [
   ...NOSTR_CALENDAR_EVENT_KINDS,
-  nostrKinds.Calendar,
-  nostrKinds.CalendarEventRSVP
+  nostrKinds.Calendar
 ]
 
 export const NOSTR_CALENDAR_FETCH_LIMIT = 500
+export const NOSTR_CALENDAR_RSVPS_FETCH_LIMIT = 500
 export const NOSTR_CALENDAR_INVITES_FETCH_LIMIT = 200
 export const NOSTR_CALENDAR_DELETIONS_FETCH_LIMIT = 200
 /** Keeps `#a` and `authors` filters within what relays accept. */
 export const NOSTR_CALENDAR_MAX_FILTER_VALUES = 200
+/** Events by others listed in own calendars: one request per author and kind. */
+export const NOSTR_CALENDAR_REFERENCED_FILTERS_MAX = 20
 export const NOSTR_CALENDAR_STALE_TIME_MS =
   5 * SECONDS_PER_MINUTE * MS_PER_SECOND
 

@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner-native'
 
 import {
+  NostrCalendarPartialPublishError,
   publishNostrCalendarTemplate,
   publishNostrCalendarTemplates
 } from '@/api/nostrCalendar'
@@ -45,6 +46,14 @@ type RsvpInput = {
   status: NostrCalendarRsvpStatus
 }
 
+type CalendarItemRef = { coordinate: string; id: string; kind: number }
+
+type SaveEventInput = {
+  draft: NostrCalendarEventDraft
+  /** The event being edited, when there is one. */
+  previous?: CalendarItemRef
+}
+
 type CalendarInput = {
   calendar?: NostrCalendar
   description: string
@@ -59,19 +68,34 @@ class NostrCalendarDraftInvalidError extends Error {
   }
 }
 
-/** Calendars whose membership of `coordinate` must change to match `wanted`. */
+/**
+ * Calendars whose membership of `coordinate` must change to match `wanted`.
+ * `replaced` is an address the event left (its kind changed), dropped from
+ * every calendar in the same revision.
+ */
 function getMembershipTemplates(
   calendars: NostrCalendar[],
   coordinate: string,
-  wanted: string[]
+  wanted: string[],
+  replaced?: string
 ): NostrCalendarEventTemplate[] {
   return calendars.flatMap((calendar) => {
+    const hasReplaced =
+      replaced !== undefined && calendar.eventCoordinates.includes(replaced)
     const included = calendar.eventCoordinates.includes(coordinate)
     const shouldInclude = wanted.includes(calendar.coordinate)
-    if (included === shouldInclude) {
+    if (included === shouldInclude && !hasReplaced) {
       return []
     }
-    const result = toggleCalendarEvent(calendar, coordinate, shouldInclude)
+    const current = hasReplaced
+      ? {
+          ...calendar,
+          eventCoordinates: calendar.eventCoordinates.filter(
+            (item) => item !== replaced
+          )
+        }
+      : calendar
+    const result = toggleCalendarEvent(current, coordinate, shouldInclude)
     return result.ok ? [result.template] : []
   })
 }
@@ -102,10 +126,35 @@ function useNostrCalendarPublish({
     )
   }
 
-  function applyPublished(events: NostrCalendarRawEvent[]) {
+  /**
+   * Writes to the calendar cache. A fetch already running read the relays
+   * before this publish, so it is cancelled first and can't overwrite it.
+   */
+  async function updateData(
+    update: (current: NostrCalendarData) => NostrCalendarData
+  ) {
+    await queryClient.cancelQueries({ queryKey: dataKey })
     queryClient.setQueryData<NostrCalendarData>(dataKey, (current) =>
-      applyPublishedCalendarEvents(current ?? EMPTY_CALENDAR_DATA, events)
+      update(current ?? EMPTY_CALENDAR_DATA)
     )
+  }
+
+  function applyPublished(events: NostrCalendarRawEvent[]) {
+    return updateData((current) =>
+      applyPublishedCalendarEvents(current, events)
+    )
+  }
+
+  /**
+   * A batch that failed part way still took effect: keep what went out and
+   * refetch. Saving again publishes only what is still missing.
+   */
+  async function handleError(error: unknown) {
+    if (error instanceof NostrCalendarPartialPublishError) {
+      await applyPublished(error.published)
+      void queryClient.invalidateQueries({ queryKey: dataKey })
+    }
+    reportError(error)
   }
 
   function publishAll(templates: NostrCalendarEventTemplate[]) {
@@ -116,41 +165,64 @@ function useNostrCalendarPublish({
   }
 
   function reportError(error: unknown) {
+    const cause =
+      error instanceof NostrCalendarPartialPublishError ? error.cause : error
     const message =
-      error instanceof NostrCalendarDraftInvalidError
-        ? error.message
-        : getNostrErrorMessage(error)
+      cause instanceof NostrCalendarDraftInvalidError
+        ? cause.message
+        : getNostrErrorMessage(cause)
     toast.error(`${t('nostrIdentity.calendar.publishFailed')}: ${message}`)
   }
 
+  /**
+   * Publishes the event, then its calendar memberships. Switching all-day
+   * changes the kind and so the address: the old address is moved out of
+   * calendars and deleted last, so it doesn't stay live next to the new one.
+   */
   const saveEvent = useMutation({
-    mutationFn: (draft: NostrCalendarEventDraft) => {
+    mutationFn: async ({ draft, previous }: SaveEventInput) => {
       const template = templateOrThrow(buildCalendarEventTemplate(draft))
       const coordinate = getCalendarCoordinate(
         template.kind,
         ownPubkey,
         draft.dTag
       )
+      const replaced =
+        previous && previous.coordinate !== coordinate ? previous : undefined
       const membership = getMembershipTemplates(
         getData().calendars,
         coordinate,
-        draft.calendarCoordinates
+        draft.calendarCoordinates,
+        replaced?.coordinate
       )
-      return publishAll([template, ...membership])
+      const published = await publishAll([
+        template,
+        ...membership,
+        ...(replaced ? [buildCalendarDeletionTemplate(replaced)] : [])
+      ])
+      return {
+        published: replaced ? published.slice(0, -1) : published,
+        replaced
+      }
     },
-    onError: reportError,
-    onSuccess: (published) => {
-      applyPublished(published)
+    onError: handleError,
+    onSuccess: async ({ published, replaced }) => {
+      await updateData((current) => {
+        const applied = applyPublishedCalendarEvents(current, published)
+        return replaced
+          ? removeCalendarItem(applied, replaced.coordinate)
+          : applied
+      })
       toast.success(t('nostrIdentity.calendar.saved'))
     }
   })
 
+  /**
+   * Detaches the item from its calendars, then deletes it. If a detach
+   * fails the item is still live and deleting again retries the rest.
+   */
   const deleteItem = useMutation({
-    mutationFn: async (item: {
-      coordinate: string
-      id: string
-      kind: number
-    }) => {
+    mutationFn: async (item: CalendarItemRef) => {
       const detach = getData()
         .calendars.filter((calendar) =>
           calendar.eventCoordinates.includes(item.coordinate)
@@ -160,17 +232,19 @@ function useNostrCalendarPublish({
           return result.ok ? [result.template] : []
         })
       const published = await publishAll([
-        buildCalendarDeletionTemplate(item),
-        ...detach
+        ...detach,
+        buildCalendarDeletionTemplate(item)
       ])
-      return { item, published }
+      return { item, published: published.slice(0, -1) }
     },
-    onError: reportError,
-    onSuccess: ({ item, published }) => {
-      queryClient.setQueryData<NostrCalendarData>(dataKey, (current) =>
-        removeCalendarItem(current ?? EMPTY_CALENDAR_DATA, item.coordinate)
+    onError: handleError,
+    onSuccess: async ({ item, published }) => {
+      await updateData((current) =>
+        removeCalendarItem(
+          applyPublishedCalendarEvents(current, published),
+          item.coordinate
+        )
       )
-      applyPublished(published.slice(1))
       toast.success(t('nostrIdentity.calendar.deleted'))
     }
   })
@@ -187,8 +261,8 @@ function useNostrCalendarPublish({
       )
     },
     onError: reportError,
-    onSuccess: (published, input) => {
-      applyPublished([published])
+    onSuccess: async (published, input) => {
+      await applyPublished([published])
       void queryClient.invalidateQueries({
         queryKey: nostrKeys.identityCalendarRsvps(
           input.event.coordinate,
@@ -211,9 +285,9 @@ function useNostrCalendarPublish({
           })
         )
       ]),
-    onError: reportError,
-    onSuccess: (published) => {
-      applyPublished(published)
+    onError: handleError,
+    onSuccess: async (published) => {
+      await applyPublished(published)
       toast.success(t('nostrIdentity.calendar.calendarSaved'))
     }
   })
@@ -229,9 +303,9 @@ function useNostrCalendarPublish({
       publishAll([
         templateOrThrow(toggleCalendarEvent(calendar, event.coordinate, true))
       ]),
-    onError: reportError,
-    onSuccess: (published) => {
-      applyPublished(published)
+    onError: handleError,
+    onSuccess: async (published) => {
+      await applyPublished(published)
       toast.success(t('nostrIdentity.calendar.requestAccepted'))
     }
   })
