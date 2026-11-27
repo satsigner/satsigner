@@ -93,7 +93,6 @@ export const NOSTR_TRUST_SYNC_RESTART_DELAY_MS = 1500
 export const NOSTR_SYNCING_MESSAGE_ROTATE_MS = 2500
 export const NOSTR_GROUP_CHAT_PAGE_SIZE = 50
 export const NOSTR_GROUP_CHAT_SCROLL_THRESHOLD = 40
-export const NOSTR_GROUP_CHAT_AUTOSCROLL_THRESHOLD = 0.2
 export const NOSTR_GROUP_CHAT_MESSAGE_MAX_LENGTH = 500
 // NIP-44 caps each layer at 65535 bytes. The seal carries the rumor as padded
 // base64, so the rumor JSON must stay within 40960 bytes: 13k UTF-16 units at
@@ -493,6 +492,16 @@ export const NOSTR_CHAT_GROUP_WINDOW_SEC = 5 * SECONDS_PER_MINUTE
 export const NOSTR_CHAT_REPLY_PREVIEW_MAX_LENGTH = 120
 export const NOSTR_CHAT_REPLY_SEARCH_MAX_PAGES = 10
 export const NOSTR_REPLY_MARKER = 'reply'
+// Parallel conversations with one peer (e.g. separate agent contexts). The tag
+// lives in the NIP-17 rumor, so relays never see it; no tag is the default
+// session every other client already shares.
+export const NOSTR_CHAT_SESSION_TAG = 'session'
+export const NOSTR_CHAT_SUBJECT_TAG = 'subject'
+export const NOSTR_CHAT_DEFAULT_SESSION_ID = ''
+export const NOSTR_CHAT_SESSION_ID_BYTES = 16
+export const NOSTR_CHAT_SESSION_ID_RE = /^[0-9a-f]{32}$/
+export const NOSTR_CHAT_SESSION_TITLE_MAX = 80
+export const NOSTR_CHAT_SESSIONS_PER_PEER_MAX = 50
 export const NOSTR_GIFT_WRAP_KEY_SALT = 'satsigner/nip59-wrap/v1'
 export const NOSTR_CHAT_POW_DEFAULT_MIN_INBOUND = 0
 export const NOSTR_CHAT_POW_MAX_MS = 30 * MS_PER_SECOND

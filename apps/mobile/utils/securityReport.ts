@@ -1,6 +1,9 @@
 import { NostrAPI } from '@/api/nostr'
 import { SHORT_MNEMONIC_WORD_COUNT } from '@/constants/bip39'
-import { NOSTR_SECURITY_REPORT_NPUB } from '@/constants/nostr'
+import {
+  NOSTR_CHAT_DEFAULT_SESSION_ID,
+  NOSTR_SECURITY_REPORT_NPUB
+} from '@/constants/nostr'
 import { MS_PER_SECOND } from '@/constants/time'
 import type { NostrChatMessage } from '@/types/models/Nostr'
 import { generateMnemonic } from '@/utils/bip39'
@@ -80,6 +83,7 @@ export async function sendSecurityReport({
         peerPubkey,
         protocol: 'nip17',
         read: true,
+        sessionId: NOSTR_CHAT_DEFAULT_SESSION_ID,
         status: 'sent'
       }
       ingestChatMessage(stored)

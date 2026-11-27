@@ -42,6 +42,7 @@ function ChatConversationsScene({ protocol }: { protocol: NostrChatProtocol }) {
   const identity = useNostrIdentityStore((state) =>
     state.identities.find((i) => i.npub === npub)
   )
+  const privacyMode = useSettingsStore((state) => state.privacyMode)
   const conversations = useNostrChatConversations(npub, protocol)
   const inbox = useNostrChatInboxFilter({
     conversations,
@@ -55,11 +56,11 @@ function ChatConversationsScene({ protocol }: { protocol: NostrChatProtocol }) {
     inbox.visibleConversations.map((conversation) => conversation.peerNpub)
   )
 
-  function handleOpenPeer(peerNpub: string) {
+  function handleOpenPeer(peerNpub: string, sessionId: string) {
     if (!isNonEmptyString(npub)) {
       return
     }
-    router.push(nostrChatThreadHref(npub, peerNpub, protocol))
+    router.push(nostrChatThreadHref(npub, peerNpub, protocol, { sessionId }))
   }
 
   function handleNewChat() {
@@ -98,6 +99,7 @@ function ChatConversationsScene({ protocol }: { protocol: NostrChatProtocol }) {
       <SSNostrConversationList
         conversations={inbox.visibleConversations}
         onOpenPeer={handleOpenPeer}
+        privacyMode={privacyMode}
       />
       <SSButton
         label={t('nostrIdentity.chat.newMessage')}

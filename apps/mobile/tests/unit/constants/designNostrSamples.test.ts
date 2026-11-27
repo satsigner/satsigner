@@ -1,9 +1,18 @@
-import { DESIGN_CHAT_PAYMENT_CARDS } from '@/constants/designNostrSamples'
+import {
+  DESIGN_CHAT_PAYMENT_CARDS,
+  DESIGN_NOSTR_ARCHIVED_SESSIONS,
+  DESIGN_NOSTR_FOLLOWING_CONVERSATIONS
+} from '@/constants/designNostrSamples'
 import { MS_PER_SECOND } from '@/constants/time'
 import {
   getChatInvoiceTiming,
   isChatPaymentRequestExpired
 } from '@/utils/chatPaymentRequests'
+import {
+  getConversationKey,
+  labelConversationSessions
+} from '@/utils/nostrChatSessions'
+import { isChatSessionId } from '@/utils/nostrChatTags'
 
 function cardFor(labelKey: string) {
   const card = DESIGN_CHAT_PAYMENT_CARDS.find(
@@ -77,5 +86,26 @@ describe('design chat payment cards', () => {
         ? request.expiresAt * MS_PER_SECOND
         : 0
     expect(expiresAtMs - nowMs).toBeGreaterThan(5 * 60 * MS_PER_SECOND)
+  })
+})
+
+describe('design chat sessions', () => {
+  it('gives every inbox row its own key', () => {
+    const keys = DESIGN_NOSTR_FOLLOWING_CONVERSATIONS.map(getConversationKey)
+    expect(new Set(keys).size).toBe(keys.length)
+  })
+
+  it('labels both sessions of the peer that has two', () => {
+    const labels = labelConversationSessions(
+      DESIGN_NOSTR_FOLLOWING_CONVERSATIONS
+    ).map((row) => row.sessionLabel)
+    expect(labels.filter(Boolean)).toHaveLength(2)
+  })
+
+  it('uses valid ids for archived sessions', () => {
+    for (const session of DESIGN_NOSTR_ARCHIVED_SESSIONS) {
+      expect(session.archived).toBe(true)
+      expect(isChatSessionId(session.sessionId)).toBe(true)
+    }
   })
 })

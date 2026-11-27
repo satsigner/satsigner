@@ -37,7 +37,10 @@ describe('design system locale keys', () => {
     ...DESIGN_TRANSACTION_CARD_STATES.map((state) => state.title),
     ...DESIGN_TAG_STATES.map((state) => state.title),
     ...DESIGN_WORD_STATES.map((state) => state.title),
-    'refreshData'
+    'refreshData',
+    'nostrChatSessionMenu',
+    'sessionMenuDefault',
+    'sessionMenuNamed'
   ])('has a string for the %s preview key', (key) => {
     expect(
       t(`settings.developer.designSystem.features.${key}`, { count: 2 })

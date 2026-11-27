@@ -8,7 +8,7 @@ import {
   NOSTR_GIFT_WRAP_TIMESTAMP_JITTER_SEC
 } from '@/constants/nostr'
 import { MS_PER_SECOND } from '@/constants/time'
-import { listChatThread } from '@/db/queries/nostrChat'
+import { listChatConversations, listChatThread } from '@/db/queries/nostrChat'
 import {
   acquireChatPipeline,
   clearRecipientRelaysCache,
@@ -17,6 +17,7 @@ import {
   sendNip17Chat
 } from '@/utils/nostrChat'
 import type { ChatIdentity } from '@/utils/nostrChat'
+import { startChatSession } from '@/utils/nostrChatSessions'
 
 import { createTestIdentity, wrapChatMessage } from './support/identities'
 import type { TestIdentity } from './support/identities'
@@ -44,8 +45,16 @@ function chatIdentity(identity: TestIdentity, relays: string[]): ChatIdentity {
   return { npub: identity.npub, nsec: identity.nsec, relays }
 }
 
-function thread(owner: TestIdentity, peer: TestIdentity) {
-  return listChatThread(owner.npub, 'nip17', peer.pubkey, THREAD_LIMIT)
+function thread(owner: TestIdentity, peer: TestIdentity, sessionId = '') {
+  return listChatThread(
+    {
+      identityNpub: owner.npub,
+      peerPubkey: peer.pubkey,
+      protocol: 'nip17',
+      sessionId
+    },
+    THREAD_LIMIT
+  )
 }
 
 function giftWrapReqsFor(relay: TestRelay, recipient: TestIdentity) {
@@ -249,6 +258,50 @@ describe('chat pipeline against the test relay', () => {
         { content: text, direction: 'out', status: 'sent' }
       ])
       expect(thread(sender, sender)).toHaveLength(0)
+    },
+    SCENARIO_TIMEOUT_MS
+  )
+
+  it(
+    'keeps two sessions with the same peer apart on both sides',
+    async () => {
+      const user = createTestIdentity()
+      const agent = createTestIdentity()
+      const agentLease = acquireChatPipeline(chatIdentity(agent, [relay().url]))
+      await agentLease.ready
+      await waitForPipelineState(agent, 'live')
+      const api = new NostrAPI([relay().url])
+      const userIdentity = chatIdentity(user, [relay().url])
+      const release = startChatSession(user.npub, agent.pubkey, 'Release')
+
+      await sendNip17Chat(api, userIdentity, agent.npub, 'main chat')
+      await sendNip17Chat(api, userIdentity, agent.npub, 'build 1.4', {
+        sessionId: release.sessionId
+      })
+      await waitFor(
+        () =>
+          thread(agent, user).length === 1 &&
+          thread(agent, user, release.sessionId).length === 1,
+        { label: 'both sessions received', timeoutMs: CHAT_WAIT_MS }
+      )
+      agentLease.release()
+
+      expect(thread(agent, user)).toMatchObject([{ content: 'main chat' }])
+      expect(thread(agent, user, release.sessionId)).toMatchObject([
+        { content: 'build 1.4', sessionId: release.sessionId }
+      ])
+      const conversations = listChatConversations(agent.npub, 'nip17')
+      expect(conversations).toHaveLength(2)
+      expect(conversations).toStrictEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ sessionId: '', unreadCount: 1 }),
+          expect.objectContaining({
+            sessionId: release.sessionId,
+            title: 'Release',
+            unreadCount: 1
+          })
+        ])
+      )
     },
     SCENARIO_TIMEOUT_MS
   )

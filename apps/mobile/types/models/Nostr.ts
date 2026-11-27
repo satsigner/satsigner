@@ -565,6 +565,8 @@ export const NostrChatMessageSchema = z.object({
   protocol: NostrChatProtocolSchema,
   read: z.boolean(),
   replyToId: z.string().optional(),
+  /** NIP-17 session with this peer; '' is the default (untagged) one. */
+  sessionId: z.string(),
   status: z.enum(['pending', 'sent', 'failed'])
 })
 
@@ -591,10 +593,31 @@ export type NostrChatReactionSummary = {
 export type NostrChatProtocol = z.infer<typeof NostrChatProtocolSchema>
 export type NostrChatMessage = z.infer<typeof NostrChatMessageSchema>
 
-export type NostrChatConversation = {
+/** Names one thread: a session with a peer, over one protocol. */
+export type NostrChatThreadRef = Pick<
+  NostrChatMessage,
+  'identityNpub' | 'peerPubkey' | 'protocol' | 'sessionId'
+>
+
+/** One NIP-17 session with a peer, as kept in nostr_chat_sessions. */
+export type NostrChatSession = Pick<
+  NostrChatMessage,
+  'identityNpub' | 'peerPubkey' | 'sessionId'
+> & {
+  archived: boolean
+  createdAt: number
+  title?: string
+  /** The user set or cleared the title; a peer's subject no longer applies. */
+  titleLocked?: boolean
+}
+
+export type NostrChatConversation = Pick<
+  NostrChatMessage,
+  'peerPubkey' | 'sessionId'
+> & {
   lastMessageAt: number
   lastMessagePreview: string
-  peerPubkey: string
+  title?: string
   unreadCount: number
 }
 

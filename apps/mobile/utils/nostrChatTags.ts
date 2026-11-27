@@ -1,6 +1,15 @@
 import * as nostrKinds from 'nostr-tools/kinds'
 
-import { NOSTR_HEX_PUBKEY_RE, NOSTR_REPLY_MARKER } from '@/constants/nostr'
+import {
+  NOSTR_CHAT_DEFAULT_SESSION_ID,
+  NOSTR_CHAT_SESSION_ID_RE,
+  NOSTR_CHAT_SESSION_TAG,
+  NOSTR_CHAT_SESSION_TITLE_MAX,
+  NOSTR_CHAT_SUBJECT_TAG,
+  NOSTR_HEX_PUBKEY_RE,
+  NOSTR_REPLY_MARKER
+} from '@/constants/nostr'
+import { toSingleLinePreview } from '@/utils/string'
 
 function isEventTag(tag: unknown): tag is string[] {
   return (
@@ -13,6 +22,19 @@ function isEventTag(tag: unknown): tag is string[] {
 
 function getEventTags(tags: unknown): string[][] {
   return Array.isArray(tags) ? tags.filter(isEventTag) : []
+}
+
+function getTagValue(tags: unknown, name: string): string | undefined {
+  if (!Array.isArray(tags)) {
+    return undefined
+  }
+  const tag = tags.find(
+    (candidate): candidate is string[] =>
+      Array.isArray(candidate) &&
+      candidate[0] === name &&
+      typeof candidate[1] === 'string'
+  )
+  return tag?.[1]
 }
 
 function buildReplyTag(parentId: string): string[] {
@@ -40,9 +62,59 @@ function getDeletionTargetIds(tags: unknown): string[] {
   return getEventTags(tags).map((tag) => tag[1])
 }
 
+function isChatSessionId(value: string): boolean {
+  return NOSTR_CHAT_SESSION_ID_RE.test(value)
+}
+
+function buildSessionTag(sessionId: string): string[] {
+  return [NOSTR_CHAT_SESSION_TAG, sessionId]
+}
+
+/**
+ * The session a message names: null when it has no session tag, the default
+ * session ('') when the tag is malformed (a peer picks the id), else the id.
+ * Only a message without a tag may inherit its reply parent's session.
+ */
+function hasTag(tags: unknown, name: string): boolean {
+  return (
+    Array.isArray(tags) &&
+    tags.some((tag) => Array.isArray(tag) && tag[0] === name)
+  )
+}
+
+function getSessionId(tags: unknown): string | null {
+  if (!hasTag(tags, NOSTR_CHAT_SESSION_TAG)) {
+    return null
+  }
+  const value = getTagValue(tags, NOSTR_CHAT_SESSION_TAG)
+  return value !== undefined && isChatSessionId(value)
+    ? value
+    : NOSTR_CHAT_DEFAULT_SESSION_ID
+}
+
+function normalizeSessionTitle(title: string): string | undefined {
+  const line = toSingleLinePreview(title, NOSTR_CHAT_SESSION_TITLE_MAX)
+  return line.length > 0 ? line : undefined
+}
+
+function buildSubjectTag(subject: string): string[] {
+  return [NOSTR_CHAT_SUBJECT_TAG, subject]
+}
+
+function getSubject(tags: unknown): string | undefined {
+  const value = getTagValue(tags, NOSTR_CHAT_SUBJECT_TAG)
+  return value === undefined ? undefined : normalizeSessionTitle(value)
+}
+
 export {
   buildMessageDeletionTags,
   buildReplyTag,
+  buildSessionTag,
+  buildSubjectTag,
   getDeletionTargetIds,
-  getReplyToId
+  getReplyToId,
+  getSessionId,
+  getSubject,
+  isChatSessionId,
+  normalizeSessionTitle
 }
