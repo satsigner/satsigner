@@ -41,7 +41,7 @@ export function useNostrChatSessionState({
     queryKey: nostrChatQueryKeys.sessionState(npub, peer, sessionId)
   })
 
-  if (!stored) {
+  if (!stored || protocol !== 'nip17') {
     return null
   }
   return {

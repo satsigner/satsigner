@@ -163,7 +163,8 @@ function formatAgentSatsDetail(
     return NOSTR_PRIVACY_MASK
   }
   const prefix = lowerBound ? '≥ ' : ''
-  const sats = `${prefix}${formatNumber(Math.round(amount))} ${t('bitcoin.sats')}`
+  const whole = lowerBound ? Math.floor(amount) : Math.round(amount)
+  const sats = `${prefix}${formatNumber(whole)} ${t('bitcoin.sats')}`
   if (!display.fiatEnabled || display.btcPrice <= 0) {
     return sats
   }

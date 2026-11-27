@@ -630,7 +630,7 @@ const NostrChatSessionStateModelSchema = z.object({
  * what the agent runs on and what the session has cost. `agent` is the same
  * in every session, `session` belongs to the one the document names.
  */
-export const NostrChatSessionStateSchema = z.object({
+const NostrChatSessionStateFieldsSchema = z.object({
   agent: lenient(
     z.object({
       balance: lenient(
@@ -672,6 +672,40 @@ export const NostrChatSessionStateSchema = z.object({
   ),
   v: agentVersion
 })
+
+function readPath(value: unknown, path: string[]): unknown {
+  let current = value
+  for (const key of path) {
+    if (typeof current !== 'object' || current === null) {
+      return undefined
+    }
+    current = (current as Record<string, unknown>)[key]
+  }
+  return current
+}
+
+const UNIT_PATHS = [
+  ['agent', 'balance', 'unit'],
+  ['session', 'spent', 'unit']
+]
+
+/** An amount in a unit we don't know can't be dropped: it refuses the document. */
+function hasOnlyKnownUnits(value: unknown): boolean {
+  return UNIT_PATHS.every((path) => {
+    const unit = readPath(value, path)
+    return unit === undefined || unit === NOSTR_CHAT_AGENT_UNIT
+  })
+}
+
+/**
+ * The agent's session state document (kind 30078, `d` nip17-session-state).
+ * Units are checked before the lenient fields, so an unknown unit refuses the
+ * whole document instead of only dropping the amount.
+ */
+export const NostrChatSessionStateSchema = z
+  .unknown()
+  .refine(hasOnlyKnownUnits)
+  .pipe(NostrChatSessionStateFieldsSchema)
 
 export type NostrChatAgentCost = z.infer<typeof NostrChatAgentCostSchema>
 export type NostrChatAgentModel = z.infer<typeof NostrChatAgentModelSchema>

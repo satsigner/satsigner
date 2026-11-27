@@ -1,4 +1,4 @@
-import { StyleSheet } from 'react-native'
+import { ScrollView, StyleSheet, useWindowDimensions } from 'react-native'
 
 import SSDetailRow from '@/components/SSDetailRow'
 import SSModal from '@/components/SSModal'
@@ -16,6 +16,8 @@ import type {
 const PRESSED_OPACITY = 0.6
 const STALE_OPACITY = 0.5
 const HIT_SLOP = 6
+/** Share of the screen the details may take; the close button stays below. */
+const SHEET_MAX_HEIGHT_RATIO = 0.6
 
 const TONE_STYLES: Record<ContextTone, { color: string } | undefined> = {
   error: { color: Colors.error },
@@ -28,14 +30,17 @@ type SSChatSessionStateLineProps = {
   onPress: () => void
 }
 
-/** One dim line under the session title: what the agent runs on, and costs. */
+/**
+ * One dim line under the session title: what the agent runs on, and costs.
+ * A document with nothing for the line still has details, so the line falls
+ * back to a label that opens them.
+ */
 function SSChatSessionStateLine({
   summary,
   onPress
 }: SSChatSessionStateLineProps) {
-  if (summary.line.length === 0) {
-    return null
-  }
+  const line =
+    summary.line.length > 0 ? summary.line : t('nostrIdentity.chat.agent.title')
   return (
     <SSPressable
       accessibilityRole="button"
@@ -51,7 +56,7 @@ function SSChatSessionStateLine({
         numberOfLines={1}
         style={TONE_STYLES[summary.contextTone]}
       >
-        {summary.busy ? `● ${summary.line}` : summary.line}
+        {summary.busy ? `● ${line}` : line}
       </SSText>
     </SSPressable>
   )
@@ -73,6 +78,7 @@ function SSChatSessionStateSheet({
   sharedModel,
   onClose
 }: SSChatSessionStateSheetProps) {
+  const { height } = useWindowDimensions()
   return (
     <SSModal
       visible={visible}
@@ -80,31 +86,37 @@ function SSChatSessionStateSheet({
       label={t('common.close')}
       onClose={onClose}
     >
-      <SSVStack gap="sm" style={styles.sheet}>
-        <SSVStack gap="none">
-          {rows.map((row) => (
-            <SSDetailRow key={row.key} label={row.label} value={row.value} />
-          ))}
+      <ScrollView
+        style={[styles.sheet, { maxHeight: height * SHEET_MAX_HEIGHT_RATIO }]}
+      >
+        <SSVStack gap="sm">
+          <SSVStack gap="none">
+            {rows.map((row) => (
+              <SSDetailRow key={row.key} label={row.label} value={row.value} />
+            ))}
+          </SSVStack>
+          {summary.stale ? (
+            <SSText size="xs" color="muted">
+              {t('nostrIdentity.chat.agent.stale', {
+                updated: summary.updated
+              })}
+            </SSText>
+          ) : null}
+          {sharedModel ? (
+            <SSText size="xs" color="muted">
+              {t('nostrIdentity.chat.agent.sharedModel')}
+            </SSText>
+          ) : null}
+          {summary.lowBalance ? (
+            <SSText size="xs" style={styles.warning}>
+              {t('nostrIdentity.chat.agent.lowBalance')}
+            </SSText>
+          ) : null}
+          <SSText size="xs" color="muted">
+            {t('nostrIdentity.chat.agent.reportedByAgent')}
+          </SSText>
         </SSVStack>
-        {summary.stale ? (
-          <SSText size="xs" color="muted">
-            {t('nostrIdentity.chat.agent.stale', { updated: summary.updated })}
-          </SSText>
-        ) : null}
-        {sharedModel ? (
-          <SSText size="xs" color="muted">
-            {t('nostrIdentity.chat.agent.sharedModel')}
-          </SSText>
-        ) : null}
-        {summary.lowBalance ? (
-          <SSText size="xs" style={styles.warning}>
-            {t('nostrIdentity.chat.agent.lowBalance')}
-          </SSText>
-        ) : null}
-        <SSText size="xs" color="muted">
-          {t('nostrIdentity.chat.agent.reportedByAgent')}
-        </SSText>
-      </SSVStack>
+      </ScrollView>
     </SSModal>
   )
 }

@@ -192,6 +192,25 @@ describe('parseSessionStateContent', () => {
     expect(parsed?.session?.model?.id).toBe('claude-opus-5.5')
   })
 
+  it('refuses a document with an amount in another unit', () => {
+    const usdSpent = {
+      ...STATE,
+      session: {
+        ...STATE.session,
+        spent: { ...STATE.session.spent, unit: 'usd' }
+      }
+    }
+    const usdBalance = {
+      ...STATE,
+      agent: {
+        ...STATE.agent,
+        balance: { ...STATE.agent.balance, unit: 'usd' }
+      }
+    }
+    expect(parseSessionStateContent(JSON.stringify(usdSpent))).toBeUndefined()
+    expect(parseSessionStateContent(JSON.stringify(usdBalance))).toBeUndefined()
+  })
+
   it('refuses another version, bad JSON and oversized content', () => {
     expect(
       parseSessionStateContent(JSON.stringify({ ...STATE, v: 2 }))
@@ -323,6 +342,19 @@ describe('buildSessionStateRows', () => {
     )
     expect(masked.spent).toBe('••••')
     expect(masked.balance).toBe('••••')
+  })
+
+  it('rounds a partial spend down, as it is a lower bound', () => {
+    const state = {
+      ...STATE,
+      session: {
+        ...STATE.session,
+        spent: { amount: 1874.8, partial: true, unit: 'sat' }
+      }
+    }
+    expect(
+      rowValues(buildSessionStateRows(stored(state), NOW_MS, DISPLAY)).spent
+    ).toBe(`≥ ${formatNumber(1874)} sats`)
   })
 })
 
