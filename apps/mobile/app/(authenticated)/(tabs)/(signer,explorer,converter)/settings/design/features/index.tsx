@@ -2,6 +2,7 @@ import { Stack, useRouter } from 'expo-router'
 
 import {
   SSIconBubbles,
+  SSIconCalendar,
   SSIconChartSettings,
   SSIconChatBubble,
   SSIconDev,
@@ -39,6 +40,7 @@ const FEATURE_ICONS = {
   historyChart: SSIconHistoryChart,
   lightningNode: SSIconLightning,
   multisigSelector: SSIconMultiSignature,
+  nostrCalendar: SSIconCalendar,
   nostrChat: SSIconChatBubble,
   nostrKeys: SSIconKeys,
   nostrMessageDetail: SSIconNostr,

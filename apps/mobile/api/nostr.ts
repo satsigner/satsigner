@@ -91,7 +91,6 @@ import {
   getSecretFromNsec,
   parseKind0Object
 } from '@/utils/nostr'
-import { parseCalendarDate } from '@/utils/nostrCalendar'
 import {
   NOSTR_ENGAGEMENT_KINDS,
   NOSTR_LIKE_CONTENT,
@@ -422,64 +421,42 @@ export class NostrAPI {
     return data
   }
 
-  async fetchCalendarEvents(npub: string): Promise<
-    {
-      description: string
-      end?: number
-      id: string
-      kind: number
-      location?: string
-      start: number
-      title: string
-    }[]
-  > {
-    const hexPubkey = getPubKeyHexFromNpub(npub)
-    if (!hexPubkey) {
-      return []
-    }
-
+  /**
+   * Events matching `filter`, as raw signed events whose signatures check
+   * out. Throws NostrRelayTimeoutError when no relay answered at all.
+   */
+  async fetchEvents(filter: NDKFilter<number>): Promise<Event[]> {
     await this.connectForPublish()
-    if (!this.ndk) {
-      return []
-    }
-
     const events = await NostrAPI.fetchManyWithTimeout(
-      this.ndk,
-      {
-        authors: [hexPubkey],
-        kinds: [nostrKinds.Date],
-        limit: 500
-      },
+      this.requireNdk(),
+      filter,
       NOSTR_DEFAULT_FETCH_TIMEOUT_MS
     )
+    return [...events].flatMap((event) => {
+      const raw = parseNostrEvent(event.rawEvent())
+      return raw && verifyEvent(raw) ? [raw] : []
+    })
+  }
 
-    return [...events]
-      .flatMap((event) => {
-        function getTagValue(name: string): string | undefined {
-          return event.tags.find((tag) => tag[0] === name)?.[1]
-        }
-
-        const start = parseCalendarDate(getTagValue('start'))
-        if (start === null) {
-          return []
-        }
-
-        const end = parseCalendarDate(getTagValue('end'))
-        const location = getTagValue('location')
-
-        return [
-          {
-            description: event.content,
-            ...(end === null ? {} : { end }),
-            id: event.id,
-            kind: event.kind ?? nostrKinds.Date,
-            ...(location ? { location } : {}),
-            start,
-            title: getTagValue('title') ?? getTagValue('summary') ?? 'Untitled'
-          }
-        ]
-      })
-      .toSorted((a, b) => a.start - b.start)
+  /** Signs `template` with `nsec`, publishes it and returns the signed event. */
+  async publishTemplate(
+    nsec: string,
+    template: { content: string; kind: number; tags: string[][] }
+  ): Promise<Event> {
+    const secretKey = getSecretFromNsec(nsec)
+    if (!secretKey) {
+      throw new Error('Invalid nsec')
+    }
+    const signer = new NDKPrivateKeySigner(secretKey)
+    await this.connectForPublish()
+    const event = new NDKEvent(this.requireNdk(), template)
+    await event.sign(signer)
+    await this.publishEvent(event)
+    const raw = parseNostrEvent(event.rawEvent())
+    if (!raw) {
+      throw new Error('Failed to sign event')
+    }
+    return raw
   }
 
   /**

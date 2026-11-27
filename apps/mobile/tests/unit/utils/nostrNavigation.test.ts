@@ -10,6 +10,9 @@ import {
   nostrAccountProfileHref,
   nostrAuthorProfileHref,
   nostrBunkerConnectHref,
+  nostrCalendarEditHref,
+  nostrCalendarEventHref,
+  nostrCalendarsHref,
   nostrContactProfileHref,
   nostrFileDetailHref,
   nostrIndexHref,
@@ -58,6 +61,28 @@ describe('nostrNavigation', () => {
     expect(nostrBunkerConnectHref(NPUB, connectUri)).toStrictEqual({
       params: { connectUri, npub: NPUB },
       pathname: '/signer/nostr/account/[npub]/bunker'
+    })
+  })
+
+  it('links calendar routes, with optional edit params', () => {
+    const coordinate = `31923:${HEX_ID}:meetup`
+    expect(nostrCalendarEventHref(NPUB, coordinate)).toStrictEqual({
+      params: { coordinate, npub: NPUB },
+      pathname: '/signer/nostr/account/[npub]/calendar/event'
+    })
+    expect(nostrCalendarEditHref(NPUB)).toStrictEqual({
+      params: { npub: NPUB },
+      pathname: '/signer/nostr/account/[npub]/calendar/edit'
+    })
+    expect(
+      nostrCalendarEditHref(NPUB, { coordinate, date: '2026-11-20' })
+    ).toStrictEqual({
+      params: { coordinate, date: '2026-11-20', npub: NPUB },
+      pathname: '/signer/nostr/account/[npub]/calendar/edit'
+    })
+    expect(nostrCalendarsHref(NPUB)).toStrictEqual({
+      params: { npub: NPUB },
+      pathname: '/signer/nostr/account/[npub]/calendar/calendars'
     })
   })
 
