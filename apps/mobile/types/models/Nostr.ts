@@ -1,6 +1,19 @@
 import { z } from 'zod'
 
 import type { NostrAPI } from '@/api/nostr'
+import {
+  NOSTR_CHAT_AGENT_AMOUNT_MAX_SATS,
+  NOSTR_CHAT_AGENT_COST_MAX_SATS,
+  NOSTR_CHAT_AGENT_DURATION_MAX_MS,
+  NOSTR_CHAT_AGENT_ID_MAX,
+  NOSTR_CHAT_AGENT_MODELS_MAX,
+  NOSTR_CHAT_AGENT_NAME_MAX,
+  NOSTR_CHAT_AGENT_REQUESTS_MAX,
+  NOSTR_CHAT_AGENT_SCHEMA_VERSION,
+  NOSTR_CHAT_AGENT_THINKING_MAX,
+  NOSTR_CHAT_AGENT_TOKENS_MAX,
+  NOSTR_CHAT_AGENT_UNIT
+} from '@/constants/nostr'
 import type { Account } from '@/types/models/Account'
 
 // ─── Schemas ────────────────────────────────────────────────────────────────
@@ -555,7 +568,160 @@ export type ZapReceiptInfo = {
 
 export const NostrChatProtocolSchema = z.enum(['nip04', 'nip17'])
 
+/** A bad field is dropped instead of the whole document. */
+function lenient<T extends z.ZodType>(schema: T) {
+  return schema.optional().catch(undefined)
+}
+
+const agentId = z.string().min(1).max(NOSTR_CHAT_AGENT_ID_MAX)
+const agentName = z.string().min(1).max(NOSTR_CHAT_AGENT_NAME_MAX)
+const agentThinkingLevel = z.string().min(1).max(NOSTR_CHAT_AGENT_THINKING_MAX)
+const agentTokenCount = z
+  .number()
+  .int()
+  .nonnegative()
+  .max(NOSTR_CHAT_AGENT_TOKENS_MAX)
+const agentSats = z.number().nonnegative().max(NOSTR_CHAT_AGENT_AMOUNT_MAX_SATS)
+const agentVersion = z.literal(NOSTR_CHAT_AGENT_SCHEMA_VERSION)
+const agentUnit = z.literal(NOSTR_CHAT_AGENT_UNIT)
+
+const NostrChatAgentTokensSchema = z.object({
+  cacheRead: lenient(agentTokenCount),
+  cacheWrite: lenient(agentTokenCount),
+  input: lenient(agentTokenCount),
+  output: lenient(agentTokenCount)
+})
+
+/** `agent_cost` tag on an agent's reply: what that answer cost, in sats. */
+export const NostrChatAgentCostSchema = z.object({
+  amount: z.number().nonnegative().max(NOSTR_CHAT_AGENT_COST_MAX_SATS),
+  durationMs: lenient(
+    z.number().int().nonnegative().max(NOSTR_CHAT_AGENT_DURATION_MAX_MS)
+  ),
+  models: lenient(z.array(agentId).max(NOSTR_CHAT_AGENT_MODELS_MAX)),
+  /** Some requests could not be priced: `amount` is a lower bound. */
+  partial: lenient(z.literal(true)),
+  requests: z.number().int().min(1).max(NOSTR_CHAT_AGENT_REQUESTS_MAX),
+  tokens: lenient(NostrChatAgentTokensSchema),
+  unit: agentUnit,
+  v: agentVersion
+})
+
+/** `agent_model` tag on an agent's reply: the model that wrote it. */
+export const NostrChatAgentModelSchema = z.object({
+  id: agentId,
+  name: lenient(agentName),
+  provider: agentId,
+  thinkingLevel: lenient(agentThinkingLevel),
+  used: lenient(z.array(agentId).max(NOSTR_CHAT_AGENT_MODELS_MAX)),
+  v: agentVersion
+})
+
+const NostrChatSessionStateModelSchema = z.object({
+  id: agentId,
+  name: lenient(agentName),
+  provider: agentId,
+  reasoning: lenient(z.boolean()),
+  vision: lenient(z.boolean())
+})
+
+/**
+ * The agent's session state document (kind 30078, `d` nip17-session-state):
+ * what the agent runs on and what the session has cost. `agent` is the same
+ * in every session, `session` belongs to the one the document names.
+ */
+const NostrChatSessionStateFieldsSchema = z.object({
+  agent: lenient(
+    z.object({
+      balance: lenient(
+        z.object({
+          apiKeys: lenient(agentSats),
+          low: lenient(z.boolean()),
+          unit: agentUnit,
+          wallet: lenient(agentSats)
+        })
+      ),
+      name: lenient(agentName),
+      provider: lenient(agentId)
+    })
+  ),
+  session: lenient(
+    z.object({
+      busy: lenient(z.boolean()),
+      cacheHitRate: lenient(z.number().min(0).max(1)),
+      context: lenient(
+        z.object({
+          autoCompact: lenient(z.boolean()),
+          tokens: lenient(agentTokenCount),
+          window: lenient(agentTokenCount.positive())
+        })
+      ),
+      model: lenient(NostrChatSessionStateModelSchema),
+      /** One model setting serves every session of this agent. */
+      sharedModel: lenient(z.boolean()),
+      spent: lenient(
+        z.object({
+          amount: agentSats,
+          partial: lenient(z.literal(true)),
+          unit: agentUnit
+        })
+      ),
+      thinkingLevel: lenient(agentThinkingLevel),
+      tokens: lenient(NostrChatAgentTokensSchema)
+    })
+  ),
+  v: agentVersion
+})
+
+function readPath(value: unknown, path: string[]): unknown {
+  let current = value
+  for (const key of path) {
+    if (typeof current !== 'object' || current === null) {
+      return undefined
+    }
+    current = (current as Record<string, unknown>)[key]
+  }
+  return current
+}
+
+const UNIT_PATHS = [
+  ['agent', 'balance', 'unit'],
+  ['session', 'spent', 'unit']
+]
+
+/** An amount in a unit we don't know can't be dropped: it refuses the document. */
+function hasOnlyKnownUnits(value: unknown): boolean {
+  return UNIT_PATHS.every((path) => {
+    const unit = readPath(value, path)
+    return unit === undefined || unit === NOSTR_CHAT_AGENT_UNIT
+  })
+}
+
+/**
+ * The agent's session state document (kind 30078, `d` nip17-session-state).
+ * Units are checked before the lenient fields, so an unknown unit refuses the
+ * whole document instead of only dropping the amount.
+ */
+export const NostrChatSessionStateSchema = z
+  .unknown()
+  .refine(hasOnlyKnownUnits)
+  .pipe(NostrChatSessionStateFieldsSchema)
+
+export type NostrChatAgentCost = z.infer<typeof NostrChatAgentCostSchema>
+export type NostrChatAgentModel = z.infer<typeof NostrChatAgentModelSchema>
+export type NostrChatAgentTokens = z.infer<typeof NostrChatAgentTokensSchema>
+export type NostrChatSessionState = z.infer<typeof NostrChatSessionStateSchema>
+
+/** Newest session state document the peer sent for one session. */
+export type NostrChatStoredSessionState = {
+  state: NostrChatSessionState
+  /** Rumor created_at, unix seconds. */
+  updatedAt: number
+}
+
 export const NostrChatMessageSchema = z.object({
+  agentCost: NostrChatAgentCostSchema.optional(),
+  agentModel: NostrChatAgentModelSchema.optional(),
   content: z.string(),
   created_at: z.number(),
   direction: z.enum(['in', 'out']),
@@ -660,6 +826,8 @@ export type NostrChatGiftWrap = NostrChatEventRef & {
 }
 
 export type NostrChatThreadItem = {
+  /** What the peer's agent reported for this reply; only on its messages. */
+  agent?: Pick<NostrChatMessage, 'agentCost' | 'agentModel'>
   dm: NostrDM
   failed: boolean
   reactions: NostrChatReaction[]

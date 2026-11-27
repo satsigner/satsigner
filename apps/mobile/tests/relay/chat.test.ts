@@ -8,7 +8,11 @@ import {
   NOSTR_GIFT_WRAP_TIMESTAMP_JITTER_SEC
 } from '@/constants/nostr'
 import { MS_PER_SECOND } from '@/constants/time'
-import { listChatConversations, listChatThread } from '@/db/queries/nostrChat'
+import {
+  getChatSessionState,
+  listChatConversations,
+  listChatThread
+} from '@/db/queries/nostrChat'
 import {
   acquireChatPipeline,
   clearRecipientRelaysCache,
@@ -19,7 +23,11 @@ import {
 import type { ChatIdentity } from '@/utils/nostrChat'
 import { startChatSession } from '@/utils/nostrChatSessions'
 
-import { createTestIdentity, wrapChatMessage } from './support/identities'
+import {
+  createTestIdentity,
+  wrapChatMessage,
+  wrapRumor
+} from './support/identities'
 import type { TestIdentity } from './support/identities'
 import { resetNodeNitroSqlite } from './support/nodeNitroSqlite'
 import { startTestRelay } from './support/testRelay'
@@ -36,6 +44,8 @@ const REFUSED_CONNECT_WAIT_MS = 30_000
 const SCENARIO_TIMEOUT_MS = 60_000
 const SETTLE_MS = 500
 const NIP44_LAYERS_PER_WRAP = 2
+const CHAT_KIND = 14
+const APPLICATION_KIND = 30_078
 
 function nowSec() {
   return Math.floor(Date.now() / MS_PER_SECOND)
@@ -302,6 +312,85 @@ describe('chat pipeline against the test relay', () => {
           })
         ])
       )
+    },
+    SCENARIO_TIMEOUT_MS
+  )
+
+  it(
+    'stores what an agent reports for a session: reply cost and newest state',
+    async () => {
+      const user = createTestIdentity()
+      const agent = createTestIdentity()
+      const session = startChatSession(user.npub, agent.pubkey, 'Task')
+      const base = nowSec() - HISTORY_AGE_SEC
+      const sessionTags = [
+        ['p', user.pubkey],
+        ['session', session.sessionId]
+      ]
+      const stateTags = [['d', 'nip17-session-state'], ...sessionTags]
+      const cost = { amount: 272, requests: 9, unit: 'sat', v: 1 }
+      const model = { id: 'claude-opus-5.5', provider: 'routstr', v: 1 }
+      function stateDocument(spent: number) {
+        return JSON.stringify({
+          session: { model, spent: { amount: spent, unit: 'sat' } },
+          v: 1
+        })
+      }
+      relay().seed([
+        wrapRumor(agent, user, {
+          content: 'done',
+          createdAt: base,
+          kind: CHAT_KIND,
+          tags: [
+            ...sessionTags,
+            ['agent_cost', JSON.stringify(cost)],
+            ['agent_model', JSON.stringify(model)]
+          ]
+        }),
+        wrapRumor(agent, user, {
+          content: stateDocument(900),
+          createdAt: base + 2,
+          kind: APPLICATION_KIND,
+          tags: stateTags
+        }),
+        wrapRumor(agent, user, {
+          content: stateDocument(500),
+          createdAt: base + 1,
+          kind: APPLICATION_KIND,
+          tags: stateTags
+        })
+      ])
+
+      const lease = acquireChatPipeline(chatIdentity(user, [relay().url]))
+      await lease.ready
+      await waitFor(
+        () =>
+          getChatSessionState(
+            user.npub,
+            agent.pubkey,
+            session.sessionId,
+            agent.pubkey
+          ) !== null,
+        { label: 'session state stored', timeoutMs: CHAT_WAIT_MS }
+      )
+      await delay(SETTLE_MS)
+      lease.release()
+
+      expect(thread(user, agent, session.sessionId)).toMatchObject([
+        { agentCost: cost, agentModel: model, content: 'done' }
+      ])
+      expect(
+        getChatSessionState(
+          user.npub,
+          agent.pubkey,
+          session.sessionId,
+          agent.pubkey
+        )
+      ).toMatchObject({
+        state: { session: { spent: { amount: 900 } } },
+        updatedAt: base + 2
+      })
+      expect(listChatConversations(user.npub, 'nip17')).toHaveLength(1)
     },
     SCENARIO_TIMEOUT_MS
   )

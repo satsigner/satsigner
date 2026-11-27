@@ -502,6 +502,31 @@ export const NOSTR_CHAT_SESSION_ID_BYTES = 16
 export const NOSTR_CHAT_SESSION_ID_RE = /^[0-9a-f]{32}$/
 export const NOSTR_CHAT_SESSION_TITLE_MAX = 80
 export const NOSTR_CHAT_SESSIONS_PER_PEER_MAX = 50
+// What an agent peer (pi-nip17-bridge) reports: a cost and model tag on each
+// reply, and a session state document (NIP-78 kind 30078) that only ever
+// travels inside a gift wrap. Every value is untrusted peer input.
+export const NOSTR_CHAT_STATE_D_TAG = 'nip17-session-state'
+export const NOSTR_CHAT_AGENT_COST_TAG = 'agent_cost'
+export const NOSTR_CHAT_AGENT_MODEL_TAG = 'agent_model'
+export const NOSTR_CHAT_AGENT_SCHEMA_VERSION = 1
+export const NOSTR_CHAT_AGENT_UNIT = 'sat'
+export const NOSTR_CHAT_AGENT_TAG_MAX_BYTES = 2048
+export const NOSTR_CHAT_STATE_MAX_BYTES = 16_384
+export const NOSTR_CHAT_AGENT_ID_MAX = 80
+export const NOSTR_CHAT_AGENT_NAME_MAX = 120
+export const NOSTR_CHAT_AGENT_THINKING_MAX = 20
+export const NOSTR_CHAT_AGENT_MODELS_MAX = 5
+export const NOSTR_CHAT_AGENT_COST_MAX_SATS = 10_000_000
+export const NOSTR_CHAT_AGENT_AMOUNT_MAX_SATS = 2_100_000_000_000_000
+export const NOSTR_CHAT_AGENT_REQUESTS_MAX = 10_000
+export const NOSTR_CHAT_AGENT_TOKENS_MAX = 1_000_000_000_000
+export const NOSTR_CHAT_AGENT_DURATION_MAX_MS =
+  7 * SECONDS_PER_DAY * MS_PER_SECOND
+// A document dated further ahead would win newest-wins forever.
+export const NOSTR_CHAT_STATE_FUTURE_SKEW_SEC = 10 * SECONDS_PER_MINUTE
+export const NOSTR_CHAT_STATE_STALE_MS = 10 * SECONDS_PER_MINUTE * MS_PER_SECOND
+export const NOSTR_CHAT_CONTEXT_WARNING_RATIO = 0.7
+export const NOSTR_CHAT_CONTEXT_ERROR_RATIO = 0.9
 export const NOSTR_GIFT_WRAP_KEY_SALT = 'satsigner/nip59-wrap/v1'
 export const NOSTR_CHAT_POW_DEFAULT_MIN_INBOUND = 0
 export const NOSTR_CHAT_POW_MAX_MS = 30 * MS_PER_SECOND
