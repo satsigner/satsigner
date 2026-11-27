@@ -44,7 +44,9 @@ Current persistence inventory (`apps/mobile`):
 
 | Layer | Contents | Disposable? |
 |---|---|---|
-| `expo-secure-store` (`storage/encrypted.ts`) | PIN-encrypted key secrets, PIN digests/salts/KDF config; **ecash + ark mnemonics unencrypted** | Precious (secrets) |
+| `expo-secure-store` (`storage/encrypted.ts`) | PIN-encrypted key secrets, PIN digests/salts/KDF config (incl. duress `DURESS_PIN_KEY`, `DURESS_KDF_KEY`, `SALT_KEY_DURESS`); **ecash + ark mnemonics unencrypted** | Precious (secrets) |
+| `expo-secure-store` via `utils/nostrSecrets.ts` | Nostr secrets per identity and per account, PIN-encrypted (migrated out of MMKV/SQLite); plaintext copies cached in module Maps while unlocked | Precious (secrets) |
+| `expo-secure-store` via `utils/serviceSecrets.ts` | LND secrets, and RPC credentials per network (`BLOCKCHAIN_NETWORKS`, cleared by `deleteAllRpcCredentialsSafe`), PIN-encrypted (migrated out of MMKV); hydrated into zustand while unlocked | Precious (secrets) |
 | SQLite (`db/`) | accounts metadata, txs, utxos, addresses, labels, tags, nostr DMs/caches/relays, ark labels, **chat messages in plaintext** | Mixed: chain data disposable; labels/tags/DMs precious |
 | MMKV (`storage/mmkv.ts`) | zustand persist: settings, blockchain servers, tx-builder drafts (incl. **signed PSBT/tx hex**), ark/ecash stores (incl. **ecash proofs** — bearer tokens), **`energy.ts` RPC password in cleartext**, nostr cursors, payjoin sessions | Mixed |
 | Filesystem | BDK wallet `.sqlite` files, ark datadirs | Disposable |
@@ -95,8 +97,12 @@ Four sub-goals, mirroring the paper:
 ## 4. Non-goals
 
 - No changes to BDK, bark, or ecash SDK internals — we adapt at our boundary.
-- No new backup *format* — the existing full backup (`version: 1`) already
-  covers the precious set; we extend coverage, not redesign it.
+- No new backup *format* — the existing full backup (`version: 1`) is the
+  envelope; WS4 audits and extends its coverage without redesigning it. It
+  already carries keys, labels, ecash, Ark, Lightning, Nostr and RPC
+  settings, but not the global `tags` table (no restore handler either) and
+  only three of the persisted settings, so it does not yet cover the whole
+  precious set.
 - No firmware/hardware work (the paper's chapters 1–2 don't translate to a
   mobile app; the OS statelessness chapter does, mapped onto app state).
 - Not rewriting state management wholesale — zustand + MMKV + SQLite stay;
@@ -115,29 +121,60 @@ of every persistence slot the app uses, each entry:
   layer: 'secureStore' | 'mmkv' | 'sqlite' | 'filesystem',
   class: 'precious-secret' | 'precious-user' | 'disposable-cache',
   wipeStrategy: 'delete-key' | 'drop-rows' | 'delete-file' | 'rebuild',
+  // Which slice belongs to one account: a key per account, a row predicate
+  // on a shared SQLite table, or a path into a nested MMKV store.
+  accountScope:
+    | { kind: 'none' }
+    | { kind: 'key'; key: (accountId: string) => string }
+    | { kind: 'rows'; table: string; where: (accountId: string) => SQL }
+    | { kind: 'mmkvPath'; store: string; path: (accountId: string) => string[] },
+  location: 'device' | 'stick', // §6: duress/max-tries wipe 'device' only
   notes?: string,
 }
 ```
 
 Every existing store/mutation/storage call gets mapped. The registry is the
 paper's "well-defined locations" requirement made literal, and it drives
-WS1–WS3. Add a unit test that fails when a `setItem`/table/file write exists
-in the codebase with no registry entry (grep-based lint test, following the
-existing test setup) — this keeps the registry honest as the app grows.
+WS1–WS3. `wipeAppState` takes an explicit scope — `{ accounts: 'all' |
+string[], locations: ('device' | 'stick')[] }` — so per-account delete, the
+full wipe and the device-only duress wipe (E1/E2) are the same code over
+different selectors, not a reused full wipe.
+
+Registry coverage is enforced structurally, not by grep: a grep test misses
+writes through imported helpers, computed keys, SQL/ORM calls, native
+filesystem APIs and new storage wrappers. Instead:
+
+1. All writes go through registry-backed adapters (`storage/registered*.ts`
+   for SecureStore, MMKV, SQLite tables and files) that take a registry entry,
+   not a raw key.
+2. An oxlint/AST rule forbids importing the raw backends (`expo-secure-store`,
+   `react-native-mmkv`, the drizzle/SQLite handle, `expo-file-system`) outside
+   those adapters, with an explicit, reviewed allowlist.
+3. A unit test checks every registry entry has a wipe strategy and an
+   account scope, and every zustand `persist` name is registered.
 
 ### WS1 — One wipe to rule them all
 
 Implement `utils/wipeAppState.ts` as a pure function of the registry: for each
-entry, run its `wipeStrategy`, report per-entry success. Then:
+entry, run its `wipeStrategy`, report per-entry success, and return an
+aggregate result (`{ ok: boolean; failed: RegistryEntry[] }`). Required
+entries (every `precious-secret`, and every entry in scope for duress) make
+`ok` false when they fail. Then:
 
 1. Route **all three existing wipe paths** (duress, max-tries, developer
    clear) through it, deleting `utils/secureWipe.ts` duplication.
+   **Fail closed**: today the duress path catches wipe errors and then calls
+   `loadAuthenticatedSession()`. With `wipeAppState`, an incomplete wipe
+   (`ok: false`) never restores a session: retry the failed entries once,
+   then stay on the lock screen in the empty-state UI (indistinguishable
+   from a fresh install to an observer) and retry on the next launch.
 2. Fix the coverage gaps: max-tries must also delete BDK wallet files
    (`wallets/*.sqlite`) and the MMKV stores.
 3. Per-account delete becomes `wipeAppState(filter: byAccountId)` — same code,
    narrower scope.
 4. Integration test: seed the app with every state class, wipe, assert zero
    residue (SecureStore keys gone, SQLite rows gone, files gone, MMKV empty).
+   A second test injects a failing entry and asserts no session is restored.
 
 This is the paper's core UX promise: *"destroy the OS and reinstall in
 minutes with confidence that no user data was lost and no malware persists"* —
@@ -262,7 +299,8 @@ merges the other's data — no sync, no fallback-merge, no cross-references.
 - **Stick holds ciphertext only.** The vault is encrypted with its own
   passphrase (distinct from the device PIN) via the existing backup
   encryption path, upgraded from legacy PBKDF2-10k to the `pinKdf.ts`
-  preference order (WS2). A FAT32 stick is readable by anyone; a 4–6 digit
+  preference order. That upgrade is a WS2 deliverable and an acceptance
+  criterion for WS5: no vault ships on the legacy KDF. A FAT32 stick is readable by anyone; a 4–6 digit
   PIN does not brute-force-resist an offline attacker the way SecureStore
   hardware gating does. *Optional* hardening at enrollment: device key-split
   (vault key = HKDF(passphrase ∥ device share)) — ties the vault to this
@@ -278,9 +316,16 @@ merges the other's data — no sync, no fallback-merge, no cross-references.
   paper's spirit. (Also a correctness requirement: it is what makes
   single-world sessions airtight.)
 - **Writes follow the active world, never cross.** Stick session →
-  write-through to the stick, using the staging + atomic-replace pattern
-  already in `storage/arkDatadir.ts`, with a `.bak` rotation so a yanked
-  stick never leaves a half-written vault. A failed vault write fails the
+  write-through to the stick with a provider-specific atomic write: write
+  `vault.tmp` → fsync/verify read-back → rotate the current file to `.bak` →
+  rename `vault.tmp` into place. At every point either the primary or `.bak`
+  is a complete vault, so a yanked stick never leaves no valid vault.
+  `storage/arkDatadir.ts` is **not** that pattern: it deletes the target
+  before moving the staging directory and keeps no `.bak`, so an interruption
+  there can leave nothing; its tests only mock the call order. The vault
+  writer needs its own SAF and iOS document-provider implementations (rename
+  semantics differ per provider) and tests for replacement, durability,
+  interruption at each step, and recovery. A failed vault write fails the
   action with an error — it never falls through to device storage. Device
   session → device storage, as today.
 - **Multi-device**: the same stick works across phones because the vault is
@@ -336,8 +381,8 @@ readable right now; there is no attach event.
 
 | # | Scenario | Behavior |
 |---|---|---|
-| C1 | Mid-write | Atomic write: vault is old version or new version, never torn; the write call fails → the action errors; detach → lock. Next stick unlock runs vault verification (`.bak` recovery if needed) |
-| C2 | Mid-sign / mid-broadcast | Detach → immediate lock → session secrets cleared → pending broadcast aborted; draft lost (B5) |
+| C1 | Mid-write | Atomic write (§6.2, provider tests required): primary or `.bak` is always a complete old or new vault, never torn; the write call fails → the action errors; detach → lock. Next stick unlock runs vault verification (`.bak` recovery if needed) |
+| C2 | Mid-sign / mid-broadcast | Detach → immediate lock → session secrets cleared; draft lost (B5). Signing not yet broadcast is abandoned, but a broadcast in flight **cannot be retracted**: the tx may already be at a node. Its outcome is unknown, so the next stick session reconciles with the chain (the tx shows up on sync if it propagated) and tells the user to check before re-sending |
 | C3 | Idle, app in foreground | Detach broadcast → lock screen; world badge clears |
 | C4 | App backgrounded/unfocused | Detach recorded by the receiver; on next foreground → lock (the background timer usually locks first); next unlock probes fresh |
 | C5 | Phone locked / screen off | Nothing runs; next unlock probes fresh — stick gone → device session (today's UX) |
@@ -406,6 +451,12 @@ Every row above is a named integration test case; the mock vault layer
 - Authenticated encryption for the vault/backup payload (AES-GCM or
   CBC+HMAC) — a stick that leaves the user's possession needs tamper
   evidence, and current backup crypto has no MAC. Folded into WS2.
+- Backup compatibility comes first. Today the inner payload has `version: 1`
+  and the encrypted wrapper `v: 1` with only `cipher`, `iv` and `salt`;
+  neither names the KDF or cipher. Before changing either, WS2 defines a
+  wrapper `v: 2` that records `kdf` (with its parameters) and `cipher`/`mac`,
+  keeps reading `v: 1` as legacy (PBKDF2-10k, no MAC), and re-encrypts to
+  `v: 2` on the next write. Only `v: 2` files are accepted as a live vault.
 
 ### 6.5 Risks
 
@@ -501,9 +552,10 @@ background and quit.
 - **Encrypting ecash proofs** adds an unlock requirement to mint interactions;
   acceptable — proofs are bearer value and deserve key-material treatment.
 - **Backup = single artifact**: strengthening its role raises its blast
-  radius. Keep the optional passphrase encryption, and consider upgrading its
-  legacy PBKDF2-10k to the `pinKdf.ts` preference order (Argon2id → scrypt →
-  PBKDF2-600k) as a follow-up.
+  radius. Keep the optional passphrase encryption, but upgrade its legacy
+  PBKDF2-10k to the `pinKdf.ts` preference order (Argon2id → scrypt →
+  PBKDF2-600k) in WS2, before WS5. This KDF selection is a WS5 acceptance
+  criterion, not a follow-up.
 - **Scope discipline**: the paper tempts grand redesigns. Resist. The win is
   classification + one wipe + honest lifetimes, not a new architecture.
 
