@@ -1,9 +1,11 @@
 import { ScrollView, StyleSheet, useWindowDimensions } from 'react-native'
 
 import SSDetailRow from '@/components/SSDetailRow'
+import SSLoader from '@/components/SSLoader'
 import SSModal from '@/components/SSModal'
 import SSPressable from '@/components/SSPressable'
 import SSText from '@/components/SSText'
+import SSHStack from '@/layouts/SSHStack'
 import SSVStack from '@/layouts/SSVStack'
 import { t } from '@/locales'
 import { Colors } from '@/styles'
@@ -18,11 +20,20 @@ const STALE_OPACITY = 0.5
 const HIT_SLOP = 6
 /** Share of the screen the details may take; the close button stays below. */
 const SHEET_MAX_HEIGHT_RATIO = 0.6
+/** Small enough to sit beside the xxs line. */
+const BUSY_LOADER_SIZE = 16
 
 const TONE_STYLES: Record<ContextTone, { color: string } | undefined> = {
   error: { color: Colors.error },
   normal: undefined,
   warning: { color: Colors.warning }
+}
+
+/** The loader follows the line's colour: muted, or the context warning. */
+const TONE_LOADER_COLORS: Record<ContextTone, string> = {
+  error: Colors.error,
+  normal: Colors.gray[300],
+  warning: Colors.warning
 }
 
 type SSChatSessionStateLineProps = {
@@ -33,6 +44,7 @@ type SSChatSessionStateLineProps = {
 /**
  * One dim line under the session title: what the agent runs on, what the
  * session has cost and the balance left. Wraps to a second line when narrow.
+ * While the agent works, the app's loader animates in front of it.
  * A document with nothing for the line still has details, so the line falls
  * back to a label that opens them.
  */
@@ -45,21 +57,33 @@ function SSChatSessionStateLine({
   return (
     <SSPressable
       accessibilityRole="button"
-      accessibilityLabel={t('nostrIdentity.chat.agent.open')}
+      accessibilityLabel={
+        summary.busy
+          ? `${t('nostrIdentity.chat.agent.open')}, ${t('nostrIdentity.chat.agent.working')}`
+          : t('nostrIdentity.chat.agent.open')
+      }
       activeOpacity={PRESSED_OPACITY}
       hitSlop={HIT_SLOP}
       onPress={onPress}
       style={summary.stale ? styles.stale : undefined}
     >
-      <SSText
-        size="xxs"
-        color="muted"
-        numberOfLines={2}
-        center
-        style={TONE_STYLES[summary.contextTone]}
-      >
-        {summary.busy ? `● ${line}` : line}
-      </SSText>
+      <SSHStack gap="xs" style={styles.line}>
+        {summary.busy ? (
+          <SSLoader
+            size={BUSY_LOADER_SIZE}
+            color={TONE_LOADER_COLORS[summary.contextTone]}
+          />
+        ) : null}
+        <SSText
+          size="xxs"
+          color="muted"
+          numberOfLines={2}
+          center
+          style={[styles.lineText, TONE_STYLES[summary.contextTone]]}
+        >
+          {line}
+        </SSText>
+      </SSHStack>
     </SSPressable>
   )
 }
@@ -124,6 +148,12 @@ function SSChatSessionStateSheet({
 }
 
 const styles = StyleSheet.create({
+  line: {
+    justifyContent: 'center'
+  },
+  lineText: {
+    flexShrink: 1
+  },
   sheet: {
     alignSelf: 'stretch'
   },
